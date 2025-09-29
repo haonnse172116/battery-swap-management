@@ -1,11 +1,15 @@
 import { createBrowserRouter } from "react-router-dom";
 import Placeholder from "@/pages/PlaceHolder";
-import Home from "../pages/Home";
+import ContentError from "../components/common/ContentError";
+import DefaultLayout from "../components/layouts/DefaultLayout";
+import Landing from "../pages/Landing";
 
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <Home/>,
+    element: <DefaultLayout>
+        <Landing />
+      </DefaultLayout>,
   },
   {
     path: "/admin",
@@ -23,4 +27,8 @@ export const router = createBrowserRouter([
     path: "/login",
     element: <Placeholder title="Login Page" />,
   },
+  { 
+    path: "*",
+    element: <ContentError type="404" />,
+  }
 ]);
