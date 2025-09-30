@@ -34,7 +34,7 @@ export const router = createBrowserRouter([
     path: PATHS.ADMIN.ROOT,
     element: <AuthorizedLayout type='admin' />,
     children: [
-      { path: "dashboard", element: <Dashboard /> },
+      { path: PATHS.ADMIN.DASHBOARD, element: <Dashboard /> },
     ]
   }
   ,
