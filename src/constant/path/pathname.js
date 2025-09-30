@@ -8,10 +8,12 @@ export const PATHS = {
     ROOT: "/admin",
     DASHBOARD: "/admin/dashboard",
     USERS: {
+      ROOT: "/admin/users",
       LIST: "/admin/users/list",
       CREATE: "/admin/users/create",
     },
     SETTINGS: "/admin/settings",
+    PROFILE: "/admin/profile",
   },
   PUBLIC: {
     LANDING: "/",
@@ -31,6 +33,7 @@ export const PATHS = {
       CLASSIFY: "/staff/inventory/classify",
       QUANTITY: "/staff/inventory/quantity",
     },
+    PROFILE: "/staff/profile",
   },
   DRIVER:{
     ROOT: "/driver",

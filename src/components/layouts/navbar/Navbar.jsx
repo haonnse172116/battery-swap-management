@@ -5,8 +5,8 @@ import DropdownMenu from "../../common/DropdownMenu";
 
 const NAV_CONFIG = {
   admin: {
-    brand: "EV Battery Swap",
-    gradient: "from-blue-600 via-indigo-600 to-purple-600",
+    brand: "EV Admin",
+    gradient: "from-blue-600 via-blue-400 to-blue-500",
     menu: [
       { key: PATHS.ADMIN.DASHBOARD, label: "Dashboard" },
       {
@@ -28,7 +28,7 @@ const NAV_CONFIG = {
   },
   staff: {
     brand: "EV Staff",
-    gradient: "from-green-600 via-emerald-600 to-teal-600",
+    gradient: "from-blue-600 via-blue-400 to-blue-500",
     menu: [
       {
         key: PATHS.STAFF.SWAP.ROOT,
@@ -49,12 +49,16 @@ const NAV_CONFIG = {
         ],
       },
     ],
-    home: PATHS.STAFF.SWAP.ROOT,
-    showUser: false,
+     userMenu: [
+      { key: PATHS.STAFF.PROFILE, label: "Profile" },
+      { key: "logout", label: "Logout" },
+    ],
+    home: PATHS.STAFF.SWAP.HOME,
+    showUser: true,
   },
   driver: {
     brand: "EV Driver",
-    gradient: "from-blue-600 via-indigo-600 to-purple-600",
+    gradient: "from-indigo-600 via-blue-400 to-blue-500",
     menu: [
       { key: PATHS.DRIVER.HOME, label: "Home" },
       { key: PATHS.DRIVER.MYCAR, label: "My Car" },
@@ -62,8 +66,12 @@ const NAV_CONFIG = {
       { key: PATHS.DRIVER.SUBSCRIPTION, label: "Subscription" },
       { key: PATHS.DRIVER.PROFILE, label: "Profile" },
     ],
+     userMenu: [
+      { key: PATHS.DRIVER.PROFILE, label: "Profile" },
+      { key: "logout", label: "Logout" },
+    ],
     home: PATHS.DRIVER.HOME,
-    showUser: false,
+    showUser: true,
   },
 };
 
@@ -160,7 +168,7 @@ const Navbar = ({ type }) => {
       </div>
 
       {/* Mobile menu */}
-      {mobileOpen && (
+       {mobileOpen && (
         <div className={`md:hidden border-t border-white/30 bg-gradient-to-r ${config.gradient}`}>
           <div className="px-4 py-3 space-y-1">
             {config.menu.map((item) =>
@@ -177,11 +185,12 @@ const Navbar = ({ type }) => {
                       <button
                         key={child.key}
                         onClick={() => handleItemClick(child)}
-                        className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium ${
-                          isActive(child.key)
-                            ? "bg-white/20 text-white"
-                            : "text-white/80 hover:bg-white/10 hover:text-white"
-                        }`}
+                        className={`relative w-full text-left px-3 py-2 rounded-md text-sm font-medium
+                          ${isActive(child.key)
+                            ? "bg-white/20 text-white after:absolute after:left-0 after:-bottom-1 after:w-full after:h-0.5 after:bg-white after:rounded-full"
+                            : "text-white/80 hover:bg-white/10 hover:text-white"}
+                        `}
+                        style={{ overflow: "visible" }}
                       >
                         {child.label}
                       </button>
@@ -192,15 +201,30 @@ const Navbar = ({ type }) => {
                 <button
                   key={item.key}
                   onClick={() => handleItemClick(item)}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium ${
-                    isActive(item.key)
-                      ? "bg-white/20 text-white"
-                      : "text-white/80 hover:bg-white/10 hover:text-white"
-                  }`}
+                  className={`relative w-full text-left px-3 py-2 rounded-md text-sm font-medium
+                    ${isActive(item.key)
+                      ? "bg-white/20 text-white after:absolute after:left-0 after:-bottom-1 after:w-full after:h-0.5 after:bg-white after:rounded-full"
+                      : "text-white/80 hover:bg-white/10 hover:text-white"}
+                  `}
+                  style={{ overflow: "visible" }}
                 >
                   {item.label}
                 </button>
               )
+            )}
+            <hr className="my-2 border-blue-100" />
+            {config.showUser && (
+              <>
+                {config.userMenu.map((u) => (
+                  <button
+                    key={u.key}
+                    onClick={() => handleItemClick(u)}
+                    className="w-full text-left px-3 py-2 rounded-md text-sm text-white/80 hover:bg-white/10 hover:text-white"
+                  >
+                    {u.label}
+                  </button>
+                ))}
+              </>
             )}
           </div>
         </div>
