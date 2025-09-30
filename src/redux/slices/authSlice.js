@@ -1,21 +1,23 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  count: 0,
+  accessToken: null,
+  role: null,
+  user: null,
 };
 
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    increment: (state) => {
-      state.count += 1;
+    setCredentials: (state, { payload }) => {
+      state.accessToken = payload.tokenResponse.accessToken;
+      state.role = payload.tokenResponse.user.role;
+      state.user = payload.tokenResponse.user;
     },
-    decrement: (state) => {
-      state.count -= 1;
-    },
+    logout: () => initialState,
   },
 });
 
-export const { increment, decrement } = authSlice.actions;
+export const { setCredentials, logout } = authSlice.actions;
 export default authSlice.reducer;

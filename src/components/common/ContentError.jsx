@@ -3,48 +3,18 @@ import { useNavigate } from 'react-router-dom';
 
 const ICONS = {
   '403': (
-    <svg
-      className="w-16 h-16 text-yellow-500"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"
-      />
+    <svg className="w-16 h-16 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
     </svg>
   ),
   '404': (
-    <svg
-      className="w-16 h-16 text-blue-500"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"
-      />
+    <svg className="w-16 h-16 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
     </svg>
   ),
   error: (
-    <svg
-      className="w-16 h-16 text-red-500"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"
-      />
+    <svg className="w-16 h-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
     </svg>
   ),
 };
@@ -98,7 +68,7 @@ const ContentError = ({ type, error, onRetry, title, subTitle }) => {
     if (errorType === 'api' && onRetry) {
       return (
         <button
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+          className="px-4 py-2 bg-blue-600 text-white rounded-full shadow hover:bg-blue-700 transition"
           onClick={onRetry}
         >
           Thử lại
@@ -107,7 +77,7 @@ const ContentError = ({ type, error, onRetry, title, subTitle }) => {
     }
     return (
       <button
-        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+        className="px-4 py-2 bg-blue-600 text-white rounded-full shadow hover:bg-blue-700 transition"
         onClick={() => navigate('/')}
       >
         Trang chủ
@@ -116,11 +86,15 @@ const ContentError = ({ type, error, onRetry, title, subTitle }) => {
   };
 
   return (
-    <div className="flex justify-center items-center h-full w-full">
-      <div className="w-full max-w-md bg-white rounded-lg shadow p-8 flex flex-col items-center">
+    <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-blue-50 to-blue-500 overflow-hidden">
+      {/* Accent background */}
+      <div className="pointer-events-none absolute inset-0 -z-10 opacity-70
+        bg-[radial-gradient(800px_400px_at_15%_25%,rgba(59,130,246,0.18),transparent_60%),radial-gradient(600px_300px_at_85%_75%,rgba(29,78,216,0.30),transparent_60%)]" />
+
+      <div className="bg-white/80 backdrop-blur-md shadow-2xl rounded-2xl p-8 w-full max-w-md mx-auto border border-blue-100 flex flex-col items-center">
         {getStatusIcon()}
-        <h2 className="mt-4 text-2xl font-bold">{errorTitle}</h2>
-        <p className="mt-2 text-gray-600 text-center">{errorSubTitle}</p>
+        <h2 className="mt-4 text-2xl font-bold text-blue-700">{errorTitle}</h2>
+        <p className="mt-2 text-gray-700 text-center">{errorSubTitle}</p>
         <div className="mt-6">{renderActions()}</div>
       </div>
     </div>
