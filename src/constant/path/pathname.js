@@ -14,7 +14,7 @@ export const PATHS = {
     SETTINGS: "/admin/settings",
   },
   PUBLIC: {
-    HOME: "/",
+    LANDING: "/",
     ABOUT: "/about",
   },
   STAFF:{
@@ -31,5 +31,13 @@ export const PATHS = {
       CLASSIFY: "/staff/inventory/classify",
       QUANTITY: "/staff/inventory/quantity",
     },
+  },
+  DRIVER:{
+    ROOT: "/driver",
+    HOME: "/driver/home",
+    MYCAR: "/driver/mycar",
+    BOOKING: "/driver/booking",
+    SUBSCRIPTION: "/driver/subscription",
+    PROFILE: "/driver/profile",
   }
 };

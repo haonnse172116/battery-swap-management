@@ -1,51 +1,50 @@
 import { createBrowserRouter } from "react-router-dom";
-import Placeholder from "@/pages/PlaceHolder";
 import ContentError from "../components/common/ContentError";
 import Landing from "../pages/Landing";
-import AdminLayout from "../components/layouts/AdminLayout";
 import Dashboard from "../pages/admin/dashboard";
 import DefaultLayout from "../components/layouts/DefaultLayout";
-import StaffLayout from "../components/layouts/StaffLayout";
 import Login from "../pages/auth/login";
 import Register from "../pages/auth/register";
+import { PATHS } from "../constant/path/pathname";
+import AuthorizedLayout from "../components/layouts/AuthorizedLayout";
 
 export const router = createBrowserRouter([
   {
-    path: "/",
+    path: PATHS.PUBLIC.LANDING,
     element: 
     <DefaultLayout>
       <Landing />
     </DefaultLayout>,
   },
    {
-    path: '/login',
+    path: PATHS.AUTH.LOGIN,
     element: 
     <DefaultLayout>
      <Login />
     </DefaultLayout>,
   },
   {
-    path: "/register",
+    path: PATHS.AUTH.REGISTER,
     element: 
     <DefaultLayout>
      <Register />
     </DefaultLayout>,
   },
   {
-    path: "/admin",
-    element: <AdminLayout />,
+    path: PATHS.ADMIN.ROOT,
+    element: <AuthorizedLayout type='admin' />,
     children: [
       { path: "dashboard", element: <Dashboard /> },
     ]
   }
   ,
   {
-    path: "/driver",
-    element: <Placeholder title="Driver Page" />,
+    path: PATHS.DRIVER.ROOT,
+    element: <AuthorizedLayout type='driver' />,
   },
   {
-    path: "/staff",
-    element:  <StaffLayout />,
+    path: PATHS.STAFF.ROOT,
+    element:  <AuthorizedLayout type='staff' />,
   },
   {
     path: "*",

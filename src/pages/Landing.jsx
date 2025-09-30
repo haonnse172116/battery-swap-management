@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { PATHS } from "../constant/path/pathname";
 
 function Landing() {
   const [animate, setAnimate] = useState(false);
@@ -10,11 +11,11 @@ function Landing() {
   }, []);
 
   const handleRegister = () => {
-    navigate("/register");
+    navigate(PATHS.AUTH.REGISTER);
   };
 
   const handleLogin = () => {
-    navigate("/login");
+    navigate(PATHS.AUTH.LOGIN);
   };
 
   return (
@@ -136,7 +137,7 @@ function Landing() {
             Đăng ký ngay để là một trong những người đầu tiên trải nghiệm trạm
             đổi pin VinFast.
           </p>
-          <button className="px-8 py-3 rounded-full bg-white text-blue-700 font-medium shadow hover:bg-gray-200 transition">
+          <button onClick={handleRegister} className="px-8 py-3 rounded-full bg-white text-blue-700 font-medium shadow hover:bg-gray-200 transition">
             Đăng ký ngay
           </button>
         </div>
