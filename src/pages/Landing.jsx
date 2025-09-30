@@ -1,11 +1,21 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Landing() {
   const [animate, setAnimate] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setTimeout(() => setAnimate(true), 100);
   }, []);
+
+  const handleRegister = () => {
+    navigate("/register");
+  };
+
+  const handleLogin = () => {
+    navigate("/login");
+  };
 
   return (
     <div className="w-full flex flex-col">
@@ -44,11 +54,17 @@ function Landing() {
               animate ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
             }`}
           >
-            <button className="px-8 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg transition">
-              Đăng ký trải nghiệm
+            <button
+              onClick={handleRegister}
+              className="px-8 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg transition"
+            >
+              Đăng ký 
             </button>
-            <button className="px-8 py-3 rounded-full bg-white text-slate-900 font-medium shadow hover:bg-gray-100 transition">
-              Tìm hiểu thêm
+            <button
+              onClick={handleLogin}
+              className="px-8 py-3 rounded-full bg-white text-slate-900 font-medium shadow hover:bg-gray-100 transition"
+            >
+              Đăng nhập
             </button>
           </div>
         </div>
