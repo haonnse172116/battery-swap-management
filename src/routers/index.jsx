@@ -7,6 +7,7 @@ import Login from "../pages/auth/login";
 import Register from "../pages/auth/register";
 import { PATHS } from "../constant/path/pathname";
 import AuthorizedLayout from "../components/layouts/AuthorizedLayout";
+import DriverHome from "../pages/driver/home";
 
 export const router = createBrowserRouter([
   {
@@ -41,6 +42,9 @@ export const router = createBrowserRouter([
   {
     path: PATHS.DRIVER.ROOT,
     element: <AuthorizedLayout type='driver' />,
+    children: [
+      { path: PATHS.DRIVER.HOME, element: <DriverHome /> },
+    ]
   },
   {
     path: PATHS.STAFF.ROOT,

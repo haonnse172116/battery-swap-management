@@ -31,11 +31,11 @@ function Login() {
     } else if (form.username === "staff") {
       const token = btoa(JSON.stringify({ role: "staff" }));
       localStorage.setItem("accessToken", token);
-      navigate(PATHS.STAFF.SWAP.ROOT);
-    } else if (form.username === "customer") {
-      const token = btoa(JSON.stringify({ role: "customer" }));
+      navigate(PATHS.STAFF.SWAP.HOME);
+    } else if (form.username === "driver") {
+      const token = btoa(JSON.stringify({ role: "driver" }));
       localStorage.setItem("accessToken", token);
-      navigate(PATHS.CUSTOMER.HOME);
+      navigate(PATHS.DRIVER.HOME);
     } else {
       setError("Sai tài khoản hoặc mật khẩu!");
     }
