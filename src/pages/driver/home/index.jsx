@@ -5,11 +5,7 @@ function DriverHome() {
   const navigate = useNavigate();
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-white via-blue-50 to-blue-500 overflow-hidden px-4">
-      {/* Accent background */}
-      <div className="pointer-events-none absolute inset-0 -z-10 opacity-70
-        bg-[radial-gradient(800px_400px_at_15%_25%,rgba(59,130,246,0.18),transparent_60%),radial-gradient(600px_300px_at_85%_75%,rgba(29,78,216,0.30),transparent_60%)]" />
-
+    <div className="relative min-h-screen flex flex-col items-center justify-center">
       <img
         src="/battery-pack-default.png"
         alt="Battery Icon"
