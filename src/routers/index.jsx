@@ -8,6 +8,7 @@ import Register from "../pages/auth/register";
 import { PATHS } from "../constant/path/pathname";
 import AuthorizedLayout from "../components/layouts/AuthorizedLayout";
 import DriverHome from "../pages/driver/home";
+import MyCar from "../pages/driver/mycar";
 
 export const router = createBrowserRouter([
   {
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
     element: <AuthorizedLayout type='driver' />,
     children: [
       { path: PATHS.DRIVER.HOME, element: <DriverHome /> },
+      { path: PATHS.DRIVER.MYCAR, element: <MyCar /> }
     ]
   },
   {

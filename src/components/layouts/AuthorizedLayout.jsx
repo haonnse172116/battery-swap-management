@@ -44,14 +44,14 @@ const AuthorizedLayoutContent = ({ children, type }) => {
           </main>
         </>
       ) : (    
-        <div className="flex min-h-screen bg-gradient-to-br from-white via-blue-50 to-blue-500 overflow-hidden px-4">
+        <div className="flex min-h-screen bg-gradient-to-br from-white via-blue-50 to-blue-500 overflow-hidden">
           <Sidebar type={type} />
           <main
             style={{
               marginLeft: collapsed ? "80px" : "256px",
               transition: "margin-left 0.3s ease-in-out",
             }}
-            className="flex-1 h-screen overflow-auto"
+  className="flex-1 px-10 py-3 h-screen overflow-y-auto"
           >
             {children ?? <Outlet />}
           </main>
