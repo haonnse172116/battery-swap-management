@@ -19,23 +19,24 @@ export const PATHS = {
     LANDING: "/",
     ABOUT: "/about",
   },
-  STAFF:{
+  STAFF: {
     ROOT: "/staff",
+    DASHBOARD: "/staff/dashboard",
     SWAP: {
-      HOME: "/staff/swap",
+      // HOME: "/staff/swap",
+      CONFIRM: "/staff/swap/confirm",
       PAYMENT: "/staff/swap/payment",
       HISTORY: "/staff/swap/history",
-      RETURN: "/staff/swap/return",
-      CONFIRM: "/staff/swap/confirm",
+      // RETURN: "/staff/swap/return",
     },
     INVENTORY: {
       ROOT: "/staff/inventory",
-      CLASSIFY: "/staff/inventory/classify",
-      QUANTITY: "/staff/inventory/quantity",
+      LIST: "/staff/inventory/battery-list",
+      STATUS: "/staff/inventory/battery-status",
     },
     PROFILE: "/staff/profile",
   },
-  DRIVER:{
+  DRIVER: {
     ROOT: "/driver",
     HOME: "/driver/home",
     MYCAR: "/driver/mycar",

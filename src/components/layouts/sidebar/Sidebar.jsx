@@ -39,12 +39,17 @@ const Sidebar = ({ type }) => {
         },
         { key: PATHS.ADMIN.SETTINGS, label: "Cài đặt", icon: Cog6ToothIcon },
       ],
+      userMenu: [
+        { key: "logout", label: "Logout", icon: ArrowLeftStartOnRectangleIcon },
+      ],
       home: PATHS.ADMIN.DASHBOARD,
+      showUser: true,
     },
     staff: {
       brand: "EV Staff",
       gradient: "from-blue-600 to-blue-400",
       menu: [
+        { key: PATHS.STAFF.DASHBOARD, label: "Dashboard", icon: Squares2X2Icon },
         {
           key: "swap",
           label: "Swap Transaction",
@@ -61,12 +66,16 @@ const Sidebar = ({ type }) => {
           label: "Battery Inventory",
           icon: ClipboardDocumentListIcon,
           children: [
-            { key: PATHS.STAFF.INVENTORY.CLASSIFY, label: "Classify Battery" },
-            { key: PATHS.STAFF.INVENTORY.QUANTITY, label: "Track Quantity" },
+            { key: PATHS.STAFF.INVENTORY.LIST, label: "Danh sách pin" },
+            { key: PATHS.STAFF.INVENTORY.STATUS, label: "Quản lý tình trạng" },
           ],
         },
       ],
-      home: PATHS.STAFF.SWAP.HOME,
+      userMenu: [
+        { key: "logout", label: "Logout", icon: ArrowLeftStartOnRectangleIcon },
+      ],
+      home: PATHS.STAFF.DASHBOARD,
+      showUser: true,
     },
     driver: {
       brand: "EV Driver",
@@ -103,9 +112,8 @@ const Sidebar = ({ type }) => {
       {/* Overlay for mobile */}
       <div
         onClick={() => setMobileOpen(false)}
-        className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 md:hidden ${
-          mobileOpen ? "opacity-100 visible" : "opacity-0 invisible"
-        }`}
+        className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 md:hidden ${mobileOpen ? "opacity-100 visible" : "opacity-0 invisible"
+          }`}
       />
 
       {/* Sidebar */}
@@ -115,8 +123,7 @@ const Sidebar = ({ type }) => {
           transition: "width 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
         className={`fixed top-0 left-0 z-50 h-screen bg-gradient-to-b ${config.gradient} text-white flex flex-col 
-          transition-transform duration-300 md:translate-x-0 ${
-            mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          transition-transform duration-300 md:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           }`}
       >
         {/* Header */}
@@ -130,11 +137,10 @@ const Sidebar = ({ type }) => {
             className="text-left hover:text-white/90 transition"
           >
             <span
-              className={`whitespace-nowrap inline-block overflow-hidden transition-[max-width,opacity,transform] duration-300 ease-in-out ${
-                collapsed
-                  ? "max-w-0 opacity-0 -translate-x-2"
-                  : "max-w-[160px] opacity-100 translate-x-0"
-              }`}
+              className={`whitespace-nowrap inline-block overflow-hidden transition-[max-width,opacity,transform] duration-300 ease-in-out ${collapsed
+                ? "max-w-0 opacity-0 -translate-x-2"
+                : "max-w-[160px] opacity-100 translate-x-0"
+                }`}
             >
               {config.brand}
             </span>
@@ -169,11 +175,10 @@ const Sidebar = ({ type }) => {
                 >
                   {Icon && <Icon className="w-5 h-5 flex-shrink-0" />}
                   <span
-                    className={`whitespace-nowrap inline-block overflow-hidden transition-[max-width,opacity,transform] duration-300 ease-in-out ${
-                      collapsed
-                        ? "max-w-0 opacity-0 -translate-x-2"
-                        : "max-w-[160px] opacity-100 translate-x-0"
-                    }`}
+                    className={`whitespace-nowrap inline-block overflow-hidden transition-[max-width,opacity,transform] duration-300 ease-in-out ${collapsed
+                      ? "max-w-0 opacity-0 -translate-x-2"
+                      : "max-w-[160px] opacity-100 translate-x-0"
+                      }`}
                   >
                     {item.label}
                   </span>
@@ -189,10 +194,9 @@ const Sidebar = ({ type }) => {
                         key={child.key}
                         onClick={() => handleItemClick(child)}
                         className={`block w-full text-left px-3 py-2 rounded-md text-sm transition
-                          ${
-                            isActive(child.key)
-                              ? "bg-white/30 text-white"
-                              : "text-white/80 hover:bg-white/10 hover:text-white"
+                          ${isActive(child.key)
+                            ? "bg-white/30 text-white"
+                            : "text-white/80 hover:bg-white/10 hover:text-white"
                           }`}
                       >
                         {child.label}
@@ -225,11 +229,10 @@ const Sidebar = ({ type }) => {
                       >
                         {Icon && <Icon className="w-5 h-5" />}
                         <span
-                          className={`whitespace-nowrap inline-block overflow-hidden transition-[max-width,opacity,transform] duration-300 ease-in-out ${
-                            collapsed
-                              ? "max-w-0 opacity-0 -translate-x-2"
-                              : "max-w-[160px] opacity-100 translate-x-0"
-                          }`}
+                          className={`whitespace-nowrap inline-block overflow-hidden transition-[max-width,opacity,transform] duration-300 ease-in-out ${collapsed
+                            ? "max-w-0 opacity-0 -translate-x-2"
+                            : "max-w-[160px] opacity-100 translate-x-0"
+                            }`}
                         >
                           {item.label}
                         </span>
@@ -239,11 +242,10 @@ const Sidebar = ({ type }) => {
                 </div>
               )}
               <div
-                className={`mt-3 text-xs text-white/60 overflow-hidden inline-block transition-[max-width,opacity,transform] duration-300 ease-in-out ${
-                  collapsed
-                    ? "max-w-0 opacity-0 -translate-x-2"
-                    : "max-w-[160px] opacity-100 translate-x-0"
-                }`}
+                className={`mt-3 text-xs text-white/60 overflow-hidden inline-block transition-[max-width,opacity,transform] duration-300 ease-in-out ${collapsed
+                  ? "max-w-0 opacity-0 -translate-x-2"
+                  : "max-w-[160px] opacity-100 translate-x-0"
+                  }`}
               >
                 EV Management System
               </div>
