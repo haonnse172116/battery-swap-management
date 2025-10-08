@@ -9,15 +9,12 @@ import { PATHS } from "../constant/path/pathname";
 import AuthorizedLayout from "../components/layouts/AuthorizedLayout";
 import DriverHome from "../pages/driver/home";
 import MyCar from "../pages/driver/mycar";
-<<<<<<< HEAD
 import StaffDashboard from "../pages/staff/dashboard";
 import StaffSwapConfirm from "../pages/staff/swapConfirm";
 import StaffTransactionHistory from "../pages/staff/transactionHistory";
 import StaffTransactionConfirm from "../pages/staff/transactionConfirm";
 import BatteryInventory  from "../pages/staff/batteryInventory";
 import BatteryStatus from "../pages/staff/batteryStatus";
-=======
->>>>>>> dev
 
 export const router = createBrowserRouter([
   {
@@ -60,7 +57,6 @@ export const router = createBrowserRouter([
   {
     path: PATHS.STAFF.ROOT,
     element:  <AuthorizedLayout type='staff' />,
-<<<<<<< HEAD
     children:  [
       {path: PATHS.STAFF.DASHBOARD, element: <StaffDashboard title='Staff Dashboard'/>},
       {path: PATHS.STAFF.SWAP.CONFIRM, element: <StaffSwapConfirm title='Staff Swap Confirm'/>},
@@ -69,8 +65,6 @@ export const router = createBrowserRouter([
       {path: PATHS.STAFF.INVENTORY.LIST, element: <BatteryInventory title='Staff battery store'/>},
       {path: PATHS.STAFF.INVENTORY.STATUS, element: <BatteryStatus title='Staff battery status'/>},
     ]
-=======
->>>>>>> dev
   },
   {
     path: "*",
