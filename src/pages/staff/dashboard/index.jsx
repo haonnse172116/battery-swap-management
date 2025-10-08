@@ -1,7 +1,6 @@
-import React from 'react'
 
-export default function Staff_D() {
+export default function StaffDashboard() {
   return (
-    <div>Staff_D</div>
+    <div>This is staff dashboard here</div>
   )
 }
