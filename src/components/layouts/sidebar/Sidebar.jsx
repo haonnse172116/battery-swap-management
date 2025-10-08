@@ -49,21 +49,20 @@ const Sidebar = ({ type }) => {
       brand: "EV Staff",
       gradient: "from-blue-600 to-blue-400",
       menu: [
-        { key: PATHS.STAFF.DASHBOARD, label: "Thống kê", icon: Squares2X2Icon },
         {
           key: "swap",
-          label: "Quản lý giao dịch đổi pin",
+          label: "Swap Transaction",
           icon: Battery100Icon,
           children: [
-            { key: PATHS.STAFF.SWAP.CONFIRM, label: "Yêu cầu đổi pin" },
-            { key: PATHS.STAFF.SWAP.PAYMENT, label: "Yêu cầu giao dịch" },
-            { key: PATHS.STAFF.SWAP.HISTORY, label: "Lịch sử giao dịch" },
-            // { key: PATHS.STAFF.SWAP.RETURN, label: "Returned Battery" },
+            { key: PATHS.STAFF.SWAP.PAYMENT, label: "Record Payment" },
+            { key: PATHS.STAFF.SWAP.HISTORY, label: "Transaction History" },
+            { key: PATHS.STAFF.SWAP.RETURN, label: "Returned Battery" },
+            { key: PATHS.STAFF.SWAP.CONFIRM, label: "Confirm Swap" },
           ],
         },
         {
           key: "inventory",
-          label: "Quản lý kho pin",
+          label: "Battery Inventory",
           icon: ClipboardDocumentListIcon,
           children: [
             { key: PATHS.STAFF.INVENTORY.LIST, label: "Danh sách pin" },
@@ -112,8 +111,9 @@ const Sidebar = ({ type }) => {
       {/* Overlay for mobile */}
       <div
         onClick={() => setMobileOpen(false)}
-        className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 md:hidden ${mobileOpen ? "opacity-100 visible" : "opacity-0 invisible"
-          }`}
+        className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 md:hidden ${
+          mobileOpen ? "opacity-100 visible" : "opacity-0 invisible"
+        }`}
       />
 
       {/* Sidebar */}
@@ -123,7 +123,8 @@ const Sidebar = ({ type }) => {
           transition: "width 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
         className={`fixed top-0 left-0 z-50 h-screen bg-gradient-to-b ${config.gradient} text-white flex flex-col 
-          transition-transform duration-300 md:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          transition-transform duration-300 md:translate-x-0 ${
+            mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           }`}
       >
         {/* Header */}
@@ -194,9 +195,10 @@ const Sidebar = ({ type }) => {
                         key={child.key}
                         onClick={() => handleItemClick(child)}
                         className={`block w-full text-left px-3 py-2 rounded-md text-sm transition
-                          ${isActive(child.key)
-                            ? "bg-white/30 text-white"
-                            : "text-white/80 hover:bg-white/10 hover:text-white"
+                          ${
+                            isActive(child.key)
+                              ? "bg-white/30 text-white"
+                              : "text-white/80 hover:bg-white/10 hover:text-white"
                           }`}
                       >
                         {child.label}

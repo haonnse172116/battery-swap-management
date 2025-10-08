@@ -31,7 +31,7 @@ function Login() {
     } else if (form.username === "staff") {
       const token = btoa(JSON.stringify({ role: "staff" }));
       localStorage.setItem("accessToken", token);
-      navigate(PATHS.STAFF.DASHBOARD);
+      navigate(PATHS.STAFF.SWAP.HOME);
     } else if (form.username === "driver") {
       const token = btoa(JSON.stringify({ role: "driver" }));
       localStorage.setItem("accessToken", token);
