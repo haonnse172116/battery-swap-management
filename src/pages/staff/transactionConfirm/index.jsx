@@ -1,4 +1,5 @@
-function StaffSwapConfirm({ title }) {
+
+function StaffTransactionConfirm({ title }) {
   return (
     <div style={{ textAlign: "center", fontSize: 20, marginTop: 40 }}>
       {title}
@@ -6,4 +7,4 @@ function StaffSwapConfirm({ title }) {
   );
 }
 
-export default StaffSwapConfirm;
+export default StaffTransactionConfirm;

@@ -1,4 +1,4 @@
-function StaffSwapConfirm({ title }) {
+function BatteryStatus({ title }) {
   return (
     <div style={{ textAlign: "center", fontSize: 20, marginTop: 40 }}>
       {title}
@@ -6,4 +6,4 @@ function StaffSwapConfirm({ title }) {
   );
 }
 
-export default StaffSwapConfirm;
+export default BatteryStatus;

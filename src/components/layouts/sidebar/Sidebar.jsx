@@ -39,7 +39,11 @@ const Sidebar = ({ type }) => {
         },
         { key: PATHS.ADMIN.SETTINGS, label: "Cài đặt", icon: Cog6ToothIcon },
       ],
+      userMenu: [
+        { key: "logout", label: "Logout", icon: ArrowLeftStartOnRectangleIcon },
+      ],
       home: PATHS.ADMIN.DASHBOARD,
+      showUser: true,
     },
     staff: {
       brand: "EV Staff",
@@ -62,12 +66,16 @@ const Sidebar = ({ type }) => {
           label: "Quản lý kho pin",
           icon: ClipboardDocumentListIcon,
           children: [
-            { key: PATHS.STAFF.INVENTORY.CLASSIFY, label: "Danh sách pin" },
-            { key: PATHS.STAFF.INVENTORY.QUANTITY, label: "Quản lý tình trạng" },
+            { key: PATHS.STAFF.INVENTORY.LIST, label: "Danh sách pin" },
+            { key: PATHS.STAFF.INVENTORY.STATUS, label: "Quản lý tình trạng" },
           ],
         },
       ],
+      userMenu: [
+        { key: "logout", label: "Logout", icon: ArrowLeftStartOnRectangleIcon },
+      ],
       home: PATHS.STAFF.DASHBOARD,
+      showUser: true,
     },
     driver: {
       brand: "EV Driver",
@@ -130,8 +138,8 @@ const Sidebar = ({ type }) => {
           >
             <span
               className={`whitespace-nowrap inline-block overflow-hidden transition-[max-width,opacity,transform] duration-300 ease-in-out ${collapsed
-                  ? "max-w-0 opacity-0 -translate-x-2"
-                  : "max-w-[160px] opacity-100 translate-x-0"
+                ? "max-w-0 opacity-0 -translate-x-2"
+                : "max-w-[160px] opacity-100 translate-x-0"
                 }`}
             >
               {config.brand}
@@ -168,8 +176,8 @@ const Sidebar = ({ type }) => {
                   {Icon && <Icon className="w-5 h-5 flex-shrink-0" />}
                   <span
                     className={`whitespace-nowrap inline-block overflow-hidden transition-[max-width,opacity,transform] duration-300 ease-in-out ${collapsed
-                        ? "max-w-0 opacity-0 -translate-x-2"
-                        : "max-w-[160px] opacity-100 translate-x-0"
+                      ? "max-w-0 opacity-0 -translate-x-2"
+                      : "max-w-[160px] opacity-100 translate-x-0"
                       }`}
                   >
                     {item.label}
@@ -222,8 +230,8 @@ const Sidebar = ({ type }) => {
                         {Icon && <Icon className="w-5 h-5" />}
                         <span
                           className={`whitespace-nowrap inline-block overflow-hidden transition-[max-width,opacity,transform] duration-300 ease-in-out ${collapsed
-                              ? "max-w-0 opacity-0 -translate-x-2"
-                              : "max-w-[160px] opacity-100 translate-x-0"
+                            ? "max-w-0 opacity-0 -translate-x-2"
+                            : "max-w-[160px] opacity-100 translate-x-0"
                             }`}
                         >
                           {item.label}
@@ -235,8 +243,8 @@ const Sidebar = ({ type }) => {
               )}
               <div
                 className={`mt-3 text-xs text-white/60 overflow-hidden inline-block transition-[max-width,opacity,transform] duration-300 ease-in-out ${collapsed
-                    ? "max-w-0 opacity-0 -translate-x-2"
-                    : "max-w-[160px] opacity-100 translate-x-0"
+                  ? "max-w-0 opacity-0 -translate-x-2"
+                  : "max-w-[160px] opacity-100 translate-x-0"
                   }`}
               >
                 EV Management System

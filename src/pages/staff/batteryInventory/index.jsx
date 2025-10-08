@@ -1,7 +1,9 @@
-export function BatteryInventory() {
-    return (
-        <div>
-            This is BatteryInventory Page
-        </div>
-    )
+function BatteryInventory({ title }) {
+  return (
+    <div style={{ textAlign: "center", fontSize: 20, marginTop: 40 }}>
+      {title}
+    </div>
+  );
 }
+
+export default BatteryInventory;

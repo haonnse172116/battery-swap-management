@@ -9,9 +9,12 @@ import Login from "../pages/auth/login";
 import Register from "../pages/auth/register";
 import DriverHome from "../pages/driver/home";
 import MyCar from "../pages/driver/mycar";
-import { BatteryInventory } from "../pages/staff/batteryInventory";
 import StaffDashboard from "../pages/staff/dashboard";
-import { StaffConfirm } from "../pages/staff/swapConfirm";
+import StaffSwapConfirm from "../pages/staff/swapConfirm";
+import StaffTransactionHistory from "../pages/staff/transactionHistory";
+import StaffTransactionConfirm from "../pages/staff/transactionConfirm";
+import BatteryInventory  from "../pages/staff/batteryInventory";
+import BatteryStatus from "../pages/staff/batteryStatus";
 
 export const router = createBrowserRouter([
   {
@@ -55,9 +58,12 @@ export const router = createBrowserRouter([
     path: PATHS.STAFF.ROOT,
     element:  <AuthorizedLayout type='staff' />,
     children:  [
-      {path: PATHS.STAFF.DASHBOARD, element: <StaffDashboard/>},
-      {path: PATHS.STAFF.SWAP.CONFIRM, element: <StaffConfirm/>},
-      {path: PATHS.STAFF.INVENTORY.ROOT, element: <BatteryInventory/>}
+      {path: PATHS.STAFF.DASHBOARD, element: <StaffDashboard title='Staff Dashboard'/>},
+      {path: PATHS.STAFF.SWAP.CONFIRM, element: <StaffSwapConfirm title='Staff Swap Confirm'/>},
+      {path: PATHS.STAFF.SWAP.PAYMENT, element: <StaffTransactionConfirm title='Staff Confirm Transaction'/>},
+      {path: PATHS.STAFF.SWAP.HISTORY, element: <StaffTransactionHistory title='Staff Transaction History'/>},
+      {path: PATHS.STAFF.INVENTORY.LIST, element: <BatteryInventory title='Staff battery store'/>},
+      {path: PATHS.STAFF.INVENTORY.STATUS, element: <BatteryStatus title='Staff battery status'/>},
     ]
   },
   {

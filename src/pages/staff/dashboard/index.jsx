@@ -1,6 +1,10 @@
 
-export default function StaffDashboard() {
+function StaffDashboard({ title }) {
   return (
-    <div>This is staff dashboard here</div>
-  )
+    <div style={{ textAlign: "center", fontSize: 20, marginTop: 40 }}>
+      {title}
+    </div>
+  );
 }
+
+export default StaffDashboard;
