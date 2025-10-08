@@ -22,12 +22,8 @@ export const PATHS = {
   STAFF:{
     ROOT: "/staff",
     SWAP: {
-<<<<<<< HEAD
       // HOME: "/staff/swap",
       CONFIRM: "/staff/swap/confirm",
-=======
-      HOME: "/staff/swap",
->>>>>>> dev
       PAYMENT: "/staff/swap/payment",
       HISTORY: "/staff/swap/history",
       // RETURN: "/staff/swap/return",
