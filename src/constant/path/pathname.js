@@ -19,10 +19,11 @@ export const PATHS = {
     LANDING: "/",
     ABOUT: "/about",
   },
-  STAFF:{
+  STAFF: {
     ROOT: "/staff",
+    DASHBOARD: "/staff/dashboard",
     SWAP: {
-      HOME: "/staff/swap",
+      // HOME: "/staff/swap",
       PAYMENT: "/staff/swap/payment",
       HISTORY: "/staff/swap/history",
       RETURN: "/staff/swap/return",
@@ -35,7 +36,7 @@ export const PATHS = {
     },
     PROFILE: "/staff/profile",
   },
-  DRIVER:{
+  DRIVER: {
     ROOT: "/driver",
     HOME: "/driver/home",
     MYCAR: "/driver/mycar",
