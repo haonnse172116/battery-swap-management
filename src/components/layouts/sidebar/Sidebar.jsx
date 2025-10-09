@@ -27,7 +27,7 @@ const Sidebar = ({ type }) => {
       brand: "EV Admin",
       gradient: "from-blue-600 to-blue-400",
       menu: [
-        { key: PATHS.ADMIN.DASHBOARD, label: "Dashboard", icon: Squares2X2Icon },
+        { key: PATHS.ADMIN.DASHBOARD, label: "Thống kê", icon: Squares2X2Icon },
         {
           key: "users",
           label: "Người dùng",
@@ -40,7 +40,7 @@ const Sidebar = ({ type }) => {
         { key: PATHS.ADMIN.SETTINGS, label: "Cài đặt", icon: Cog6ToothIcon },
       ],
       userMenu: [
-        { key: "logout", label: "Logout", icon: ArrowLeftStartOnRectangleIcon },
+        { key: "logout", label: "Đăng xuất", icon: ArrowLeftStartOnRectangleIcon },
       ],
       home: PATHS.ADMIN.DASHBOARD,
       showUser: true,
@@ -49,16 +49,16 @@ const Sidebar = ({ type }) => {
       brand: "EV Staff",
       gradient: "from-blue-600 to-blue-400",
       menu: [
-        { key: PATHS.STAFF.DASHBOARD, label: "Dashboard", icon: Squares2X2Icon },
+        { key: PATHS.STAFF.DASHBOARD, label: "Thống kê", icon: Squares2X2Icon },
         {
           key: "swap",
           label: "Swap Transaction",
           icon: Battery100Icon,
           children: [
-            { key: PATHS.STAFF.SWAP.PAYMENT, label: "Record Payment" },
-            { key: PATHS.STAFF.SWAP.HISTORY, label: "Transaction History" },
-            { key: PATHS.STAFF.SWAP.RETURN, label: "Returned Battery" },
-            { key: PATHS.STAFF.SWAP.CONFIRM, label: "Confirm Swap" },
+            { key: PATHS.STAFF.SWAP.CONFIRM, label: "Yêu cầu đổi pin" },
+            { key: PATHS.STAFF.SWAP.PAYMENT, label: "Yêu cầu giao dịch" },
+            { key: PATHS.STAFF.SWAP.HISTORY, label: "Lịch sử giao dịch" },
+            // { key: PATHS.STAFF.SWAP.RETURN, label: "Returned Battery" },
           ],
         },
         {
@@ -72,7 +72,7 @@ const Sidebar = ({ type }) => {
         },
       ],
       userMenu: [
-        { key: "logout", label: "Logout", icon: ArrowLeftStartOnRectangleIcon },
+        { key: "logout", label: "Đăng xuất", icon: ArrowLeftStartOnRectangleIcon },
       ],
       home: PATHS.STAFF.DASHBOARD,
       showUser: true,
@@ -81,15 +81,15 @@ const Sidebar = ({ type }) => {
       brand: "EV Driver",
       gradient: "from-indigo-600 via-blue-400 to-blue-500",
       menu: [
-        { key: PATHS.DRIVER.HOME, label: "Home", icon: HomeIcon },
-        { key: PATHS.DRIVER.MYCAR, label: "My Car", icon: TruckIcon },
-        { key: PATHS.DRIVER.BOOKING, label: "Booking", icon: ClipboardDocumentListIcon },
-        { key: PATHS.DRIVER.SUBSCRIPTION, label: "Subscription", icon: Battery100Icon },
-        { key: PATHS.DRIVER.PROFILE, label: "Profile", icon: UserCircleIcon },
+        { key: PATHS.DRIVER.HOME, label: "Trang chủ", icon: HomeIcon },
+        { key: PATHS.DRIVER.MYCAR, label: "Xe của tôi", icon: TruckIcon },
+        { key: PATHS.DRIVER.BOOKING, label: "Đặt lịch", icon: ClipboardDocumentListIcon },
+        { key: PATHS.DRIVER.SUBSCRIPTION, label: "Đăng ký gói", icon: Battery100Icon },
+        // { key: PATHS.DRIVER.PROFILE, label: "Profile", icon: UserCircleIcon },
       ],
       userMenu: [
-        { key: PATHS.DRIVER.PROFILE, label: "Profile", icon: UserCircleIcon },
-        { key: "logout", label: "Logout", icon: ArrowLeftStartOnRectangleIcon },
+        { key: PATHS.DRIVER.PROFILE, label: "Cá nhân", icon: UserCircleIcon },
+        { key: "logout", label: "Đăng xuất", icon: ArrowLeftStartOnRectangleIcon },
       ],
       home: PATHS.DRIVER.HOME,
       showUser: true,
