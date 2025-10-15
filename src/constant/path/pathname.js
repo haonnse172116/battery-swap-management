@@ -7,10 +7,23 @@ export const PATHS = {
   ADMIN: {
     ROOT: "/admin",
     DASHBOARD: "/admin/dashboard",
+    STATIONS: {
+      ROOT: "/admin/stations",
+      LIST: "/admin/stations/list",
+      STATION_BATTERY: "/admin/stations/station-battery",
+      COMPLAINTS: "/admin/stations/complaints",
+      ADD: "/admin/stations/create",
+    },
     USERS: {
       ROOT: "/admin/users",
       LIST: "/admin/users/list",
+      STATION_STAFF: "/admin/users/station-staff",
       CREATE: "/admin/users/create",
+    },
+    SUBSCRIPTIONS: {
+      ROOT: "/admin/subscriptions",
+      LIST: "/admin/subscriptions/list",
+      CREATE: "/admin/subscriptions/create",
     },
     SETTINGS: "/admin/settings",
     PROFILE: "/admin/profile",

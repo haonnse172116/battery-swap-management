@@ -7,6 +7,7 @@ import {
   UserGroupIcon,
   Cog6ToothIcon,
   UserCircleIcon,
+  BuildingStorefrontIcon,
   ArrowLeftStartOnRectangleIcon,
   Squares2X2Icon,
   TruckIcon,
@@ -29,12 +30,33 @@ const Sidebar = ({ type }) => {
       menu: [
         { key: PATHS.ADMIN.DASHBOARD, label: "Thống kê", icon: Squares2X2Icon },
         {
+          key: "stations",
+          label: "Trạm",
+          icon: BuildingStorefrontIcon,
+          children: [
+            { key: PATHS.ADMIN.STATIONS.ADD, label: "Thêm mới" },
+            { key: PATHS.ADMIN.STATIONS.LIST, label: "Danh sách" },
+            { key: PATHS.ADMIN.STATIONS.STATION_BATTERY, label: "Điều phối pin cho trạm" },
+            { key: PATHS.ADMIN.STATIONS.COMPLAINTS, label: "Xử lý khiếu nại" },
+          ],
+        },
+        {
           key: "users",
           label: "Người dùng",
           icon: UserGroupIcon,
           children: [
-            { key: PATHS.ADMIN.USERS.LIST, label: "Danh sách" },
             { key: PATHS.ADMIN.USERS.CREATE, label: "Thêm mới" },
+            { key: PATHS.ADMIN.USERS.LIST, label: "Danh sách" },
+            { key: PATHS.ADMIN.USERS.STATION_STAFF, label: "Phân trạm nhân viên" },
+          ],
+        },
+        {
+          key: "subscriptions",
+          label: "Gói đăng ký",
+          icon: Battery100Icon,
+          children: [
+            { key: PATHS.ADMIN.SUBSCRIPTIONS.CREATE, label: "Thêm mới" },
+            { key: PATHS.ADMIN.SUBSCRIPTIONS.LIST, label: "Danh sách" },
           ],
         },
         { key: PATHS.ADMIN.SETTINGS, label: "Cài đặt", icon: Cog6ToothIcon },

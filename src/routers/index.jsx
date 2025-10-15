@@ -44,6 +44,15 @@ export const router = createBrowserRouter([
     element: <AuthorizedLayout type='admin' />,
     children: [
       { path: PATHS.ADMIN.DASHBOARD, element: <Dashboard /> },
+      {path: PATHS.ADMIN.STATIONS.LIST, element: <Placeholder title='Admin station management'/>},
+      {path: PATHS.ADMIN.STATIONS.STATION_BATTERY, element: <Placeholder title='Admin coordinate battery to station'/>},
+      {path: PATHS.ADMIN.STATIONS.COMPLAINTS, element: <Placeholder title='Admin handling complaints'/>},
+      {path: PATHS.ADMIN.STATIONS.ADD, element: <Placeholder title='Admin add station'/>},
+      {path: PATHS.ADMIN.USERS.LIST, element: <Placeholder title='Admin user management'/>},
+      {path: PATHS.ADMIN.USERS.STATION_STAFF, element: <Placeholder title='Admin coordinate staff to station'/>},
+      {path: PATHS.ADMIN.USERS.CREATE, element: <Placeholder title='Admin create user'/>},
+      {path: PATHS.ADMIN.SUBSCRIPTIONS.LIST, element: <Placeholder title='Admin subscription management'/>},
+      {path: PATHS.ADMIN.SUBSCRIPTIONS.CREATE, element: <Placeholder title='Admin create subscription'/>},
     ]
   }
   ,
