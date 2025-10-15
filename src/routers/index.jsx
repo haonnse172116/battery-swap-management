@@ -2,14 +2,19 @@ import { createBrowserRouter } from "react-router-dom";
 import ContentError from "../components/common/ContentError";
 import Placeholder from "../pages/PlaceHolder";
 import Landing from "../pages/Landing";
-import Dashboard from "../pages/admin/dashboard";
 import DefaultLayout from "../components/layouts/DefaultLayout";
 import Login from "../pages/auth/login";
 import Register from "../pages/auth/register";
 import { PATHS } from "../constant/path/pathname";
 import AuthorizedLayout from "../components/layouts/AuthorizedLayout";
+import Dashboard from "../pages/admin/dashboard";
+import StationList from "../pages/admin/stationList";
+import StationBattery from "../pages/admin/stationBattery";
+import StationComplaint from "../pages/admin/stationComplaint";
+
 import DriverHome from "../pages/driver/home";
 import MyCar from "../pages/driver/mycar";
+
 // import StaffDashboard from "../pages/staff/dashboard";
 // import StaffSwapConfirm from "../pages/staff/swapConfirm";
 import StaffTransactionHistory from "../pages/staff/transactionHistory";
@@ -44,9 +49,9 @@ export const router = createBrowserRouter([
     element: <AuthorizedLayout type='admin' />,
     children: [
       { path: PATHS.ADMIN.DASHBOARD, element: <Dashboard /> },
-      {path: PATHS.ADMIN.STATIONS.LIST, element: <Placeholder title='Admin station management'/>},
-      {path: PATHS.ADMIN.STATIONS.STATION_BATTERY, element: <Placeholder title='Admin coordinate battery to station'/>},
-      {path: PATHS.ADMIN.STATIONS.COMPLAINTS, element: <Placeholder title='Admin handling complaints'/>},
+      {path: PATHS.ADMIN.STATIONS.LIST, element: <StationList/>},
+      {path: PATHS.ADMIN.STATIONS.STATION_BATTERY, element: <StationBattery/>},
+      {path: PATHS.ADMIN.STATIONS.COMPLAINTS, element: <StationComplaint/>},
       {path: PATHS.ADMIN.STATIONS.ADD, element: <Placeholder title='Admin add station'/>},
       {path: PATHS.ADMIN.USERS.LIST, element: <Placeholder title='Admin user management'/>},
       {path: PATHS.ADMIN.USERS.STATION_STAFF, element: <Placeholder title='Admin coordinate staff to station'/>},
