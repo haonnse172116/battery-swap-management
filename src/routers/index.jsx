@@ -13,6 +13,8 @@ import StationBattery from "../pages/admin/stationBattery";
 import StationComplaint from "../pages/admin/stationComplaint";
 import UserList from "../pages/admin/userList";
 import UserStationStaff from "../pages/admin/userStationStaff";
+import SubscriptionCreate from "../pages/admin/subscriptionCreate";
+import SubscriptionList from "../pages/admin/subscriptionList";
 
 import DriverHome from "../pages/driver/home";
 import MyCar from "../pages/driver/mycar";
@@ -58,8 +60,8 @@ export const router = createBrowserRouter([
       {path: PATHS.ADMIN.USERS.LIST, element: <UserList/>},
       {path: PATHS.ADMIN.USERS.STATION_STAFF, element: <UserStationStaff/>},
       {path: PATHS.ADMIN.USERS.CREATE, element: <Placeholder title='Admin create user'/>},
-      {path: PATHS.ADMIN.SUBSCRIPTIONS.LIST, element: <Placeholder title='Admin subscription management'/>},
-      {path: PATHS.ADMIN.SUBSCRIPTIONS.CREATE, element: <Placeholder title='Admin create subscription'/>},
+      {path: PATHS.ADMIN.SUBSCRIPTIONS.LIST, element: <SubscriptionList/>},
+      {path: PATHS.ADMIN.SUBSCRIPTIONS.CREATE, element: <SubscriptionCreate/>},
     ]
   }
   ,
