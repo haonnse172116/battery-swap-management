@@ -1,9 +1,176 @@
-function BatteryStatus({ title }) {
+import React, { useState } from 'react';
+
+const mockStations = [
+  { station_id: 'ST01', name: 'Trạm A', address: '123 Đường A', is_active: true },
+  { station_id: 'ST02', name: 'Trạm B', address: '456 Đường B', is_active: true },
+  { station_id: 'ST03', name: 'Trạm C', address: '789 Đường C', is_active: false },
+];
+
+const mockBatteryTypes = {
+  'BT01': { name: 'Lithium 48V', model: 'Model X' },
+  'BT02': { name: 'Lithium 60V', model: 'Model Y' },
+};
+
+const mockBatteries = [
+  { battery_id: 'BAT001', station_id: 'ST01', battery_type_id: 'BT01', serial_no: 1001, status: 'sẵn sàng', voltage: '48V', capacity_wh: '3200', image_url: '', reservation_id: null },
+  { battery_id: 'BAT002', station_id: 'ST01', battery_type_id: 'BT01', serial_no: 1002, status: 'đang sạc', voltage: '48V', capacity_wh: '3200', image_url: '', reservation_id: 'RSV01' },
+  { battery_id: 'BAT003', station_id: 'ST01', battery_type_id: 'BT01', serial_no: 1003, status: 'hỏng', voltage: '48V', capacity_wh: '3200', image_url: '', reservation_id: null },
+  { battery_id: 'BAT004', station_id: 'ST02', battery_type_id: 'BT02', serial_no: 2001, status: 'sẵn sàng', voltage: '60V', capacity_wh: '4000', image_url: '', reservation_id: null },
+  { battery_id: 'BAT005', station_id: 'ST02', battery_type_id: 'BT02', serial_no: 2002, status: 'đang sử dụng', voltage: '60V', capacity_wh: '4000', image_url: '', reservation_id: null },
+  { battery_id: 'BAT006', station_id: 'ST03', battery_type_id: 'BT01', serial_no: 3001, status: 'sẵn sàng', voltage: '48V', capacity_wh: '3200', image_url: '', reservation_id: null },
+];
+
+const statusColor = {
+  'sẵn sàng': 'bg-green-100 text-green-700',
+  'đang sử dụng': 'bg-yellow-100 text-yellow-700',
+  'đang sạc': 'bg-blue-100 text-blue-700',
+  'hỏng': 'bg-red-100 text-red-700',
+};
+
+export default function BatteryStatus() {
+  const [viewingStationId, setViewingStationId] = useState(null);
+  const [filter, setFilter] = useState({ model: '', capacity: '', status: '' });
+
+  const openStation = (stationId) => {
+    setViewingStationId(stationId);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const backToStations = () => {
+    setViewingStationId(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Lấy các model, dung lượng, status có trong trạm
+  const currentStation = viewingStationId ? mockStations.find(s => s.station_id === viewingStationId) : null;
+  const batteries = viewingStationId ? mockBatteries.filter(b => b.station_id === viewingStationId) : [];
+  const models = Array.from(new Set(batteries.map(b => mockBatteryTypes[b.battery_type_id].model)));
+  const capacities = Array.from(new Set(batteries.map(b => b.capacity_wh)));
+  const statuses = Array.from(new Set(batteries.map(b => b.status)));
+
+  // Lọc pin
+  const filteredBatteries = batteries.filter(b =>
+    (filter.model === '' || mockBatteryTypes[b.battery_type_id].model === filter.model) &&
+    (filter.capacity === '' || b.capacity_wh === filter.capacity) &&
+    (filter.status === '' || b.status === filter.status)
+  );
+
   return (
-    <div style={{ textAlign: "center", fontSize: 20, marginTop: 40 }}>
-      {title}
+    <div className="p-6 min-h-screen">
+      {/* Breadcrumb */}
+      <div className="mb-6">
+        {!currentStation ? (
+          <h1 className="text-2xl font-semibold text-gray-800">Quản lý tình trạng pin</h1>
+        ) : (
+          <nav className="text-lg text-gray-600" aria-label="Breadcrumb">
+            <ol className="list-reset flex items-center gap-2">
+              <li>
+                <button onClick={backToStations} className="text-blue-600 hover:underline">Quản lý tình trạng pin</button>
+              </li>
+              <li className="text-gray-400">/</li>
+              <li className="font-semibold text-gray-800">{currentStation.name}</li>
+            </ol>
+          </nav>
+        )}
+      </div>
+
+      {/* Station cards view */}
+      {!currentStation && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {mockStations.map(station => (
+            <div key={station.station_id} className="relative bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="absolute right-3 top-3">
+                <span className={`px-3 py-1 text-xs font-semibold rounded-full ${station.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  {station.is_active ? 'Hoạt động' : 'Ngưng'}
+                </span>
+              </div>
+              <div className="p-5">
+                <h2 className="text-lg font-bold text-gray-800 mb-1">{station.name}</h2>
+                <div className="text-sm text-gray-500 mb-2">{station.address}</div>
+                <button
+                  onClick={() => openStation(station.station_id)}
+                  className="block mx-auto w-3/4 text-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition mt-4"
+                >
+                  Xem danh sách pin
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Battery list view (when a station selected) */}
+      {currentStation && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-lg shadow border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800">{currentStation.name}</h3>
+                <div className="text-sm text-gray-500">{currentStation.address}</div>
+              </div>
+              <div>
+                <button onClick={backToStations} className="text-sm text-gray-600 underline">Quay lại danh sách trạm</button>
+              </div>
+            </div>
+          </div>
+
+          {/* Filter */}
+          <div className="flex flex-wrap gap-4 items-center mb-2">
+            <select
+              className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              value={filter.model}
+              onChange={e => setFilter(f => ({ ...f, model: e.target.value }))}
+            >
+              <option value="">Tất cả model</option>
+              {models.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+            <select
+              className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              value={filter.capacity}
+              onChange={e => setFilter(f => ({ ...f, capacity: e.target.value }))}
+            >
+              <option value="">Tất cả dung lượng</option>
+              {capacities.map(c => <option key={c} value={c}>{c} Wh</option>)}
+            </select>
+            <select
+              className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              value={filter.status}
+              onChange={e => setFilter(f => ({ ...f, status: e.target.value }))}
+            >
+              <option value="">Tất cả tình trạng</option>
+              {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+
+          {/* batteries grid */}
+          {filteredBatteries.length === 0 ? (
+            <div className="bg-white p-6 rounded-lg text-center text-gray-500 shadow-sm">Không có pin phù hợp</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredBatteries.map(b => (
+                <div key={b.battery_id} className="bg-white rounded-lg shadow p-4 border border-gray-200 flex flex-col gap-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="text-sm text-gray-500">Mã pin</div>
+                      <div className="font-semibold text-gray-800">{b.battery_id}</div>
+                    </div>
+                    <div>
+                      <div className={`text-xs font-semibold px-2 py-1 rounded ${statusColor[b.status]}`}>{b.status}</div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500">Serial: {b.serial_no}</div>
+                  <div className="text-xs text-gray-500">Model: {mockBatteryTypes[b.battery_type_id].model}</div>
+                  <div className="text-xs text-gray-500">Loại: {mockBatteryTypes[b.battery_type_id].name}</div>
+                  <div className="text-xs text-gray-500">Điện áp: {b.voltage} | Dung lượng: {b.capacity_wh} Wh</div>
+                  {b.reservation_id && <div className="text-xs text-yellow-700 font-medium">Reservation: {b.reservation_id}</div>}
+                  <div className="mt-3">
+                    <button className="w-full px-3 py-2 bg-gray-100 rounded text-sm hover:bg-gray-200">Xem chi tiết pin</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
-
-export default BatteryStatus;

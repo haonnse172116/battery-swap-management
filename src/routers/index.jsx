@@ -23,7 +23,7 @@ import MyCar from "../pages/driver/mycar";
 import SwapConfirm from "../pages/staff/swapConfirm";
 import TransactionHistory from "../pages/staff/transactionHistory";
 import TransactionConfirm from "../pages/staff/transactionConfirm";
-// import BatteryInventory  from "../pages/staff/batteryInventory";
+import BatteryList  from "../pages/staff/batteryList";
 import BatteryStatus from "../pages/staff/batteryStatus";
 
 export const router = createBrowserRouter([
@@ -81,7 +81,7 @@ export const router = createBrowserRouter([
       {path: PATHS.STAFF.SWAP.CONFIRM, element: <SwapConfirm/>},
       {path: PATHS.STAFF.SWAP.PAYMENT, element: <TransactionConfirm title='Staff Confirm Transaction'/>},
       {path: PATHS.STAFF.SWAP.HISTORY, element: <TransactionHistory title='Staff Transaction History'/>},
-      {path: PATHS.STAFF.INVENTORY.LIST, element: <Placeholder title='Staff battery store'/>},
+      {path: PATHS.STAFF.INVENTORY.LIST, element: <BatteryList/>},
       {path: PATHS.STAFF.INVENTORY.STATUS, element: <BatteryStatus title='Staff battery status'/>},
     ]
   },
