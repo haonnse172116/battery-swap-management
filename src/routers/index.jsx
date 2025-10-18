@@ -25,6 +25,7 @@ import TransactionHistory from "../pages/staff/transactionHistory";
 import TransactionConfirm from "../pages/staff/transactionConfirm";
 import BatteryList  from "../pages/staff/batteryList";
 import BatteryStatus from "../pages/staff/batteryStatus";
+import Booking from "../pages/driver/booking";
 
 export const router = createBrowserRouter([
   {
@@ -70,7 +71,8 @@ export const router = createBrowserRouter([
     element: <AuthorizedLayout type='driver' />,
     children: [
       { path: PATHS.DRIVER.HOME, element: <DriverHome /> },
-      { path: PATHS.DRIVER.MYCAR, element: <MyCar /> }
+      { path: PATHS.DRIVER.MYCAR, element: <MyCar /> },
+      { path: PATHS.DRIVER.BOOKING, element: <Booking /> }
     ]
   },
   {
