@@ -3,6 +3,7 @@ export const PATHS = {
   AUTH: {
     LOGIN: "/login",
     REGISTER: "/register",
+    VERIFY_OTP: "/verify-otp",
   },
   ADMIN: {
     ROOT: "/admin",

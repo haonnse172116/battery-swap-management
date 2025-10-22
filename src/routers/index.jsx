@@ -26,6 +26,7 @@ import TransactionConfirm from "../pages/staff/transactionConfirm";
 import BatteryList  from "../pages/staff/batteryList";
 import BatteryStatus from "../pages/staff/batteryStatus";
 import Booking from "../pages/driver/booking";
+import VerifyOtp from "../pages/auth/otp";
 
 export const router = createBrowserRouter([
   {
@@ -47,6 +48,13 @@ export const router = createBrowserRouter([
     element: 
     <DefaultLayout>
      <Register />
+    </DefaultLayout>,
+  },
+   {
+    path: PATHS.AUTH.VERIFY_OTP, 
+    element: 
+    <DefaultLayout>
+     <VerifyOtp />
     </DefaultLayout>,
   },
   {

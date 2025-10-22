@@ -1,11 +1,75 @@
-import {apiSlice} from "../api/apiSlice";
-import { setCredentials } from "../redux/slices/authSlice";
+import { apiSlice } from "../api/apiSlice";
+import { setCredentials, logout, setTempToken } from "../redux/slices/authSlice";
 
 export const authApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    register: builder.mutation({
+      query: (userData) => ({
+        url: '/Auth/register',
+        method: 'POST',
+        data: userData,
+      }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          
+          dispatch(setTempToken({
+            token: data.content.token,
+            email: arg.email,
+            userId: data.content.userId,
+          }));
+        } catch (error) {
+          console.error('Register failed:', error);
+          throw error;
+        }
+      },
+    }),
+    
+    verifyOtp: builder.mutation({
+      query: ({ otp, token }) => ({
+        url: `/Auth/activate-account/${otp}`,
+        method: 'POST',
+        data: { otp },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          
+          dispatch(setCredentials({
+            accessToken: data.content.token,
+            user: {
+              userId: data.content.userId,
+              fullName: data.content.fullName,
+              email: data.content.email,
+              role: data.content.role,
+              status: data.content.status,
+            },
+          }));
+        } catch (error) {
+          console.error('OTP verification failed:', error);
+          throw error;
+        }
+      },
+    }),
+    
+    // ========== RESEND OTP ==========
+    resendOtp: builder.mutation({
+      query: (token) => ({
+        url: '/Auth/resend-register-otp',
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }),
+    }),
+    
+    // ========== LOGIN ==========
     login: builder.mutation({
       query: (credentials) => ({
-        url: '/auth/login',
+        url: '/Auth/login',
         method: 'POST',
         data: credentials,
       }),
@@ -13,51 +77,48 @@ export const authApi = apiSlice.injectEndpoints({
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          // Giả sử API trả về: { data: { accessToken, user } }
+          
+          // ✅ Check status
+          if (data.content.status === 'Inactive') {
+            dispatch(setTempToken({
+              token: data.content.token,
+              email: data.content.email,
+              userId: data.content.userId,
+              needsActivation: true,
+            }));
+            return;
+          }
+          
+          // ✅ Active user
           dispatch(setCredentials({
-            accessToken: data.data.accessToken,
-            user: data.data.user,
+            accessToken: data.content.token,
+            user: {
+              userId: data.content.userId,
+              fullName: data.content.fullName,
+              email: data.content.email,
+              role: data.content.role,
+              status: data.content.status,
+            },
           }));
         } catch (error) {
-          // Handle error nếu cần
           console.error('Login failed:', error);
+          throw error;
         }
       },
     }),
-    register: builder.mutation({
-      query: (userData) => ({
-        url: '/auth/register',
-        method: 'POST',
-        data: userData,
-      }),
-      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
-        try {
-          const { data } = await queryFulfilled;
-          // Nếu register xong tự động login
-          dispatch(setCredentials({
-            accessToken: data.data.accessToken,
-            user: data.data.user,
-          }));
-        } catch (error) {
-          console.error('Register failed:', error);
-        }
-      },
-    }),
+    
+    // ========== LOGOUT ==========
     logout: builder.mutation({
       query: () => ({
-        url: '/auth/logout',
+        url: '/Auth/logout',
         method: 'POST',
       }),
       invalidatesTags: ['User'],
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           await queryFulfilled;
-          // Import logout action
-          const { logout } = await import("../redux/slices/authSlice");
           dispatch(logout());
         } catch (error) {
-          // Vẫn logout nếu API fail
-          const { logout } = await import("../redux/slices/authSlice");
           dispatch(logout());
         }
       },
@@ -65,4 +126,10 @@ export const authApi = apiSlice.injectEndpoints({
   }),
 });
 
-export const { useLoginMutation, useRegisterMutation, useLogoutMutation } = authApi;
+export const {
+  useLoginMutation,
+  useRegisterMutation,
+  useVerifyOtpMutation,
+  useResendOtpMutation,
+  useLogoutMutation,
+} = authApi;

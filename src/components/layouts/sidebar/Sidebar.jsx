@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { PATHS } from "../../../constant/path/pathname";
 import { useSidebar } from "../../../contexts/SidebarContext";
+import { useLogoutMutation } from "../../../services/auth.service";
+import { logout as logoutAction } from "../../../redux/slices/authSlice";
 import {
   HomeIcon,
   UserGroupIcon,
@@ -22,6 +25,10 @@ const Sidebar = ({ type }) => {
   const [openGroup, setOpenGroup] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  
+  // ✅ Add logout mutation
+  const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
 
   const NAV_CONFIG = {
     admin: {
@@ -80,7 +87,6 @@ const Sidebar = ({ type }) => {
             { key: PATHS.STAFF.SWAP.CONFIRM, label: "Yêu cầu đổi pin" },
             { key: PATHS.STAFF.SWAP.PAYMENT, label: "Yêu cầu giao dịch" },
             { key: PATHS.STAFF.SWAP.HISTORY, label: "Lịch sử giao dịch" },
-            // { key: PATHS.STAFF.SWAP.RETURN, label: "Returned Battery" },
           ],
         },
         {
@@ -107,7 +113,6 @@ const Sidebar = ({ type }) => {
         { key: PATHS.DRIVER.MYCAR, label: "Xe của tôi", icon: TruckIcon },
         { key: PATHS.DRIVER.BOOKING, label: "Đặt lịch", icon: ClipboardDocumentListIcon },
         { key: PATHS.DRIVER.SUBSCRIPTION, label: "Đăng ký gói", icon: Battery100Icon },
-        // { key: PATHS.DRIVER.PROFILE, label: "Profile", icon: UserCircleIcon },
       ],
       userMenu: [
         { key: PATHS.DRIVER.PROFILE, label: "Cá nhân", icon: UserCircleIcon },
@@ -125,7 +130,30 @@ const Sidebar = ({ type }) => {
     if (item.children) setOpenGroup(openGroup === item.key ? null : item.key);
     else {
       navigate(item.key);
-      setMobileOpen(false); // đóng menu mobile khi click
+      setMobileOpen(false);
+    }
+  };
+
+  // ✅ Handle logout
+  const handleLogout = async () => {
+    try {
+      // Call logout API
+      await logout().unwrap();
+      
+      // Clear Redux state (already done in auth.service.js onQueryStarted)
+      // But we can also manually dispatch for safety
+      dispatch(logoutAction());
+      
+      // Close mobile menu
+      setMobileOpen(false);
+      
+      // Navigate to login
+      navigate(PATHS.AUTH.LOGIN, { replace: true });
+    } catch (error) {
+      // Even if API fails, still logout locally
+      console.error('Logout API failed:', error);
+      dispatch(logoutAction());
+      navigate(PATHS.AUTH.LOGIN, { replace: true });
     }
   };
 
@@ -134,8 +162,9 @@ const Sidebar = ({ type }) => {
       {/* Overlay for mobile */}
       <div
         onClick={() => setMobileOpen(false)}
-        className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 md:hidden ${mobileOpen ? "opacity-100 visible" : "opacity-0 invisible"
-          }`}
+        className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 md:hidden ${
+          mobileOpen ? "opacity-100 visible" : "opacity-0 invisible"
+        }`}
       />
 
       {/* Sidebar */}
@@ -145,7 +174,8 @@ const Sidebar = ({ type }) => {
           transition: "width 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
         className={`fixed top-0 left-0 z-50 h-screen bg-gradient-to-b ${config.gradient} text-white flex flex-col 
-          transition-transform duration-300 md:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          transition-transform duration-300 md:translate-x-0 ${
+            mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           }`}
       >
         {/* Header */}
@@ -159,10 +189,11 @@ const Sidebar = ({ type }) => {
             className="text-left hover:text-white/90 transition"
           >
             <span
-              className={`whitespace-nowrap inline-block overflow-hidden transition-[max-width,opacity,transform] duration-300 ease-in-out ${collapsed
-                ? "max-w-0 opacity-0 -translate-x-2"
-                : "max-w-[160px] opacity-100 translate-x-0"
-                }`}
+              className={`whitespace-nowrap inline-block overflow-hidden transition-[max-width,opacity,transform] duration-300 ease-in-out ${
+                collapsed
+                  ? "max-w-0 opacity-0 -translate-x-2"
+                  : "max-w-[160px] opacity-100 translate-x-0"
+              }`}
             >
               {config.brand}
             </span>
@@ -197,10 +228,11 @@ const Sidebar = ({ type }) => {
                 >
                   {Icon && <Icon className="w-5 h-5 flex-shrink-0" />}
                   <span
-                    className={`whitespace-nowrap inline-block overflow-hidden transition-[max-width,opacity,transform] duration-300 ease-in-out ${collapsed
-                      ? "max-w-0 opacity-0 -translate-x-2"
-                      : "max-w-[160px] opacity-100 translate-x-0"
-                      }`}
+                    className={`whitespace-nowrap inline-block overflow-hidden transition-[max-width,opacity,transform] duration-300 ease-in-out ${
+                      collapsed
+                        ? "max-w-0 opacity-0 -translate-x-2"
+                        : "max-w-[160px] opacity-100 translate-x-0"
+                    }`}
                   >
                     {item.label}
                   </span>
@@ -216,9 +248,10 @@ const Sidebar = ({ type }) => {
                         key={child.key}
                         onClick={() => handleItemClick(child)}
                         className={`block w-full text-left px-3 py-2 rounded-md text-sm transition
-                          ${isActive(child.key)
-                            ? "bg-white/30 text-white"
-                            : "text-white/80 hover:bg-white/10 hover:text-white"
+                          ${
+                            isActive(child.key)
+                              ? "bg-white/30 text-white"
+                              : "text-white/80 hover:bg-white/10 hover:text-white"
                           }`}
                       >
                         {child.label}
@@ -243,20 +276,25 @@ const Sidebar = ({ type }) => {
                       <button
                         key={item.key}
                         onClick={() => {
-                          if (item.key === "logout") navigate("/login");
-                          else navigate(item.key);
-                          setMobileOpen(false);
+                          if (item.key === "logout") {
+                            handleLogout(); // ✅ Use handleLogout
+                          } else {
+                            navigate(item.key);
+                            setMobileOpen(false);
+                          }
                         }}
-                        className="flex items-center gap-3 text-left px-3 py-2 rounded-md text-sm hover:bg-white/10"
+                        disabled={item.key === "logout" && isLoggingOut}
+                        className="flex items-center gap-3 text-left px-3 py-2 rounded-md text-sm hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition"
                       >
                         {Icon && <Icon className="w-5 h-5" />}
                         <span
-                          className={`whitespace-nowrap inline-block overflow-hidden transition-[max-width,opacity,transform] duration-300 ease-in-out ${collapsed
-                            ? "max-w-0 opacity-0 -translate-x-2"
-                            : "max-w-[160px] opacity-100 translate-x-0"
-                            }`}
+                          className={`whitespace-nowrap inline-block overflow-hidden transition-[max-width,opacity,transform] duration-300 ease-in-out ${
+                            collapsed
+                              ? "max-w-0 opacity-0 -translate-x-2"
+                              : "max-w-[160px] opacity-100 translate-x-0"
+                          }`}
                         >
-                          {item.label}
+                          {item.key === "logout" && isLoggingOut ? "Đang đăng xuất..." : item.label}
                         </span>
                       </button>
                     );
@@ -264,10 +302,11 @@ const Sidebar = ({ type }) => {
                 </div>
               )}
               <div
-                className={`mt-3 text-xs text-white/60 overflow-hidden inline-block transition-[max-width,opacity,transform] duration-300 ease-in-out ${collapsed
-                  ? "max-w-0 opacity-0 -translate-x-2"
-                  : "max-w-[160px] opacity-100 translate-x-0"
-                  }`}
+                className={`mt-3 text-xs text-white/60 overflow-hidden inline-block transition-[max-width,opacity,transform] duration-300 ease-in-out ${
+                  collapsed
+                    ? "max-w-0 opacity-0 -translate-x-2"
+                    : "max-w-[160px] opacity-100 translate-x-0"
+                }`}
               >
                 EV Management System
               </div>
@@ -281,8 +320,10 @@ const Sidebar = ({ type }) => {
                     className="w-6 h-6 cursor-pointer hover:text-white"
                   />
                   <ArrowLeftStartOnRectangleIcon
-                    onClick={() => navigate("/login")}
-                    className="w-6 h-6 cursor-pointer hover:text-white"
+                    onClick={handleLogout} // ✅ Use handleLogout
+                    className={`w-6 h-6 cursor-pointer hover:text-white ${
+                      isLoggingOut ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
                   />
                 </>
               )}

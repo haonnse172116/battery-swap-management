@@ -1,49 +1,53 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { PATHS } from "../../../constant/path/pathname";
-
-// Mock function decode token
-const decodeToken = (token) => {
-  try {
-    return JSON.parse(atob(token.split(".")[1])); // giả lập JWT decode
-  } catch {
-    return null;
-  }
-};
+import { useLoginMutation } from "../../../services/auth.service";
+import { getDefaultPathByRole } from "../../../utils/role";
 
 function Login() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ username: "", password: "" });
-  const [error, setError] = useState("");
+  const [login, { isLoading }] = useLoginMutation();
+  
+  const [form, setForm] = useState({ 
+    email: "", 
+    password: "" 
+  });
+
+  const { needsActivation, user, role, accessToken } = useSelector((state) => state.auth);
+
+  // ✅ Auto redirect if already logged in
+  useEffect(() => {
+    if (accessToken && user && !needsActivation && user.status === 'Active') {
+      const defaultPath = getDefaultPathByRole(role);
+      navigate(defaultPath, { replace: true });
+    }
+  }, [accessToken, user, role, needsActivation, navigate]);
+
+  // ✅ Redirect to OTP if inactive
+  useEffect(() => {
+    if (needsActivation || (user && user.status === 'Inactive')) {
+      navigate(PATHS.AUTH.VERIFY_OTP, { replace: true });
+    }
+  }, [needsActivation, user, navigate]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // mock login logic
-    if (form.username === "admin") {
-      const token = btoa(JSON.stringify({ role: "admin" }));
-      localStorage.setItem("accessToken", token);
-      navigate(PATHS.ADMIN.DASHBOARD);
-    } else if (form.username === "staff") {
-      const token = btoa(JSON.stringify({ role: "staff" }));
-      localStorage.setItem("accessToken", token);
-      navigate(PATHS.STAFF.DASHBOARD);
-    } else if (form.username === "driver") {
-      const token = btoa(JSON.stringify({ role: "driver" }));
-      localStorage.setItem("accessToken", token);
-      navigate(PATHS.DRIVER.HOME);
-    } else {
-      setError("Sai tài khoản hoặc mật khẩu!");
+    try {
+      await login(form).unwrap();
+      // Navigation handled by useEffect
+    } catch (error) {
+      alert(error.data?.message || 'Đăng nhập thất bại');
     }
   };
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-blue-50 to-blue-500 overflow-hidden">
-      {/* Accent background */}
       <div className="pointer-events-none absolute inset-0 -z-10 opacity-70
         bg-[radial-gradient(800px_400px_at_15%_25%,rgba(59,130,246,0.18),transparent_60%),radial-gradient(600px_300px_at_85%_75%,rgba(29,78,216,0.30),transparent_60%)]" />
 
@@ -51,24 +55,24 @@ function Login() {
         <h2 className="text-3xl font-extrabold text-blue-700 text-center mb-8 tracking-tight">
           Đăng nhập
         </h2>
-        {error && (
-          <p className="mb-4 text-red-500 text-sm text-center">{error}</p>
-        )}
+        
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-blue-700 mb-1">
-              Tài khoản
+              Email
             </label>
             <input
-              type="text"
-              name="username"
-              value={form.username}
+              type="email"
+              name="email"
+              value={form.email}
               onChange={handleChange}
-              placeholder="admin / staff / customer"
+              placeholder="example@gmail.com"
               className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-blue-50/60 text-blue-900 placeholder:text-blue-300 transition"
               autoFocus
+              required
             />
           </div>
+          
           <div>
             <label className="block text-sm font-medium text-blue-700 mb-1">
               Mật khẩu
@@ -80,20 +84,24 @@ function Login() {
               onChange={handleChange}
               placeholder="Nhập mật khẩu"
               className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-blue-50/60 text-blue-900 placeholder:text-blue-300 transition"
+              required
             />
           </div>
+          
           <button
             type="submit"
-            className="w-full py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg transition text-lg"
+            disabled={isLoading}
+            className="w-full py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg transition text-lg disabled:opacity-50"
           >
-            Đăng nhập
+            {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
         </form>
+        
         <div className="mt-6 text-center text-sm text-blue-700/80">
           Chưa có tài khoản?{" "}
           <button
             className="underline hover:text-blue-900 font-medium"
-            onClick={() => navigate("/register")}
+            onClick={() => navigate(PATHS.AUTH.REGISTER)}
             type="button"
           >
             Đăng ký ngay
