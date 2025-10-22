@@ -1,44 +1,46 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { PATHS } from "../../../constant/path/pathname";
+import { useRegisterMutation } from "../../../services/auth.service";
 
 function Register() {
   const navigate = useNavigate();
+  const [register, { isLoading }] = useRegisterMutation();
+  
   const [form, setForm] = useState({
-    gmail: "",
+    fullName: "",
+    email: "",
     password: "",
     confirmPassword: "",
+    phoneNumber: "",
   });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    setError("");
-    setSuccess("");
   };
 
-  const validateEmail = (email) => {
-    // Simple Gmail validation
-    return /^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(email);
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateEmail(form.gmail)) {
-      setError("Vui lòng nhập địa chỉ Gmail hợp lệ.");
-      return;
-    }
-    if (!form.password || form.password.length < 6) {
-      setError("Mật khẩu phải có ít nhất 6 ký tự.");
-      return;
-    }
+    
     if (form.password !== form.confirmPassword) {
-      setError("Mật khẩu xác nhận không khớp.");
+      alert("Mật khẩu không khớp!");
       return;
     }
-    // Mock register logic
-    setSuccess("Đăng ký thành công! Vui lòng đăng nhập.");
-    setTimeout(() => navigate("/login"), 1500);
+
+    try {
+      await register({
+        fullName: form.fullName,
+        email: form.email,
+        password: form.password,
+        phoneNumber: form.phoneNumber,
+      }).unwrap();
+      
+      // ✅ Navigate to OTP page
+      navigate(PATHS.AUTH.VERIFY_OTP);
+      
+    } catch (error) {
+      alert(error.data?.message || 'Đăng ký thất bại');
+    }
   };
 
   return (
@@ -51,27 +53,50 @@ function Register() {
         <h2 className="text-3xl font-extrabold text-blue-700 text-center mb-8 tracking-tight">
           Đăng ký
         </h2>
-        {error && (
-          <p className="mb-4 text-red-500 text-sm text-center">{error}</p>
-        )}
-        {success && (
-          <p className="mb-4 text-green-600 text-sm text-center">{success}</p>
-        )}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-blue-700 mb-1">
-              Gmail
+              Họ và tên
+            </label>
+            <input
+              type="text"
+              name="fullName"
+              value={form.fullName}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-blue-50/60"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-blue-700 mb-1">
+              Email
             </label>
             <input
               type="email"
-              name="gmail"
-              value={form.gmail}
+              name="email"
+              value={form.email}
               onChange={handleChange}
-              placeholder="yourname@gmail.com"
-              className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-blue-50/60 text-blue-900 placeholder:text-blue-300 transition"
-              autoFocus
+              className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-blue-50/60"
+              required
             />
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-blue-700 mb-1">
+              Số điện thoại
+            </label>
+            <input
+              type="tel"
+              name="phoneNumber"
+              value={form.phoneNumber}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-blue-50/60"
+              required
+            />
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-blue-700 mb-1">
               Mật khẩu
@@ -81,10 +106,11 @@ function Register() {
               name="password"
               value={form.password}
               onChange={handleChange}
-              placeholder="Nhập mật khẩu"
-              className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-blue-50/60 text-blue-900 placeholder:text-blue-300 transition"
+              className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-blue-50/60"
+              required
             />
           </div>
+
           <div>
             <label className="block text-sm font-medium text-blue-700 mb-1">
               Xác nhận mật khẩu
@@ -94,22 +120,25 @@ function Register() {
               name="confirmPassword"
               value={form.confirmPassword}
               onChange={handleChange}
-              placeholder="Nhập lại mật khẩu"
-              className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-blue-50/60 text-blue-900 placeholder:text-blue-300 transition"
+              className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-blue-50/60"
+              required
             />
           </div>
+
           <button
             type="submit"
-            className="w-full py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg transition text-lg"
+            disabled={isLoading}
+            className="w-full py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg transition text-lg disabled:opacity-50"
           >
-            Đăng ký
+            {isLoading ? 'Đang xử lý...' : 'Đăng ký'}
           </button>
         </form>
+        
         <div className="mt-6 text-center text-sm text-blue-700/80">
           Đã có tài khoản?{" "}
           <button
             className="underline hover:text-blue-900 font-medium"
-            onClick={() => navigate("/login")}
+            onClick={() => navigate(PATHS.AUTH.LOGIN)}
             type="button"
           >
             Đăng nhập

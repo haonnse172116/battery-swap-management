@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
 import Sidebar from "./sidebar/Sidebar";
 import Navbar from "./navbar/Navbar";
 import { SidebarProvider, useSidebar } from "../../contexts/SidebarContext";
+import { PATHS } from "../../constant/path/pathname";
+import { getDefaultPathByRole, canAccessPath } from "../../utils/role";
 
 function useMediaQuery(query) {
   const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
@@ -29,10 +32,46 @@ function useMediaQuery(query) {
   return matches;
 }
 
-
 const AuthorizedLayoutContent = ({ children, type }) => {
   const { collapsed } = useSidebar();
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  const { accessToken, user, role, needsActivation } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    // ✅ 1. Check authentication
+    if (!accessToken || !user) {
+      navigate(PATHS.AUTH.LOGIN, { replace: true });
+      return;
+    }
+
+    // ✅ 2. Check activation status
+    if (needsActivation || user.status === 'Inactive') {
+      navigate(PATHS.AUTH.VERIFY_OTP, { replace: true });
+      return;
+    }
+
+    // ✅ 3. Check role permission
+    if (!canAccessPath(role, location.pathname)) {
+      const defaultPath = getDefaultPathByRole(role);
+      navigate(defaultPath, { replace: true });
+      return;
+    }
+  }, [accessToken, user, role, needsActivation, location.pathname, navigate]);
+
+  // Show loading while checking
+  if (!accessToken || !user || needsActivation) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang kiểm tra quyền truy cập...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 relative">
@@ -43,7 +82,7 @@ const AuthorizedLayoutContent = ({ children, type }) => {
             {children ?? <Outlet />}
           </main>
         </>
-      ) : (    
+      ) : (
         <div className="flex min-h-screen bg-gradient-to-br from-white via-blue-50 to-blue-500 overflow-hidden">
           <Sidebar type={type} />
           <main
@@ -51,7 +90,7 @@ const AuthorizedLayoutContent = ({ children, type }) => {
               marginLeft: collapsed ? "80px" : "256px",
               transition: "margin-left 0.3s ease-in-out",
             }}
-  className="flex-1 px-10 py-3 h-screen overflow-y-auto"
+            className="flex-1 px-10 py-3 h-screen overflow-y-auto"
           >
             {children ?? <Outlet />}
           </main>

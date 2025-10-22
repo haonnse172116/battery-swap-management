@@ -2,8 +2,13 @@ import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   accessToken: null,
-  role: null,
   user: null,
+  role: null,
+  // Temp token cho OTP flow
+  tempToken: null,
+  tempEmail: null,
+  tempUserId: null,
+  needsActivation: false,
 };
 
 const authSlice = createSlice({
@@ -11,13 +16,42 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setCredentials: (state, { payload }) => {
-      state.accessToken = payload.tokenResponse.accessToken;
-      state.role = payload.tokenResponse.user.role;
-      state.user = payload.tokenResponse.user;
+      const { accessToken, user } = payload;
+      state.accessToken = accessToken;
+      state.user = user;
+      state.role = user?.role || null;
+      // Clear temp data
+      state.tempToken = null;
+      state.tempEmail = null;
+      state.tempUserId = null;
+      state.needsActivation = false;
     },
-    logout: () => initialState,
+
+    setTempToken: (state, { payload }) => {
+      state.tempToken = payload.token;
+      state.tempEmail = payload.email;
+      state.tempUserId = payload.userId;
+      state.needsActivation = payload.needsActivation || false;
+    },
+
+    clearTempToken: (state) => {
+      state.tempToken = null;
+      state.tempEmail = null;
+      state.tempUserId = null;
+      state.needsActivation = false;
+    },
+
+    logout: (state) => {
+      state.accessToken = null;
+      state.user = null;
+      state.role = null;
+      state.tempToken = null;
+      state.tempEmail = null;
+      state.tempUserId = null;
+      state.needsActivation = false;
+    },
   },
 });
 
-export const { setCredentials, logout } = authSlice.actions;
+export const { setCredentials, setTempToken, clearTempToken, logout } = authSlice.actions;
 export default authSlice.reducer;
