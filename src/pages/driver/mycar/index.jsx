@@ -5,6 +5,7 @@ import {
   useCreateVehicleMutation,
   useUpdateVehicleMutation,
   useDeleteVehicleMutation,
+  useGetMyVehiclesQuery,
 } from "../../../services/vehicle.service";
 import { useGetAllBatteryTypesQuery } from "../../../services/batteryType.service";
 import {
@@ -15,13 +16,8 @@ import {
 } from "@heroicons/react/24/outline";
 
 const MyCar = () => {
-  const currentUser = useSelector((state) => state.auth.user);
-
-  // ✅ Fetch vehicles
-  const { data: vehiclesData, isLoading, refetch } = useGetAllVehiclesQuery({
-    pageSize: 100,
-  });
-
+  const { data: vehiclesData, isLoading, refetch } = useGetMyVehiclesQuery();
+  const cars = vehiclesData?.content || [];
   // ✅ Fetch battery types for dropdown
   const { data: batteryTypesData, isLoading: isLoadingTypes } =
     useGetAllBatteryTypesQuery();
@@ -31,11 +27,8 @@ const MyCar = () => {
   const [updateVehicle, { isLoading: isUpdating }] = useUpdateVehicleMutation();
   const [deleteVehicle, { isLoading: isDeleting }] = useDeleteVehicleMutation();
 
-  // Filter current user's vehicles
-  const cars = vehiclesData?.vehicles?.filter(
-    (v) => v.userId === currentUser?.userId
-  )?.reverse()|| [];
-  const batteryTypes = batteryTypesData?.batteryTypes || [];
+  // ✅ Simple - cars đã là array rồi
+  const batteryTypes = batteryTypesData?.batteryTypes || batteryTypesData?.content || [];
 
   // --- Modal state ---
   const [showModal, setShowModal] = useState(false);
@@ -146,10 +139,12 @@ const MyCar = () => {
   }
 
   return (
-    <div>
+    <div className="px-10 py-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-gray-800">Xe của tôi</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        Xe của tôi {/* ✅ Updated title */}
+      </h1>
         <button
           onClick={handleOpenAdd}
           className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all duration-200"
@@ -159,7 +154,7 @@ const MyCar = () => {
         </button>
       </div>
 
-      {/* List */}
+      {/* ✅ Simple map - cars đã là array */}
       {cars.length > 0 ? (
         <ul className="divide-y divide-gray-200">
           {cars.map((car) => (
@@ -169,21 +164,20 @@ const MyCar = () => {
             >
               <div className="flex items-center gap-4">
                 <img
-                  src={car.image}
-                  alt={car.name}
+                  src="/vf8.png"
+                  alt={`${car.vBrand} ${car.model}`}
                   className="w-28 h-20 object-cover rounded-xl border border-gray-200 shadow-sm"
-                  onError={(e) => {
-                    e.target.src = "/vf8.png";
-                  }}
                 />
                 <div>
-                  <p className="font-semibold text-gray-900">{car.name}</p>
+                  <p className="font-semibold text-gray-900">
+                    {car.vBrand} {car.model}
+                  </p>
                   <p className="text-sm text-gray-500 font-mono">
                     {car.licensePlate}
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
-                      🔋 {car.batteryType}
+                      🔋 {car.batteryTypeName || 'N/A'}
                     </span>
                     {car.batteryId && (
                       <span className="text-xs text-gray-500">
@@ -196,19 +190,13 @@ const MyCar = () => {
 
               <div className="flex items-center gap-3">
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenEdit(car);
-                  }}
+                  onClick={() => handleOpenEdit(car)}
                   className="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-100 transition"
                 >
                   <PencilSquareIcon className="w-5 h-5" />
                 </button>
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemove(car.vehicleId, car.licensePlate);
-                  }}
+                  onClick={() => handleRemove(car.vehicleId, car.licensePlate)}
                   disabled={isDeleting}
                   className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-100 transition disabled:opacity-50"
                 >
@@ -220,12 +208,13 @@ const MyCar = () => {
         </ul>
       ) : (
         <div className="text-center py-12 bg-gray-50 rounded-xl">
-          <p className="text-gray-500 mb-4">Bạn chưa thêm xe nào</p>
+          <div className="text-6xl mb-4">🚗</div>
+          <p className="text-gray-500 mb-4">Bạn chưa có xe nào</p>
           <button
             onClick={handleOpenAdd}
-            className="text-blue-600 hover:underline"
+            className="text-blue-600 hover:underline font-medium"
           >
-            Thêm xe ngay
+            Thêm xe đầu tiên →
           </button>
         </div>
       )}
