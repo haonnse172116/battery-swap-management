@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGetMyBookingsQuery } from '../../../services/booking.service';
 import { 
   ClockIcon, 
@@ -7,6 +7,7 @@ import {
   BoltIcon,
   CalendarIcon
 } from '@heroicons/react/24/outline';
+import toast from '../../../utils/toast'; // ✅ Simple import
 
 const BookingsPage = () => {
   const [sortBy, setSortBy] = useState('newest');
@@ -17,6 +18,19 @@ const BookingsPage = () => {
     error,
     refetch 
   } = useGetMyBookingsQuery();
+
+  // ✅ Refresh with toast
+  const handleRefresh = () => {
+    toast.info(' Đang làm mới dữ liệu...');
+    refetch();
+  };
+
+  // ✅ Error handling with toast
+  useEffect(() => {
+    if (error) {
+      toast.error('Không thể tải danh sách đặt chỗ');
+    }
+  }, [error]);
 
   // ✅ Simplified mock data - just scheduled appointments
   const mockBookings = process.env.NODE_ENV === 'development' ? [
@@ -139,19 +153,6 @@ const BookingsPage = () => {
         </p>
       </div>
 
-      {/* ✅ Development Mode Indicator */}
-      {process.env.NODE_ENV === 'development' && !bookingsResponse?.content?.length && (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-center gap-2">
-            <span className="text-blue-600">🛠️</span>
-            <span className="text-sm font-medium text-blue-800">
-              Development Mode: Hiển thị dữ liệu mock ({mockBookings.length} lịch đặt)
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* ✅ Sort Options - FIXED SYNTAX ERROR */}
       <div className="mb-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="flex flex-wrap">
           {[
@@ -202,13 +203,10 @@ const BookingsPage = () => {
           )}
         </div>
         <button
-          onClick={() => refetch()}
+          onClick={handleRefresh}
           disabled={isLoading}
-          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm disabled:opacity-50 flex items-center gap-2"
+          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
         >
-          <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
           Làm mới
         </button>
       </div>
