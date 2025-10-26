@@ -8,7 +8,6 @@ import Register from "../pages/auth/register";
 import { PATHS } from "../constant/path/pathname";
 import AuthorizedLayout from "../components/layouts/AuthorizedLayout";
 import Dashboard from "../pages/admin/dashboard";
-import StationAdd from "../pages/admin/stationAdd";
 import StationList from "../pages/admin/stationList";
 import StationBattery from "../pages/admin/stationBattery";
 import StationComplaint from "../pages/admin/stationComplaint";
@@ -66,7 +65,7 @@ export const router = createBrowserRouter([
       {path: PATHS.ADMIN.STATIONS.LIST, element: <StationList/>},
       {path: PATHS.ADMIN.STATIONS.STATION_BATTERY, element: <StationBattery/>},
       {path: PATHS.ADMIN.STATIONS.COMPLAINTS, element: <StationComplaint/>},
-      {path: PATHS.ADMIN.STATIONS.ADD, element: <StationAdd/>},
+      {path: PATHS.ADMIN.STATIONS.ADD, element: <Placeholder title='Admin add station'/>},
       {path: PATHS.ADMIN.USERS.LIST, element: <UserList/>},
       {path: PATHS.ADMIN.USERS.STATION_STAFF, element: <UserStationStaff/>},
       {path: PATHS.ADMIN.USERS.CREATE, element: <Placeholder title='Admin create user'/>},
