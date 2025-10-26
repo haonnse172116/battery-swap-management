@@ -1,69 +1,57 @@
-import { apiSlice } from "../api/apiSlice";
+import { apiSlice } from '../api/apiSlice';
 
 export const stationApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    // ========== GET ALL STATIONS ==========
-    getAllStations: builder.query({
-      query: ({ page = 1, pageSize = 100 } = {}) => ({
+    // GET /Station?page=&pageSize=&search=  (no auth required)
+    getStations: builder.query({
+      query: ({ page = 1, pageSize = 10, search = '' } = {}) => ({
         url: '/Station',
         method: 'GET',
-        params: { page, pageSize },
+        params: {
+          page,
+          pageSize,
+          search,
+        },
       }),
       providesTags: ['Station'],
-      transformResponse: (response) => {
-        return {
-          stations: response.content?.map(station => ({
-            stationId: station.stationId,
-            stationName: station.stationName,
-            address: station.address,
-            latitude: station.latitude,
-            longitude: station.longitude,
-            status: station.status,
-            operatingHours: station.operatingHours,
-            // Computed
-            name: station.stationName,
-            location: {
-              lat: station.latitude,
-              lng: station.longitude,
-            },
-          })) || [],
-          pagination: response.pagination,
-        };
-      },
     }),
 
-    // ========== GET STATION DETAIL ==========
-    getStationDetail: builder.query({
-      query: (stationId) => ({
-        url: `/Station/${stationId}`,
-        method: 'GET',
+    // POST /Station  (requires token)
+    createStation: builder.mutation({
+      // args: { station: { name,address,latitude,longitude,isActive }, token }
+      query: ({ station, token }) => ({
+        url: '/Station',
+        method: 'POST',
+        data: station,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       }),
-      providesTags: (result, error, id) => [{ type: 'Station', id }],
+      invalidatesTags: ['Station'],
     }),
 
-    // ========== GET BATTERIES AT STATION ==========
-    getStationBatteries: builder.query({
-      query: (stationId) => ({
-        url: `/Station/${stationId}/batteries`,
-        method: 'GET',
+    // PUT /Station/{id}
+    updateStation: builder.mutation({
+      query: ({ id, station, token }) => ({
+        url: `/Station/${id}`,
+        method: 'PUT',
+        data: station,
       }),
-      providesTags: (result, error, id) => [{ type: 'Station', id }],
-      transformResponse: (response) => {
-        return response.content?.map(battery => ({
-          batteryId: battery.batteryId,
-          batteryTypeId: battery.batteryTypeId,
-          batteryTypeName: battery.batteryTypeName,
-          batteryLevel: battery.batteryLevel,
-          status: battery.status,
-          price: battery.price,
-        })) || [];
-      },
+      invalidatesTags: ['Station'],
+    }),
+
+    // DELETE /Station/{id}
+    deleteStation: builder.mutation({
+      query: ({ id, token }) => ({
+        url: `/Station/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Station'],
     }),
   }),
 });
 
 export const {
-  useGetAllStationsQuery,
-  useGetStationDetailQuery,
-  useGetStationBatteriesQuery,
+  useGetStationsQuery,
+  useCreateStationMutation,
+  useUpdateStationMutation,
+  useDeleteStationMutation,
 } = stationApi;
