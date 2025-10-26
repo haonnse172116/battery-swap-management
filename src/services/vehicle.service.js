@@ -38,27 +38,10 @@ export const vehicleApi = apiSlice.injectEndpoints({
     // ========== GET MY VEHICLES (Driver) ==========
     getMyVehicles: builder.query({
       query: () => ({
-        url: '/Vehicle/my-vehicles',
+        url: '/Vehicle/by-user/me',
         method: 'GET',
       }),
       providesTags: ['Vehicle'],
-      transformResponse: (response) => {
-        return response.content?.map(vehicle => ({
-          vehicleId: vehicle.vehicleId,
-          userId: vehicle.userId,
-          userName: vehicle.userName,
-          batteryId: vehicle.batteryId,
-          batteryTypeId: vehicle.batteryTypeId,
-          batteryTypeName: vehicle.batteryTypeName,
-          brand: vehicle.vBrand,
-          model: vehicle.model,
-          licensePlate: vehicle.licensePlate,
-          // Computed fields for UI
-          name: `${vehicle.vBrand} ${vehicle.model}`,
-          batteryType: vehicle.batteryTypeName,
-          image: '/vf8.png',
-        })) || [];
-      },
     }),
 
     // ========== GET VEHICLE DETAIL ==========
