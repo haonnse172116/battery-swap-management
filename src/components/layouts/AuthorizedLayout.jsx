@@ -90,7 +90,7 @@ const AuthorizedLayoutContent = ({ children, type }) => {
               marginLeft: collapsed ? "80px" : "256px",
               transition: "margin-left 0.3s ease-in-out",
             }}
-            className="flex-1 px-10 h-screen overflow-y-auto"
+            className="flex-1 px-10 py-3 h-screen overflow-y-auto"
           >
             {children ?? <Outlet />}
           </main>
