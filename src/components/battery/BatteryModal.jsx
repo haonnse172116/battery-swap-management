@@ -1,10 +1,10 @@
 import {
-    XMarkIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { useEffect, useState } from 'react';
 import {
-    useCreateBatteryMutation,
-    useUpdateBatteryMutation,
+  useCreateBatteryMutation,
+  useUpdateBatteryMutation,
 } from '../../services/battery.service.js';
 import { useGetAllBatteryTypesQuery } from '../../services/batteryType.service.js';
 import { useGetStationsQuery } from '../../services/station.service.js';
@@ -314,7 +314,7 @@ const BatteryModal = ({ isOpen, onClose, battery = null, onSuccess }) => {
                 <option value="">Chưa phân bổ</option>
                 {stations.map((station) => (
                   <option key={station.stationId} value={station.stationId}>
-                    {station.stationName}
+                    {station.name}
                   </option>
                 ))}
               </select>
