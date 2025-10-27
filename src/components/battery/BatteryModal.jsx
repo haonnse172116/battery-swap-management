@@ -50,6 +50,7 @@ const BatteryModal = ({ isOpen, onClose, battery = null, onSuccess }) => {
 
   useEffect(() => {
     if (battery && isOpen) {
+      console.log('Opening modal for battery:', battery);
       setFormData({
         serialNo: battery.serialNo || '',
         voltage: battery.voltage || '',
@@ -60,6 +61,7 @@ const BatteryModal = ({ isOpen, onClose, battery = null, onSuccess }) => {
         owner: battery.owner || 'Station',
         status: battery.status || 'Available',
       });
+      console.log('Setting imagePreview to:', battery.imageUrl);
       setImagePreview(battery.imageUrl || null);
     } else if (!isEdit && isOpen) {
       setFormData({
@@ -95,6 +97,8 @@ const BatteryModal = ({ isOpen, onClose, battery = null, onSuccess }) => {
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
+      console.log('Selected file:', file);
+      
       if (!file.type.startsWith('image/')) {
         setErrors(prev => ({
           ...prev,
@@ -115,7 +119,11 @@ const BatteryModal = ({ isOpen, onClose, battery = null, onSuccess }) => {
       
       const reader = new FileReader();
       reader.onload = (e) => {
+        console.log('FileReader loaded, setting preview');
         setImagePreview(e.target.result);
+      };
+      reader.onerror = (e) => {
+        console.error('FileReader error:', e);
       };
       reader.readAsDataURL(file);
 
@@ -139,6 +147,9 @@ const BatteryModal = ({ isOpen, onClose, battery = null, onSuccess }) => {
       }
 
       const uploadResult = await uploadToCloudinary(imageFile, signatureResponse.content);
+      
+      // Update the preview with the uploaded URL
+      setImagePreview(uploadResult.secure_url);
       
       return uploadResult.secure_url;
     } catch (error) {
@@ -225,6 +236,8 @@ const BatteryModal = ({ isOpen, onClose, battery = null, onSuccess }) => {
 
   if (!isOpen) return null;
 
+  console.log('Rendering BatteryModal - imagePreview:', imagePreview);
+
   const batteryStatuses = [
     { value: 'Available', label: 'Có sẵn' },
     { value: 'InUse', label: 'Đang sử dụng' },
@@ -239,10 +252,37 @@ const BatteryModal = ({ isOpen, onClose, battery = null, onSuccess }) => {
   ];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[95vh] overflow-hidden shadow-2xl">
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+        zIndex: 1000
+      }}
+      onClick={onClose}
+    >
+      <div 
+        style={{
+          backgroundColor: 'white',
+          borderRadius: '1rem',
+          maxWidth: '56rem',
+          width: '100%',
+          maxHeight: '95vh',
+          overflow: 'hidden',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          position: 'relative'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header with gradient */}
-        <div className="relative bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
+        <div className="relative bg-blue-600 px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
@@ -441,68 +481,138 @@ const BatteryModal = ({ isOpen, onClose, battery = null, onSuccess }) => {
                 
                 {imagePreview ? (
                   /* Image Preview with Replace Option */
-                  <div className="relative group">
-                    <div className="relative w-full h-64 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-dashed border-gray-200 overflow-hidden">
+                  <div>
+                    <div 
+                      style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: '16rem',
+                        backgroundColor: '#ffffff',
+                        borderRadius: '0.5rem',
+                        border: '1px solid #e5e7eb',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
                       <img
                         src={imagePreview}
                         alt="Battery preview"
-                        className="w-full h-full object-cover"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                        onError={(e) => {
+                          console.error('Image failed to load:', imagePreview);
+                          setImagePreview(null);
+                        }}
+                        onLoad={() => {
+                          console.log('Image loaded successfully:', imagePreview);
+                        }}
                       />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
-                        <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 flex gap-3">
-                          <label
-                            htmlFor="image-upload"
-                            className="bg-white text-gray-800 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors font-medium shadow-lg"
-                          >
-                            Thay đổi ảnh
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setImagePreview(null);
-                              setImageFile(null);
-                              setFormData(prev => ({ ...prev, imageUrl: '' }));
-                            }}
-                            className="bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 transition-colors font-medium shadow-lg"
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
+                    </div>
+                    {/* Action buttons below image */}
+                    <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                      <label
+                        htmlFor="image-upload"
+                        style={{
+                          backgroundColor: '#3b82f6',
+                          color: 'white',
+                          padding: '0.5rem 1rem',
+                          borderRadius: '0.5rem',
+                          cursor: 'pointer',
+                          fontSize: '0.875rem',
+                          border: 'none'
+                        }}
+                      >
+                        Thay đổi ảnh
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImagePreview(null);
+                          setImageFile(null);
+                          setFormData(prev => ({ ...prev, imageUrl: '' }));
+                        }}
+                        style={{
+                          backgroundColor: '#ef4444',
+                          color: 'white',
+                          padding: '0.5rem 1rem',
+                          borderRadius: '0.5rem',
+                          cursor: 'pointer',
+                          fontSize: '0.875rem',
+                          border: 'none'
+                        }}
+                      >
+                        Xóa ảnh
+                      </button>
                     </div>
                   </div>
                 ) : (
                   /* Upload Placeholder */
                   <label
                     htmlFor="image-upload"
-                    className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 rounded-2xl cursor-pointer bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-all duration-300 ${
-                      uploadingImage ? 'opacity-50 cursor-not-allowed' : 'hover:border-blue-400'
-                    }`}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '100%',
+                      height: '16rem',
+                      border: '2px dashed #9ca3af',
+                      borderRadius: '0.5rem',
+                      cursor: uploadingImage ? 'not-allowed' : 'pointer',
+                      backgroundColor: '#f9fafb',
+                      opacity: uploadingImage ? 0.5 : 1,
+                      transition: 'all 0.3s'
+                    }}
                   >
-                    <div className="flex flex-col items-center justify-center space-y-4">
-                      {uploadingImage ? (
-                        <>
-                          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-blue-600 font-semibold">Đang tải ảnh lên...</p>
-                            <p className="text-gray-500 text-sm">Vui lòng đợi trong giây lát</p>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
-                            <CloudArrowUpIcon className="w-8 h-8 text-white" />
-                          </div>
-                          <div className="text-center">
-                            <p className="text-gray-700 font-semibold text-lg">Tải ảnh pin lên</p>
-                            <p className="text-gray-500 text-sm mt-1">Nhấp để chọn hoặc kéo thả ảnh vào đây</p>
-                            <p className="text-xs text-gray-400 mt-2">JPG, PNG, GIF tối đa 5MB</p>
-                          </div>
-                        </>
-                      )}
-                    </div>
+                    {uploadingImage ? (
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{
+                          width: '4rem',
+                          height: '4rem',
+                          backgroundColor: '#dbeafe',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          margin: '0 auto 1rem auto'
+                        }}>
+                          <div style={{
+                            width: '2rem',
+                            height: '2rem',
+                            border: '2px solid transparent',
+                            borderTop: '2px solid #2563eb',
+                            borderRadius: '50%',
+                            animation: 'spin 1s linear infinite'
+                          }}></div>
+                        </div>
+                        <p style={{ color: '#2563eb', fontWeight: '600', marginBottom: '0.25rem' }}>Đang tải ảnh lên...</p>
+                        <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Vui lòng đợi trong giây lát</p>
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center' }}>
+                        <CloudArrowUpIcon style={{ 
+                          width: '4rem', 
+                          height: '4rem', 
+                          color: '#6b7280',
+                          margin: '0 auto 1rem auto',
+                          display: 'block'
+                        }} />
+                        <p style={{ color: '#374151', fontWeight: '600', fontSize: '1.125rem', marginBottom: '0.25rem' }}>
+                          Tải ảnh pin lên
+                        </p>
+                        <p style={{ color: '#6b7280', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                          Nhấp để chọn hoặc kéo thả ảnh vào đây
+                        </p>
+                        <p style={{ color: '#9ca3af', fontSize: '0.75rem' }}>
+                          JPG, PNG, GIF tối đa 5MB
+                        </p>
+                      </div>
+                    )}
                   </label>
                 )}
 
