@@ -128,7 +128,7 @@ const Sidebar = ({ type }) => {
         { key: PATHS.DRIVER.HOME, label: "Trang chủ", icon: HomeIcon },
         { key: PATHS.DRIVER.MYCAR, label: "Xe của tôi", icon: TruckIcon },
         { key: PATHS.DRIVER.BOOKING, label: "Đặt lịch", icon: ClipboardDocumentListIcon },
-        { key: PATHS.DRIVER.BOOKING_HISTORY, label: "Lịch sử đặt", icon: ClockIcon },
+        { key: PATHS.DRIVER.BOOKINGPAGE, label: "Danh sách đặt lịch", icon: ClipboardDocumentListIcon },
         { key: PATHS.DRIVER.SUBSCRIPTION, label: "Đăng ký gói", icon: Battery100Icon },
       ],
       userMenu: [
