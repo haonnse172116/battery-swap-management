@@ -1,6 +1,3 @@
-import React from 'react';
-import { CpuChipIcon } from '@heroicons/react/24/outline';
-
 const BatteryStatusIndicator = ({ 
   currentCapacity, 
   totalCapacity, 

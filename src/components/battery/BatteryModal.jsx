@@ -1,6 +1,11 @@
 import {
   XMarkIcon,
+  PhotoIcon,
+  ArrowUpTrayIcon,
+  CloudArrowUpIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline';
+import { CpuChipIcon } from '@heroicons/react/24/solid';
 import { useEffect, useState } from 'react';
 import {
   useCreateBatteryMutation,
@@ -8,6 +13,10 @@ import {
 } from '../../services/battery.service.js';
 import { useGetAllBatteryTypesQuery } from '../../services/batteryType.service.js';
 import { useGetStationsQuery } from '../../services/station.service.js';
+import { 
+  useLazyGetCloudinarySignatureQuery,
+  uploadToCloudinary
+} from '../../services/upload.service.js';
 
 const BatteryModal = ({ isOpen, onClose, battery = null, onSuccess }) => {
   const isEdit = !!battery;
@@ -24,9 +33,13 @@ const BatteryModal = ({ isOpen, onClose, battery = null, onSuccess }) => {
   });
 
   const [errors, setErrors] = useState({});
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
   const { data: stationsResponse } = useGetStationsQuery({ page: 1, pageSize: 100 });
-  const { data: batteryTypesData } = useGetAllBatteryTypesQuery();
+  const { data: batteryTypesData } = useGetAllBatteryTypesQuery({ page: 1, pageSize: 100 });
+  const [getCloudinarySignature] = useLazyGetCloudinarySignatureQuery();
   
   const [createBattery, { isLoading: isCreating }] = useCreateBatteryMutation();
   const [updateBattery, { isLoading: isUpdating }] = useUpdateBatteryMutation();
@@ -47,6 +60,7 @@ const BatteryModal = ({ isOpen, onClose, battery = null, onSuccess }) => {
         owner: battery.owner || 'Station',
         status: battery.status || 'Available',
       });
+      setImagePreview(battery.imageUrl || null);
     } else if (!isEdit && isOpen) {
       setFormData({
         serialNo: '',
@@ -58,8 +72,10 @@ const BatteryModal = ({ isOpen, onClose, battery = null, onSuccess }) => {
         owner: 'Station',
         status: 'Available',
       });
+      setImagePreview(null);
     }
     setErrors({});
+    setImageFile(null);
   }, [battery, isEdit, isOpen]);
 
   const handleChange = (e) => {
@@ -73,6 +89,67 @@ const BatteryModal = ({ isOpen, onClose, battery = null, onSuccess }) => {
         ...prev,
         [name]: ''
       }));
+    }
+  };
+
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setErrors(prev => ({
+          ...prev,
+          image: 'Vui lòng chọn file ảnh hợp lệ'
+        }));
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({
+          ...prev,
+          image: 'File ảnh không được vượt quá 5MB'
+        }));
+        return;
+      }
+
+      setImageFile(file);
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+
+      setErrors(prev => ({
+        ...prev,
+        image: ''
+      }));
+    }
+  };
+
+  const uploadImage = async () => {
+    if (!imageFile) return formData.imageUrl;
+
+    try {
+      setUploadingImage(true);
+
+      const signatureResponse = await getCloudinarySignature({ fileName: 'batteries' }).unwrap();
+      
+      if (!signatureResponse?.content) {
+        throw new Error('Failed to get upload signature');
+      }
+
+      const uploadResult = await uploadToCloudinary(imageFile, signatureResponse.content);
+      
+      return uploadResult.secure_url;
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      setErrors(prev => ({
+        ...prev,
+        image: 'Tải ảnh lên thất bại. Vui lòng thử lại.'
+      }));
+      throw error;
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -111,11 +188,18 @@ const BatteryModal = ({ isOpen, onClose, battery = null, onSuccess }) => {
     }
 
     try {
+      // Upload image first if there's a new image file
+      let imageUrl = formData.imageUrl;
+      if (imageFile) {
+        imageUrl = await uploadImage();
+      }
+
       const batteryData = {
         ...formData,
         serialNo: parseInt(formData.serialNo),
         capacityWh: parseInt(formData.capacityWh),
         stationId: formData.stationId || null,
+        imageUrl,
       };
 
       if (isEdit) {
@@ -155,26 +239,45 @@ const BatteryModal = ({ isOpen, onClose, battery = null, onSuccess }) => {
   ];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
-            {isEdit ? 'Chỉnh sửa Pin' : 'Thêm Pin mới'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <XMarkIcon className="w-6 h-6" />
-          </button>
+    <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[95vh] overflow-hidden shadow-2xl">
+        {/* Header with gradient */}
+        <div className="relative bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                <CpuChipIcon className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">
+                  {isEdit ? 'Chỉnh sửa Pin' : 'Thêm Pin mới'}
+                </h2>
+                <p className="text-blue-100 text-sm">
+                  {isEdit ? 'Cập nhật thông tin pin trong hệ thống' : 'Thêm pin mới vào hệ thống quản lý'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-10 h-10 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-xl flex items-center justify-center transition-all duration-200"
+            >
+              <XMarkIcon className="w-5 h-5 text-white" />
+            </button>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {errors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800 text-sm">{errors.submit}</p>
-            </div>
-          )}
+        <div className="overflow-y-auto max-h-[calc(95vh-120px)]">
+          <form onSubmit={handleSubmit} className="p-8">
+            {errors.submit && (
+              <div className="bg-red-50 border-l-4 border-red-400 rounded-lg p-4 mb-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <XMarkIcon className="w-5 h-5 text-red-400" />
+                  </div>
+                  <p className="ml-3 text-red-800 text-sm">{errors.submit}</p>
+                </div>
+              </div>
+            )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Serial Number */}
@@ -314,44 +417,146 @@ const BatteryModal = ({ isOpen, onClose, battery = null, onSuccess }) => {
                 <option value="">Chưa phân bổ</option>
                 {stations.map((station) => (
                   <option key={station.stationId} value={station.stationId}>
-                    {station.name}
+                    {station.stationName || station.name}
                   </option>
                 ))}
               </select>
             </div>
 
+            {/* Image Upload */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                URL hình ảnh
+              <label className="block text-sm font-semibold text-gray-800 mb-3">
+                Hình ảnh pin
               </label>
-              <input
-                type="url"
-                name="imageUrl"
-                value={formData.imageUrl}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="https://example.com/battery-image.jpg"
-              />
+              
+              {/* Upload Area */}
+              <div className="relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                  id="image-upload"
+                />
+                
+                {imagePreview ? (
+                  /* Image Preview with Replace Option */
+                  <div className="relative group">
+                    <div className="relative w-full h-64 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-dashed border-gray-200 overflow-hidden">
+                      <img
+                        src={imagePreview}
+                        alt="Battery preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 flex gap-3">
+                          <label
+                            htmlFor="image-upload"
+                            className="bg-white text-gray-800 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors font-medium shadow-lg"
+                          >
+                            Thay đổi ảnh
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setImagePreview(null);
+                              setImageFile(null);
+                              setFormData(prev => ({ ...prev, imageUrl: '' }));
+                            }}
+                            className="bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 transition-colors font-medium shadow-lg"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Upload Placeholder */
+                  <label
+                    htmlFor="image-upload"
+                    className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 rounded-2xl cursor-pointer bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-all duration-300 ${
+                      uploadingImage ? 'opacity-50 cursor-not-allowed' : 'hover:border-blue-400'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center justify-center space-y-4">
+                      {uploadingImage ? (
+                        <>
+                          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-blue-600 font-semibold">Đang tải ảnh lên...</p>
+                            <p className="text-gray-500 text-sm">Vui lòng đợi trong giây lát</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+                            <CloudArrowUpIcon className="w-8 h-8 text-white" />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-gray-700 font-semibold text-lg">Tải ảnh pin lên</p>
+                            <p className="text-gray-500 text-sm mt-1">Nhấp để chọn hoặc kéo thả ảnh vào đây</p>
+                            <p className="text-xs text-gray-400 mt-2">JPG, PNG, GIF tối đa 5MB</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </label>
+                )}
+
+                {errors.image && (
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-600 text-sm flex items-center gap-2">
+                      <XMarkIcon className="w-4 h-4" />
+                      {errors.image}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Thêm mới'}
-            </button>
-          </div>
-        </form>
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200 mt-6">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all duration-200 font-medium"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading || uploadingImage}
+                className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                {uploadingImage ? (
+                  <>
+                    <ArrowUpTrayIcon className="w-4 h-4 animate-pulse" />
+                    <span>Đang tải ảnh...</span>
+                  </>
+                ) : isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Đang lưu...</span>
+                  </>
+                ) : isEdit ? (
+                  <>
+                    <CpuChipIcon className="w-4 h-4" />
+                    <span>Cập nhật</span>
+                  </>
+                ) : (
+                  <>
+                    <CpuChipIcon className="w-4 h-4" />
+                    <span>Thêm mới</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

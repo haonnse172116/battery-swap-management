@@ -82,7 +82,7 @@ const BatteryTableRow = ({
             <option value="">Chưa phân bổ</option>
             {stations.map((station) => (
               <option key={station.stationId} value={station.stationId}>
-                {station.stationName}
+                {station.name}
               </option>
             ))}
           </select>
