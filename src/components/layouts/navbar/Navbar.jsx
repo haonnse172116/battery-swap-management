@@ -63,6 +63,7 @@ const NAV_CONFIG = {
       { key: PATHS.DRIVER.HOME, label: "Home" },
       { key: PATHS.DRIVER.MYCAR, label: "My Car" },
       { key: PATHS.DRIVER.BOOKING, label: "Booking" },
+      { key: PATHS.DRIVER.BOOKING_HISTORY, label: "History" },
       { key: PATHS.DRIVER.SUBSCRIPTION, label: "Subscription" },
       { key: PATHS.DRIVER.PROFILE, label: "Profile" },
     ],

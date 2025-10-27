@@ -15,6 +15,7 @@ import {
   Squares2X2Icon,
   TruckIcon,
   ClipboardDocumentListIcon,
+  ClockIcon,
   Battery100Icon,
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -27,7 +28,6 @@ const Sidebar = ({ type }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   
-  // ✅ Add logout mutation
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
 
   const NAV_CONFIG = {
@@ -66,6 +66,14 @@ const Sidebar = ({ type }) => {
             { key: PATHS.ADMIN.SUBSCRIPTIONS.LIST, label: "Danh sách" },
           ],
         },
+        {
+          key: "battery",
+          label: "Quản lý Pin",
+          icon: Battery100Icon,
+          children: [
+            { key: PATHS.ADMIN.BATTERY.MANAGEMENT, label: "Tổng quan Pin" },
+          ],
+        },
         { key: PATHS.ADMIN.SETTINGS, label: "Cài đặt", icon: Cog6ToothIcon },
       ],
       userMenu: [
@@ -98,6 +106,14 @@ const Sidebar = ({ type }) => {
             { key: PATHS.STAFF.INVENTORY.STATUS, label: "Quản lý tình trạng" },
           ],
         },
+        {
+          key: "battery",
+          label: "Quản lý Slot Pin",
+          icon: Battery100Icon,
+          children: [
+            { key: PATHS.STAFF.BATTERY.MANAGEMENT, label: "Gán pin vào slot" },
+          ],
+        },
       ],
       userMenu: [
         { key: "logout", label: "Đăng xuất", icon: ArrowLeftStartOnRectangleIcon },
@@ -112,6 +128,7 @@ const Sidebar = ({ type }) => {
         { key: PATHS.DRIVER.HOME, label: "Trang chủ", icon: HomeIcon },
         { key: PATHS.DRIVER.MYCAR, label: "Xe của tôi", icon: TruckIcon },
         { key: PATHS.DRIVER.BOOKING, label: "Đặt lịch", icon: ClipboardDocumentListIcon },
+        { key: PATHS.DRIVER.BOOKING_HISTORY, label: "Lịch sử đặt", icon: ClockIcon },
         { key: PATHS.DRIVER.SUBSCRIPTION, label: "Đăng ký gói", icon: Battery100Icon },
       ],
       userMenu: [

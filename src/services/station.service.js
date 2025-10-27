@@ -4,7 +4,7 @@ export const stationApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // GET /Station?page=&pageSize=&search=  (no auth required)
     getStations: builder.query({
-      query: ({ page = 1, pageSize = 10, search = '' } = {}) => ({
+      query: ({ page = 1, pageSize = 100, search = '' } = {}) => ({
         url: '/Station',
         method: 'GET',
         params: {

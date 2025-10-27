@@ -26,6 +26,10 @@ export const PATHS = {
       LIST: "/admin/subscriptions/list",
       CREATE: "/admin/subscriptions/create",
     },
+    BATTERY: {
+      ROOT: "/admin/battery",
+      MANAGEMENT: "/admin/battery/management",
+    },
     SETTINGS: "/admin/settings",
     PROFILE: "/admin/profile",
   },
@@ -47,6 +51,10 @@ export const PATHS = {
       ROOT: "/staff/inventory",
       LIST: "/staff/inventory/battery-list",
       STATUS: "/staff/inventory/battery-status",
+    },
+    BATTERY: {
+      ROOT: "/staff/battery",
+      MANAGEMENT: "/staff/battery/management",
     },
     PROFILE: "/staff/profile",
   },

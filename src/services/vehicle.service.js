@@ -38,7 +38,7 @@ export const vehicleApi = apiSlice.injectEndpoints({
     // ========== GET MY VEHICLES (Driver) ==========
     getMyVehicles: builder.query({
       query: () => ({
-        url: '/Vehicle/my-vehicles',
+        url: '/Vehicle/by-user/me',
         method: 'GET',
       }),
       providesTags: ['Vehicle'],

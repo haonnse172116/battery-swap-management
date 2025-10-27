@@ -16,6 +16,7 @@ import UserList from "../pages/admin/userList";
 import UserStationStaff from "../pages/admin/userStationStaff";
 import SubscriptionCreate from "../pages/admin/subscriptionCreate";
 import SubscriptionList from "../pages/admin/subscriptionList";
+import AdminBatteryManagement from "../pages/admin/batteryManagement";
 
 import DriverHome from "../pages/driver/home";
 import MyCar from "../pages/driver/mycar";
@@ -26,6 +27,7 @@ import TransactionHistory from "../pages/staff/transactionHistory";
 import TransactionConfirm from "../pages/staff/transactionConfirm";
 import BatteryList  from "../pages/staff/batteryList";
 import BatteryStatus from "../pages/staff/batteryStatus";
+import StaffBatteryManagement from "../pages/staff/batteryManagement";
 import Booking from "../pages/driver/booking";
 import VerifyOtp from "../pages/auth/otp";
 
@@ -72,6 +74,7 @@ export const router = createBrowserRouter([
       {path: PATHS.ADMIN.USERS.CREATE, element: <Placeholder title='Admin create user'/>},
       {path: PATHS.ADMIN.SUBSCRIPTIONS.LIST, element: <SubscriptionList/>},
       {path: PATHS.ADMIN.SUBSCRIPTIONS.CREATE, element: <SubscriptionCreate/>},
+      {path: PATHS.ADMIN.BATTERY.MANAGEMENT, element: <AdminBatteryManagement/>},
     ]
   }
   ,
@@ -94,6 +97,7 @@ export const router = createBrowserRouter([
       {path: PATHS.STAFF.SWAP.HISTORY, element: <TransactionHistory title='Staff Transaction History'/>},
       {path: PATHS.STAFF.INVENTORY.LIST, element: <BatteryList/>},
       {path: PATHS.STAFF.INVENTORY.STATUS, element: <BatteryStatus title='Staff battery status'/>},
+      {path: PATHS.STAFF.BATTERY.MANAGEMENT, element: <StaffBatteryManagement/>},
     ]
   },
   {
