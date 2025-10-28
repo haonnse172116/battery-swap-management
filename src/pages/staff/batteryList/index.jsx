@@ -1,62 +1,68 @@
-import React, { useState } from 'react';
-
-const mockStations = [
-    { station_id: 'ST01', name: 'Trạm A', address: '123 Đường A', is_active: true },
-    { station_id: 'ST02', name: 'Trạm B', address: '456 Đường B', is_active: true },
-    { station_id: 'ST03', name: 'Trạm C', address: '789 Đường C', is_active: false },
-];
-
-const mockBatteryTypes = {
-    'BT01': 'Lithium 48V',
-    'BT02': 'Lithium 60V',
-};
-
-const mockBatteries = [
-    // Trạm A
-    { battery_id: 'BAT001', station_id: 'ST01', battery_type_id: 'BT01', serial_no: 1001, status: 'sẵn sàng', voltage: '48V', capacity_wh: '3200', image_url: '', reservation_id: null },
-    { battery_id: 'BAT002', station_id: 'ST01', battery_type_id: 'BT01', serial_no: 1002, status: 'đang sạc', voltage: '48V', capacity_wh: '3200', image_url: '', reservation_id: 'RSV01' },
-    { battery_id: 'BAT003', station_id: 'ST01', battery_type_id: 'BT01', serial_no: 1003, status: 'hỏng', voltage: '48V', capacity_wh: '3200', image_url: '', reservation_id: null },
-    // Trạm B
-    { battery_id: 'BAT004', station_id: 'ST02', battery_type_id: 'BT02', serial_no: 2001, status: 'sẵn sàng', voltage: '60V', capacity_wh: '4000', image_url: '', reservation_id: null },
-    { battery_id: 'BAT005', station_id: 'ST02', battery_type_id: 'BT02', serial_no: 2002, status: 'đang sử dụng', voltage: '60V', capacity_wh: '4000', image_url: '', reservation_id: null },
-    // Trạm C
-    { battery_id: 'BAT006', station_id: 'ST03', battery_type_id: 'BT01', serial_no: 3001, status: 'sẵn sàng', voltage: '48V', capacity_wh: '3200', image_url: '', reservation_id: null },
-];
+import React, { useState, useMemo } from 'react';
+import { useGetStationsQuery } from '@/services/station.service';
+import { useGetBatteriesByStationQuery, useGetAllBatteriesQuery } from '@/services/battery.service';
+import { useDebounce } from '@/hooks/useDebounce';
 
 const statusColor = {
-    'sẵn sàng': 'bg-green-100 text-green-700',
-    'đang sử dụng': 'bg-yellow-100 text-yellow-700',
-    'đang sạc': 'bg-blue-100 text-blue-700',
-    'hỏng': 'bg-red-100 text-red-700',
+    Available: 'bg-green-100 text-green-700',
+    InUse: 'bg-yellow-100 text-yellow-700',
+    Charging: 'bg-blue-100 text-blue-700',
+    Damaged: 'bg-red-100 text-red-700',
+    Maintenance: 'bg-gray-100 text-gray-700',
+    QualityCheck: 'bg-indigo-100 text-indigo-700',
 };
 
+function ImageWithFallback({ src, alt, className }) {
+    const fallback = 'https://b2232832.smushcdn.com/2232832/wp-content/uploads/2023/04/EV-urban-myth_01.jpg?lossy=1&strip=0&webp=1';
+    return <img src={src || fallback} alt={alt} className={className} onError={(e) => { e.currentTarget.src = fallback; }} />;
+}
+
 export default function BatteryList() {
-    // viewingStationId = null => show station cards
-    // otherwise => show battery list of that station
     const [viewingStationId, setViewingStationId] = useState(null);
+    const [page, setPage] = useState(1);
+    const [pageSize] = useState(12);
+    const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 300);
+    const [statusFilter, setStatusFilter] = useState('');
+    const [sortField, setSortField] = useState('serialNo');
+    const [sortOrder, setSortOrder] = useState('asc');
+    const [selectedBattery, setSelectedBattery] = useState(null);
 
-    const openStation = (stationId) => {
-        setViewingStationId(stationId);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
+    const { data: stationsData } = useGetStationsQuery({ page: 1, pageSize: 12 });
+    const stations = stationsData?.content || [];
 
-    const backToStations = () => {
-        setViewingStationId(null);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
+    // fetch all batteries to compute per-station aggregated counts used on station cards
+    const { data: allBatteriesData } = useGetAllBatteriesQuery({ page: 1, pageSize: 1000 });
+    const allBatteries = allBatteriesData?.content || [];
 
-    // helpers
-    const getCounts = (stationId) => {
-        const list = mockBatteries.filter(b => b.station_id === stationId);
-        return {
-            total: list.length,
-            ready: list.filter(b => b.status === 'sẵn sàng').length,
-            broken: list.filter(b => b.status === 'hỏng').length,
-        };
-    };
+    const currentStation = viewingStationId ? stations.find(s => (s.stationId || s.id) === viewingStationId) : null;
 
-    // currently viewed station object (if any)
-    const currentStation = viewingStationId ? mockStations.find(s => s.station_id === viewingStationId) : null;
+    const { data: batteriesData, isLoading: batteriesLoading, refetch } = useGetBatteriesByStationQuery({ stationId: viewingStationId, page, pageSize, search: debouncedSearch }, { skip: !viewingStationId });
+
+    const batteries = batteriesData?.content || [];
+    const pagination = batteriesData?.pagination || { page: page, totalCount: batteries.length, pageSize };
+
+    const totalPages = Math.max(1, Math.ceil((pagination.totalCount || batteries.length) / (pagination.pageSize || pageSize)));
+
+    const openStation = (stationId) => { setViewingStationId(stationId); setPage(1); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    const backToStations = () => { setViewingStationId(null); setSelectedBattery(null); };
+
+    const filteredSorted = useMemo(() => {
+        let list = [...batteries];
+        if (debouncedSearch) {
+            const q = debouncedSearch.toLowerCase();
+            list = list.filter(b => (b.serialNo?.toString() || '').toLowerCase().includes(q) || (b.batteryId || '').toLowerCase().includes(q) || (b.batteryTypeName || '').toLowerCase().includes(q));
+        }
+        if (statusFilter) list = list.filter(b => b.status === statusFilter);
+        list.sort((a, b) => {
+            const aVal = (a[sortField] ?? '')?.toString().toLowerCase();
+            const bVal = (b[sortField] ?? '')?.toString().toLowerCase();
+            if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+            if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+            return 0;
+        });
+        return list;
+    }, [batteries, debouncedSearch, statusFilter, sortField, sortOrder]);
 
     return (
         <div className="p-6 min-h-screen">
@@ -77,17 +83,17 @@ export default function BatteryList() {
                 )}
             </div>
 
-            {/* Station cards view */}
+            {/* Station cards */}
             {!currentStation && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    {mockStations.map(station => {
-                        const counts = getCounts(station.station_id);
+                    {stations.map(station => {
+                        const countsList = allBatteries.filter(b => (b.stationId || b.station_id) === (station.stationId || station.id));
+                        const counts = { total: countsList.length, ready: countsList.filter(b => b.status === 'Available').length, broken: countsList.filter(b => b.status === 'Damaged' || b.status === 'hỏng').length };
                         return (
-                            <div key={station.station_id} className="relative bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                                {/* tag top-right */}
+                            <div key={station.stationId || station.id} className="relative bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                                 <div className="absolute right-3 top-3">
-                                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${station.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                        {station.is_active ? 'Hoạt động' : 'Ngưng'}
+                                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${station.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                        {station.isActive ? 'Hoạt động' : 'Ngưng'}
                                     </span>
                                 </div>
 
@@ -114,13 +120,8 @@ export default function BatteryList() {
                                         </div>
                                     </div>
 
-
-                                    {/* chi tiết button */}
                                     <div className="mt-6">
-                                        <button
-                                            onClick={() => openStation(station.station_id)}
-                                            className="block mx-auto w-3/4 text-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-                                        >
+                                        <button onClick={() => openStation(station.stationId || station.id)} className="block mx-auto w-3/4 text-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
                                             Chi tiết danh sách pin
                                         </button>
                                     </div>
@@ -131,7 +132,7 @@ export default function BatteryList() {
                 </div>
             )}
 
-            {/* Battery list view (when a station selected) */}
+            {/* Battery list */}
             {currentStation && (
                 <div className="space-y-6">
                     <div className="bg-white rounded-lg shadow border border-gray-200 p-4">
@@ -146,37 +147,116 @@ export default function BatteryList() {
                         </div>
                     </div>
 
+                    <div className="flex flex-wrap items-center gap-3">
+                        <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Tìm theo serial, loại..." className="border rounded px-3 py-2 w-64" />
+                        <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }} className="border rounded px-3 py-2">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="Available">Available</option>
+                            <option value="InUse">InUse</option>
+                            <option value="Charging">Charging</option>
+                            <option value="Damaged">Damaged</option>
+                        </select>
+                        <select value={sortField} onChange={e => setSortField(e.target.value)} className="border rounded px-3 py-2">
+                            <option value="serialNo">Số series</option>
+                            <option value="owner">Chủ sở hữu</option>
+                            <option value="status">Trạng thái</option>
+                            <option value="batteryTypeId">Loại pin</option>
+                            <option value="capacityWh">Dung tích (Wh)</option>
+                        </select>
+                        <button onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')} className="px-3 py-2 border rounded">{sortOrder === 'asc' ? '↑ Tăng dần' : '↓ Giảm dần'}</button>
+                        <button onClick={() => refetch()} className="px-3 py-2 bg-blue-600 text-white rounded">Làm mới</button>
+                    </div>
+
                     <div>
-                        {/* batteries grid */}
-                        {mockBatteries.filter(b => b.station_id === currentStation.station_id).length === 0 ? (
+                        {batteriesLoading ? (
+                            <div className="p-6 text-center">Đang tải...</div>
+                        ) : filteredSorted.length === 0 ? (
                             <div className="bg-white p-6 rounded-lg text-center text-gray-500 shadow-sm">Không có pin ở trạm này</div>
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {mockBatteries.filter(b => b.station_id === currentStation.station_id).map(b => (
-                                    <div key={b.battery_id} className="bg-white rounded-lg shadow p-4 border border-gray-200 flex flex-col gap-2">
+                                {filteredSorted.map(b => (
+                                    <div key={b.batteryId || b.batteryId} className="bg-white rounded-lg shadow p-4 border border-gray-200 flex flex-col gap-2">
                                         <div className="flex justify-between items-start">
                                             <div>
-                                                <div className="text-sm text-gray-500">Mã pin</div>
-                                                <div className="font-semibold text-gray-800">{b.battery_id}</div>
+                                                <div className="text-sm text-gray-500">Serial No. <span className="font-semibold text-gray-800">{b.serialNo}</span></div>
+                                                
                                             </div>
                                             <div>
-                                                <div className={`text-xs font-semibold px-2 py-1 rounded ${statusColor[b.status]}`}>{b.status}</div>
+                                                <div className={`text-xs font-semibold px-2 py-1 rounded ${statusColor[b.status] || 'bg-gray-100 text-gray-700'}`}>{b.status}</div>
                                             </div>
                                         </div>
 
-                                        <div className="text-xs text-gray-500">Serial: {b.serial_no}</div>
-                                        <div className="text-xs text-gray-500">Loại: {mockBatteryTypes[b.battery_type_id]}</div>
-                                        <div className="text-xs text-gray-500">Điện áp: {b.voltage} | Dung lượng: {b.capacity_wh} Wh</div>
-                                        {b.reservation_id && <div className="text-xs text-yellow-700 font-medium">Reservation: {b.reservation_id}</div>}
+                                        <div className="text-xs text-gray-500">Loại: {b.batteryTypeName || b.batteryTypeId}</div>
+                                        <div className="text-xs text-gray-500">Điện áp: {b.voltage} | Dung lượng: {b.capacityWh} Wh</div>
+                                        {b.reservationId && <div className="text-xs text-yellow-700 font-medium">Reservation: {b.reservationId}</div>}
 
                                         <div className="mt-3">
-                                            <button className="w-full px-3 py-2 bg-gray-100 rounded text-sm hover:bg-gray-200">Xem chi tiết pin</button>
+                                            <button onClick={() => setSelectedBattery(b)} className="w-full px-3 py-2 bg-gray-100 rounded text-sm hover:bg-gray-200">Xem chi tiết</button>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         )}
                     </div>
+
+                    {/* pagination */}
+                    <div className="flex items-center gap-2 justify-center py-4">
+                        <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1 border rounded disabled:opacity-50">Trước</button>
+                        <div className="px-3 py-1">{page} / {totalPages}</div>
+                        <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="px-3 py-1 border rounded disabled:opacity-50">Sau</button>
+                    </div>
+
+                    {/* Battery detail modal */}
+                    {selectedBattery && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40">
+                            <div className="absolute inset-0" onClick={() => setSelectedBattery(null)} />
+                            <div className="relative z-10 w-[min(95%,800px)] bg-white rounded-2xl shadow-2xl overflow-hidden">
+                                {/* Header */}
+                                <div className="p-5 border-b bg-gradient-to-r from-blue-50 to-blue-100 flex justify-between items-center">
+                                    <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                                        🔋 Chi tiết pin
+                                    </h3>
+                                    <button
+                                        onClick={() => setSelectedBattery(null)}
+                                        className="text-gray-500 hover:text-red-500 text-xl leading-none"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+
+                                {/* Nội dung */}
+                                <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {/* Ảnh */}
+                                    <div className="md:col-span-1 flex justify-center items-start">
+                                        <ImageWithFallback src={selectedBattery.imageUrl || selectedBattery.imageURL} alt={`Battery ${selectedBattery.batteryId}`} className="w-full h-44 object-cover rounded-md" />
+                                    </div>
+
+                                    {/* Thông tin */}
+                                    <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                                        {[
+                                            ['Battery ID', selectedBattery.batteryId],
+                                            ['Serial No', selectedBattery.serialNo],
+                                            ['Owner', selectedBattery.owner],
+                                            ['Status', selectedBattery.status],
+                                            ['Voltage', selectedBattery.voltage],
+                                            ['Capacity (Wh)', selectedBattery.capacityWh],
+                                            ['Current Capacity (Wh)', selectedBattery.currentCapacityWh ?? '-'],
+                                            ['Station', selectedBattery.stationName || selectedBattery.stationId],
+                                            ['Battery Type', selectedBattery.batteryTypeName || selectedBattery.batteryTypeId],
+                                            ['Reservation', selectedBattery.reservationId || '-'],
+                                            ['Created', selectedBattery.createdAt ? new Date(selectedBattery.createdAt).toLocaleString() : '-'],
+                                            ['Updated', selectedBattery.updatedAt ? new Date(selectedBattery.updatedAt).toLocaleString() : '-'],
+                                        ].map(([label, value]) => (
+                                            <div key={label} className="flex flex-col border border-gray-100 rounded-md p-2 bg-gray-50/40 hover:bg-gray-100/60 transition">
+                                                <span className="text-gray-500 text-xs">{label}</span>
+                                                <span className="font-medium text-gray-800 break-words">{value}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
