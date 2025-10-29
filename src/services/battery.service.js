@@ -68,6 +68,26 @@ export const batteryApi = apiSlice.injectEndpoints({
             }),
             invalidatesTags: (result) => [{ type: 'Battery', id: 'LIST' }],
         }),
+
+        // ✅ GET /Battery/unassigned?batteryTypeId= (optional parameter)
+        getUnassignedBatteries: builder.query({
+            query: ({ batteryTypeId } = {}) => ({
+                url: '/Battery/unassigned',
+                params: batteryTypeId ? { batteryTypeId } : {},
+            }),
+            providesTags: ['Battery'],
+        }),
+    
+        // POST /Battery/attach
+        attachBattery: builder.mutation({
+            query: ({ batteryId, vehicleId, performByUserId }) => ({
+                url: '/Battery/attach',
+                method: 'POST',
+                data: { batteryId, vehicleId, performByUserId },
+            }),
+            invalidatesTags: ['Battery', 'Vehicle'],
+        }),
+
     }),
 });
 
@@ -78,4 +98,6 @@ export const {
     useUpdateBatteryMutation,
     useDeleteBatteryMutation,
     useAssignBatteriesToStationMutation,
+    useGetUnassignedBatteriesQuery, // ✅ Now supports optional batteryTypeId parameter
+    useAttachBatteryMutation,
 } = batteryApi;
