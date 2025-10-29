@@ -114,14 +114,6 @@ const StationSelection = ({
     return [];
   })();
 
-  console.log("Stations data:", { 
-    realData: stationsData?.content, 
-    mockData: mockStations, 
-    finalStations: stations,
-    excludeFull,
-    isDev: process.env.NODE_ENV === 'development'
-  });
-
   
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371; 

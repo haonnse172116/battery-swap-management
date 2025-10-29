@@ -20,20 +20,7 @@ const BookingPage = () => {
   const [selectedStation, setSelectedStation] = useState(null);   
   const [selectedSlot, setSelectedSlot] = useState(null);         
   
-  
-  const [selectedDateTime, setSelectedDateTime] = useState(() => {
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(10, 0, 0, 0); 
-    
-    return {
-      date: tomorrow.toISOString().split('T')[0], 
-      time: '10:00', 
-      isoString: tomorrow.toISOString()
-    };
-  });
-  
+  // ✅ Remove selectedDateTime from main component - will be handled in Booking
   const [bookingData, setBookingData] = useState(null);          
 
   const nextStep = () => setStep((s) => Math.min(s + 1, 4));
@@ -93,10 +80,10 @@ const BookingPage = () => {
   return (
     <div className="px-10 py-6">
       <h1 className="text-3xl font-bold text-gray-900 mb-2">
-        Đặt chỗ thay pin {/* ✅ Updated title */}
+        Đặt chỗ thay pin
       </h1>
       <p className="text-gray-600 mb-8">
-        Thực hiện theo các bước để hoàn tất đặt chỗ của bạn {/* ✅ Updated description */}
+        Thực hiện theo các bước để hoàn tất đặt chỗ của bạn
       </p>
 
       {/* ✅ Beautiful Step Indicator */}
@@ -217,8 +204,8 @@ const BookingPage = () => {
               <p className="text-sm text-gray-600 mt-1">
                 {step === 1 && "Chọn xe của bạn để bắt đầu"}
                 {step === 2 && "Tìm trạm thay pin phù hợp"}
-                {step === 3 && "Chọn slot và thời gian thuận tiện"} {/* ✅ Updated description */}
-                {step === 4 && "Xác nhận thông tin và tạo đặt chỗ"} {/* ✅ Updated description */}
+                {step === 3 && "Chọn vị trí slot vật lý"}
+                {step === 4 && "Chọn thời gian và xác nhận đặt chỗ"} {/* ✅ Updated description */}
               </p>
             </div>
           </div>
@@ -260,7 +247,6 @@ const BookingPage = () => {
               selectedCar={selectedCar}             
               selectedStation={selectedStation}     
               selectedSlot={selectedSlot}
-              selectedDateTime={selectedDateTime} 
               bookingData={bookingData} 
               setBookingData={setBookingData} 
               prevStep={prevStep}
@@ -277,8 +263,7 @@ const BookingPage = () => {
               <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
                 📋
               </div>
-              Tóm tắt đặt chỗ {/* ✅ Updated title */
-}
+              Tóm tắt đặt chỗ
             </h3>
           </div>
           
@@ -332,23 +317,23 @@ const BookingPage = () => {
                 </div>
               )}
 
-              {/* ✅ Updated Slot Info */}
+              {/* Slot Info */}
               {selectedSlot && (
                 <div className="group">
                   <div className="flex items-center gap-4 p-4 rounded-xl bg-white border border-purple-100 shadow-sm group-hover:shadow-md transition-all duration-200">
                     <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-                      🔌 {/* ✅ Changed icon from clock to slot */}
+                      🔌
                     </div>
                     <div className="flex-1">
                       <div className="font-bold text-gray-900 text-lg">
-                        Slot {selectedSlot.slotNo} {/* ✅ Show slot number */}
+                        Slot {selectedSlot.slotNo}
                       </div>
                       <div className="text-gray-600 text-sm">
-                        {selectedSlot.batteryLevel ? `Pin ${selectedSlot.batteryLevel}%` : 'Slot đã chọn'} {/* ✅ Show battery level */}
+                        {selectedSlot.batteryLevel ? `Pin ${selectedSlot.batteryLevel}%` : 'Slot đã chọn'}
                       </div>
                       {selectedSlot.batteryId && (
                         <div className="text-xs text-purple-700 bg-purple-100 px-2 py-0.5 rounded mt-1 inline-block">
-                          🔋 Pin ID: {selectedSlot.batteryId.slice(0, 8)}... {/* ✅ Show battery ID */}
+                          🔋 Pin ID: {selectedSlot.batteryId.slice(0, 8)}...
                         </div>
                       )}
                       <div className="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded mt-1 inline-block">
@@ -382,30 +367,8 @@ const BookingPage = () => {
           </div>
         </div>
       )}
-      
-      {/* ✅ Development Info Panel */}
-      {/* {process.env.NODE_ENV === 'development' && (selectedCar || selectedStation || selectedSlot) && (
-        <div className="mt-6 p-4 bg-gray-100 rounded-lg border border-gray-300">
-          <h4 className="font-medium text-gray-800 mb-2">🛠️ Development - Booking Data Preview:</h4>
-          <pre className="text-xs bg-white p-3 rounded border overflow-x-auto">
-{JSON.stringify({
-  step: step,
-  vehicleId: selectedCar?.vehicleId || selectedCar?.carId,
-  stationId: selectedStation?.stationId,
-  slotIds: selectedSlot ? [selectedSlot.stationSlotId] : [],
-  bookingDate: selectedDateTime?.isoString || new Date().toISOString(),
-  completedSteps: {
-    car: !!selectedCar,
-    station: !!selectedStation,
-    slot: !!selectedSlot,
-    booking: !!bookingData
-  }
-}, null, 2)}
-          </pre>
-        </div>
-      )} */}
     </div>
   );
 };
 
-export default BookingPage; 
+export default BookingPage;

@@ -1,129 +1,110 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSelector } from "react-redux";
 import {
-  useGetAllVehiclesQuery,
   useCreateVehicleMutation,
   useUpdateVehicleMutation,
-  useDeleteVehicleMutation,
   useGetMyVehiclesQuery,
 } from "../../../services/vehicle.service";
-import { useGetAllBatteryTypesQuery } from "../../../services/batteryType.service";
+import { useAttachBatteryMutation } from "../../../services/battery.service";
 import {
   PlusIcon,
   PencilSquareIcon,
-  TrashIcon,
-  XMarkIcon,
 } from "@heroicons/react/24/outline";
+import CarModal from "./components/CarModal";
+import toast from "../../../utils/toast";
 
 const MyCar = () => {
   const { data: vehiclesData, isLoading, refetch } = useGetMyVehiclesQuery();
   const cars = vehiclesData?.content || [];
-  // ✅ Fetch battery types for dropdown
-  const { data: batteryTypesData, isLoading: isLoadingTypes } =
-    useGetAllBatteryTypesQuery();
 
   // ✅ Mutations
   const [createVehicle, { isLoading: isCreating }] = useCreateVehicleMutation();
   const [updateVehicle, { isLoading: isUpdating }] = useUpdateVehicleMutation();
-  const [deleteVehicle, { isLoading: isDeleting }] = useDeleteVehicleMutation();
+  const [attachBattery, { isLoading: isAttaching }] = useAttachBatteryMutation();
 
-  // ✅ Simple - cars đã là array rồi
-  const batteryTypes = batteryTypesData?.batteryTypes || batteryTypesData?.content || [];
-
-  // --- Modal state ---
+  // ✅ Modal state
   const [showModal, setShowModal] = useState(false);
   const [editingCar, setEditingCar] = useState(null);
-  const [form, setForm] = useState({
-    batteryTypeId: "",
-    vBrand: "",
-    model: "",
-    licensePlate: "",
-  });
-  const [error, setError] = useState("");
 
-  // --- Handlers ---
+  // ✅ Handlers
   const handleOpenAdd = () => {
     setEditingCar(null);
-    setForm({
-      batteryTypeId: "",
-      vBrand: "",
-      model: "",
-      licensePlate: "",
-    });
-    setError("");
     setShowModal(true);
   };
 
   const handleOpenEdit = (car) => {
     setEditingCar(car);
-    setForm({
-      batteryTypeId: car.batteryTypeId || "",
-      vBrand: car.brand || "",
-      model: car.model || "",
-      licensePlate: car.licensePlate || "",
-    });
-    setError("");
     setShowModal(true);
   };
 
-  const validateForm = () => {
-    if (!form.batteryTypeId) {
-      setError("Vui lòng chọn loại pin");
-      return false;
-    }
-    if (!form.vBrand.trim()) {
-      setError("Vui lòng nhập hãng xe");
-      return false;
-    }
-    if (!form.model.trim()) {
-      setError("Vui lòng nhập model xe");
-      return false;
-    }
-    if (!form.licensePlate.trim()) {
-      setError("Vui lòng nhập biển số xe");
-      return false;
-    }
-    // Validate license plate format (optional)
-    const plateRegex = /^[0-9]{2}[A-Z]-[0-9]{3}\.[0-9]{2}$/;
-    if (!plateRegex.test(form.licensePlate)) {
-      setError("Biển số không đúng định dạng (VD: 51H-123.45)");
-      return false;
-    }
-    return true;
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingCar(null);
   };
 
-  const handleSave = async () => {
-    if (!validateForm()) return;
+  // ✅ Handle save vehicle (battery type required for creation)
+  const handleSave = async (formData) => {
+    const loadingToastId = toast.loading(editingCar ? 'Đang cập nhật xe...' : 'Đang thêm xe...');
 
     try {
       if (editingCar) {
         // ✅ Update existing vehicle
+        const updateData = {
+          vBrand: formData.vBrand,
+          model: formData.model,
+          licensePlate: formData.licensePlate,
+        };
+
         await updateVehicle({
           vehicleId: editingCar.vehicleId,
-          ...form,
+          ...updateData,
         }).unwrap();
-        alert("Cập nhật xe thành công!");
+
+        toast.dismiss(loadingToastId);
+        toast.success(`🚗 Cập nhật xe ${formData.licensePlate} thành công!`);
       } else {
-        // ✅ Create new vehicle
-        await createVehicle(form).unwrap();
-        alert("Thêm xe thành công!");
+        // ✅ Create new vehicle (battery type required)
+        const createData = {
+          vBrand: formData.vBrand,
+          model: formData.model,
+          licensePlate: formData.licensePlate,
+          batteryTypeId: formData.batteryTypeId, // Required for creation
+        };
+
+        await createVehicle(createData).unwrap();
+
+        toast.dismiss(loadingToastId);
+        toast.success(`🚗 Thêm xe ${formData.licensePlate} thành công! Giờ bạn có thể gắn pin tương ứng.`);
       }
+
       setShowModal(false);
       refetch();
     } catch (err) {
-      setError(err.data?.message || "Có lỗi xảy ra");
+      console.error('Save vehicle error:', err);
+      toast.dismiss(loadingToastId);
+      toast.error(err.data?.message || 'Có lỗi xảy ra khi lưu xe');
     }
   };
 
-  const handleRemove = async (vehicleId, licensePlate) => {
-    if (!confirm(`Bạn có chắc muốn xóa xe ${licensePlate}?`)) return;
+  const handleAttachBattery = async ({ vehicleId, batteryId, performByUserId }) => {
+    const loadingToastId = toast.loading('Đang gắn pin...');
 
     try {
-      await deleteVehicle(vehicleId).unwrap();
-      alert("Xóa xe thành công!");
+      await attachBattery({
+        vehicleId,
+        batteryId,
+        performByUserId,
+      }).unwrap();
+
+      toast.dismiss(loadingToastId);
+      toast.success(`🔗 Gắn pin thành công!`);
+      
+      setShowModal(false);
       refetch();
     } catch (err) {
-      alert(err.data?.message || "Không thể xóa xe");
+      console.error('Attach battery error:', err);
+      toast.dismiss(loadingToastId);
+      toast.error(err.data?.message || 'Có lỗi xảy ra khi gắn pin');
     }
   };
 
@@ -139,216 +120,116 @@ const MyCar = () => {
   }
 
   return (
-    <div className="px-10 py-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-        Xe của tôi {/* ✅ Updated title */}
-      </h1>
+    <div className="px-6 py-8 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            Xe của tôi
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Quản lý danh sách xe và pin của bạn ({cars.length} xe)
+          </p>
+        </div>
         <button
           onClick={handleOpenAdd}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all duration-200"
+          className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition shadow-md hover:shadow-lg"
         >
           <PlusIcon className="w-5 h-5" />
-          Thêm xe
+          <span>Thêm xe</span>
         </button>
       </div>
 
-      {/* ✅ Simple map - cars đã là array */}
       {cars.length > 0 ? (
-        <ul className="divide-y divide-gray-200">
+        <div className="grid gap-4">
           {cars.map((car) => (
-            <li
+            <div
               key={car.vehicleId}
-              className="flex items-center justify-between py-4 px-3 rounded-xl border border-transparent hover:bg-blue-50 hover:border-blue-200 transition-all duration-200"
+              className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-all duration-200"
             >
-              <div className="flex items-center gap-4">
-                <img
-                  src="/vf8.png"
-                  alt={`${car.vBrand} ${car.model}`}
-                  className="w-28 h-20 object-cover rounded-xl border border-gray-200 shadow-sm"
-                />
-                <div>
-                  <p className="font-semibold text-gray-900">
-                    {car.vBrand} {car.model}
-                  </p>
-                  <p className="text-sm text-gray-500 font-mono">
-                    {car.licensePlate}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
-                      🔋 {car.batteryTypeName || 'N/A'}
-                    </span>
-                    {car.batteryId && (
-                      <span className="text-xs text-gray-500">
-                        Pin: {car.batteryId.slice(0, 8)}...
-                      </span>
-                    )}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex-shrink-0">
+                  <img
+                    src="/vf8.png"
+                    alt={`${car.vBrand} ${car.model}`}
+                    className="w-full sm:w-32 h-24 sm:h-24 object-cover rounded-lg border border-gray-200 shadow-sm"
+                  />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        {car.vBrand} {car.model}
+                      </h3>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded text-gray-800">
+                          {car.licensePlate}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {car.batteryTypeName && (
+                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                            🔋 {car.batteryTypeName}
+                          </span>
+                        )}
+                        {car.batteryId ? (
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                            Pin: {car.batteryId.slice(0, 8)}...
+                          </span>
+                        ) : (
+                          <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
+                            ⚠️ Chưa có pin
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => handleOpenEdit(car)}
+                        className="flex items-center gap-2 text-blue-600 hover:text-blue-800 px-3 py-2 rounded-lg hover:bg-blue-50 transition border border-blue-200 hover:border-blue-300"
+                        title={car.batteryId ? "Chỉnh sửa xe" : "Chỉnh sửa xe / Gắn pin"}
+                      >
+                        <PencilSquareIcon className="w-4 h-4" />
+                        <span className="text-sm font-medium">
+                          {car.batteryId ? "Chỉnh sửa" : "Chỉnh sửa / Gắn pin"}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => handleOpenEdit(car)}
-                  className="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-100 transition"
-                >
-                  <PencilSquareIcon className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => handleRemove(car.vehicleId, car.licensePlate)}
-                  disabled={isDeleting}
-                  className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-100 transition disabled:opacity-50"
-                >
-                  <TrashIcon className="w-5 h-5" />
-                </button>
-              </div>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       ) : (
-        <div className="text-center py-12 bg-gray-50 rounded-xl">
+        <div className="text-center py-16 bg-gray-50 rounded-xl">
           <div className="text-6xl mb-4">🚗</div>
-          <p className="text-gray-500 mb-4">Bạn chưa có xe nào</p>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">
+            Chưa có xe nào
+          </h3>
+          <p className="text-gray-500 mb-6">
+            Thêm xe đầu tiên để bắt đầu sử dụng dịch vụ thay pin
+          </p>
           <button
             onClick={handleOpenAdd}
-            className="text-blue-600 hover:underline font-medium"
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition shadow-md"
           >
-            Thêm xe đầu tiên →
+            <PlusIcon className="w-5 h-5" />
+            <span>Thêm xe đầu tiên</span>
           </button>
         </div>
       )}
 
-      {/* --- Modal --- */}
-      {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
-            >
-              <XMarkIcon className="w-5 h-5" />
-            </button>
-
-            <h2 className="text-xl font-semibold mb-4">
-              {editingCar ? "Chỉnh sửa xe" : "Thêm xe mới"}
-            </h2>
-
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                {error}
-              </div>
-            )}
-
-            <div className="space-y-4">
-              {/* Battery Type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Loại pin <span className="text-red-500">*</span>
-                </label>
-                {isLoadingTypes ? (
-                  <div className="text-sm text-gray-500">Đang tải...</div>
-                ) : (
-                  <select
-                    value={form.batteryTypeId}
-                    onChange={(e) =>
-                      setForm({ ...form, batteryTypeId: e.target.value })
-                    }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                  >
-                    <option value="">-- Chọn loại pin --</option>
-                    {batteryTypes.map((type) => (
-                      <option
-                        key={type.batteryTypeId}
-                        value={type.batteryTypeId}
-                      >
-                        {type.typeName} {type.capacity && `(${type.capacity})`}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                <p className="text-xs text-gray-500 mt-1">
-                  VD: type-001, type-002
-                </p>
-              </div>
-
-              {/* Brand */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Hãng xe <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={form.vBrand}
-                  onChange={(e) => setForm({ ...form, vBrand: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="VD: VinFast, Toyota"
-                />
-              </div>
-
-              {/* Model */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Model <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={form.model}
-                  onChange={(e) => setForm({ ...form, model: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="VD: VF e34, Corolla Cross"
-                />
-              </div>
-
-              {/* License Plate */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Biển số xe <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={form.licensePlate}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      licensePlate: e.target.value.toUpperCase(),
-                    })
-                  }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none font-mono"
-                  placeholder="51H-123.45"
-                  maxLength={11}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Định dạng: 51H-123.45
-                </p>
-              </div>
-            </div>
-
-            <div className="flex justify-end mt-6 gap-3">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isCreating || isUpdating}
-                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isCreating || isUpdating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Đang lưu...
-                  </>
-                ) : (
-                  "Lưu"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CarModal
+        isOpen={showModal}
+        onClose={handleCloseModal}
+        editingCar={editingCar}
+        onSave={handleSave}
+        onAttachBattery={handleAttachBattery} 
+        isLoading={isCreating || isUpdating || isAttaching}
+      />
     </div>
   );
 };
