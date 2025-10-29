@@ -1,104 +1,181 @@
-import { CheckIcon } from "@heroicons/react/24/outline";
+import { CheckIcon, ClockIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { useState } from 'react';
+import { useCreateBookingMutation } from '../../../../services/booking.service';
 
 const Booking = ({ 
   selectedCar,           
   selectedStation,       
   selectedSlot,         
-  selectedDateTime,   
   bookingData,          
   setBookingData,       
   prevStep 
 }) => {
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedTime, setSelectedTime] = useState(() => {
+    const now = new Date();
+    const roundedHour = now.getHours() + 1;
+    return `${roundedHour.toString().padStart(2, '0')}:00`;
+  });
 
-  const handleBooking = async () => { 
-    setIsProcessing(true);
-    
-    
-    const generateBookingDate = () => {
-      
-      if (selectedDateTime?.isoString) {
-        return selectedDateTime.isoString;
-      }
-      
-      
-      if (selectedDateTime?.date && selectedDateTime?.time) {
-        try {
-          
-          const dateStr = selectedDateTime.date; 
-          const timeStr = selectedDateTime.time; 
-          
-          
-          const dateTimeStr = `${dateStr}T${timeStr}:00.000Z`;
-          const testDate = new Date(dateTimeStr);
-          
-          
-          if (isNaN(testDate.getTime())) {
-            throw new Error('Invalid date/time combination');
-          }
-          
-          return dateTimeStr;
-        } catch (error) {
-          console.warn('Error parsing selectedDateTime, using current time:', error);
-          return new Date().toISOString();
-        }
-      }
-      
-      
-      const fallbackDate = new Date();
-      fallbackDate.setHours(fallbackDate.getHours() + 1);
-      return fallbackDate.toISOString();
-    };
+  const [createBooking, { 
+    isLoading: isCreatingBooking, 
+    isError: isBookingError,
+    error: bookingError 
+  }] = useCreateBookingMutation();
 
+  const generateTimeOptions = () => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const times = [];
     
-    const bookingPayload = {
-      vehicleId: selectedCar?.vehicleId || selectedCar?.carId,
-      stationId: selectedStation?.stationId,
-      slotIds: [selectedSlot?.stationSlotId],
-      bookingDate: generateBookingDate()
-    };
-
-    console.log("Creating booking with payload:", bookingPayload);
-
+    let startHour = currentMinute > 30 ? currentHour + 2 : currentHour + 1;
     
-    setTimeout(() => {
-      setBookingData({
-        status: 'success',
-        bookingId: 'BK' + Date.now(),
-        bookingDate: bookingPayload.bookingDate,
-        slot: selectedSlot,
-        station: selectedStation,
-        car: selectedCar,
-        createdAt: new Date().toISOString()
-      });
-      setIsProcessing(false);
-    }, 2000);
+    for (let hour = startHour; hour <= 23; hour++) {
+      times.push(`${hour.toString().padStart(2, '0')}:00`);
+      times.push(`${hour.toString().padStart(2, '0')}:30`);
+    }
+    
+    return times;
   };
 
-  console.log("Booking received full booking data:", { 
-    selectedCar, 
-    selectedStation,
-    selectedSlot, 
-    selectedDateTime
-  });
+  const timeOptions = generateTimeOptions();
+
+  const handleBooking = async () => {
+    try {
+      const today = new Date();
+      const [hour, minute] = selectedTime.split(':');
+      today.setHours(parseInt(hour), parseInt(minute), 0, 0);
+
+      const bookingPayload = {
+        vehicleId: selectedCar?.vehicleId,
+        stationId: selectedStation?.stationId, 
+        slotId: selectedSlot?.stationSlotId,
+        bookingDate: today.toISOString()
+      };
+
+
+      const response = await createBooking(bookingPayload).unwrap();
+      
+
+      if (response.success) {
+        setBookingData({
+          status: 'success',
+          bookingId: response.content || response.message || 'BK' + Date.now(),
+          bookingDate: bookingPayload.bookingDate,
+          selectedTime: selectedTime,
+          slot: selectedSlot,
+          station: selectedStation,
+          car: selectedCar,
+          createdAt: new Date().toISOString(),
+          apiResponse: response
+        });
+      } else {
+        throw new Error(response.message || 'Booking creation failed');
+      }
+
+    } catch (error) {
+      console.error("Booking creation error:", error);
+      
+      setBookingData({
+        status: 'error',
+        error: error?.data?.message || error?.message || 'Không thể tạo đặt chỗ',
+        selectedTime: selectedTime,
+        slot: selectedSlot,
+        station: selectedStation,
+        car: selectedCar
+      });
+    }
+  };
+
+  const getExpiryTime = () => {
+    if (!selectedTime) return '';
+    
+    const [hour, minute] = selectedTime.split(':');
+    const expiryHour = (parseInt(hour) + 1) % 24;
+    return `${expiryHour.toString().padStart(2, '0')}:${minute}`;
+  };
+
+
 
   return (
     <div>
-      {/* ✅ Complete Booking Summary - Responsive */}
+      {!bookingData && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <ClockIcon className="w-5 h-5 text-blue-600" />
+            Chọn thời gian đến trạm
+          </h3>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+            <div className="flex items-start gap-3">
+              <ExclamationTriangleIcon className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-blue-800">
+                <p className="font-medium mb-1">⏰ Lưu ý quan trọng:</p>
+                <p>Hệ thống sẽ chỉ giữ chỗ trong vòng <strong>1 tiếng</strong> sau giờ đặt. Vui lòng đến đúng giờ để tránh mất chỗ.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Ngày (chỉ trong ngày)
+              </label>
+              <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                <p className="font-semibold text-gray-800">
+                  {new Date().toLocaleDateString('vi-VN', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </p>
+                <p className="text-sm text-gray-600">Hôm nay</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Thời gian <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={selectedTime}
+                onChange={(e) => setSelectedTime(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                disabled={isCreatingBooking}
+              >
+                <option value="">-- Chọn giờ --</option>
+                {timeOptions.map((time) => (
+                  <option key={time} value={time}>
+                    {time} (hết hạn lúc {(() => {
+                      const [hour, minute] = time.split(':');
+                      const expiryHour = (parseInt(hour) + 1) % 24;
+                      return `${expiryHour.toString().padStart(2, '0')}:${minute}`;
+                    })()})
+                  </option>
+                ))}
+              </select>
+              {selectedTime && (
+                <p className="text-xs text-amber-600 mt-1">
+                  ⚠️ Chỗ sẽ được giữ đến {getExpiryTime()}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Xác nhận đặt chỗ</h2> {/* ✅ Updated title */}
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">
+          {bookingData ? 'Chi tiết đặt chỗ' : 'Xác nhận thông tin đặt chỗ'}
+        </h2>
         
-        {/* Booking Details */}
         <div className="bg-gray-50 rounded-lg sm:rounded-xl p-4 sm:p-6 space-y-3 sm:space-y-4">
           <div className="flex items-center justify-between border-b pb-3">
             <span className="font-medium text-gray-700 text-sm sm:text-base">Xe:</span>
             <div className="text-right">
               <div className="font-semibold text-sm sm:text-base">{selectedCar?.vBrand} {selectedCar?.model}</div>
               <div className="text-xs sm:text-sm text-gray-600 font-mono">{selectedCar?.licensePlate}</div>
-              {selectedCar?.vehicleId && (
-                <div className="text-xs text-gray-500 font-mono">ID: {selectedCar.vehicleId}</div>
-              )}
             </div>
           </div>
           
@@ -107,31 +184,14 @@ const Booking = ({
             <div className="text-right max-w-[60%]">
               <div className="font-semibold text-sm sm:text-base">{selectedStation?.stationName}</div>
               <div className="text-xs sm:text-sm text-gray-600 truncate">{selectedStation?.address}</div>
-              {selectedStation?.stationId && (
-                <div className="text-xs text-gray-500 font-mono">ID: {selectedStation.stationId}</div>
-              )}
             </div>
           </div>
           
-          {/* ✅ Add Selected Slot Information */}
           {selectedSlot && (
             <div className="flex items-center justify-between border-b pb-3">
               <span className="font-medium text-gray-700 text-sm sm:text-base">Slot:</span>
               <div className="text-right">
                 <div className="font-semibold text-sm sm:text-base">Slot {selectedSlot.slotNo}</div>
-                {selectedSlot.batteryLevel && (
-                  <div className="text-xs sm:text-sm text-gray-600">
-                    🔋 Pin {selectedSlot.batteryLevel}%
-                  </div>
-                )}
-                {selectedSlot.batteryId && (
-                  <div className="text-xs text-gray-500 font-mono">
-                    Pin: {selectedSlot.batteryId}
-                  </div>
-                )}
-                <div className="text-xs text-gray-500 font-mono">
-                  ID: {selectedSlot.stationSlotId}
-                </div>
               </div>
             </div>
           )}
@@ -139,8 +199,17 @@ const Booking = ({
           <div className="flex items-center justify-between border-b pb-3">
             <span className="font-medium text-gray-700 text-sm sm:text-base">Thời gian:</span>
             <div className="text-right">
-              <div className="font-semibold text-sm sm:text-base">{selectedDateTime?.date}</div>
-              <div className="text-xs sm:text-sm text-gray-600">{selectedDateTime?.time}</div>
+              <div className="font-semibold text-sm sm:text-base">
+                Hôm nay, {selectedTime || 'Chưa chọn'}
+              </div>
+              {selectedTime && (
+                <div className="text-xs sm:text-sm text-amber-600">
+                  Hết hạn: {getExpiryTime()}
+                </div>
+              )}
+              <div className="text-xs text-gray-500">
+                {new Date().toLocaleDateString('vi-VN')}
+              </div>
             </div>
           </div>
           
@@ -148,58 +217,63 @@ const Booking = ({
             <span className="font-medium text-gray-700 text-sm sm:text-base">Loại pin:</span>
             <span className="font-semibold text-purple-700 text-sm sm:text-base">{selectedCar?.batteryTypeName}</span>
           </div>
-
-
         </div>
       </div>
 
+      {/* ✅ API Error Display */}
+      {bookingData?.status === 'error' && (
+        <div className="mb-6 p-4 sm:p-6 bg-red-50 border border-red-200 rounded-lg sm:rounded-xl">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-600 rounded-full flex items-center justify-center">
+              <ExclamationTriangleIcon className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-red-800 text-sm sm:text-base">Đặt chỗ thất bại!</h4>
+              <p className="text-xs sm:text-sm text-red-600">
+                {bookingData.error}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setBookingData(null)}
+            className="text-sm text-red-600 hover:text-red-800 underline"
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
 
       {/* ✅ Booking Success */}
-      {bookingData && (
+      {bookingData?.status === 'success' && (
         <div className="mb-6 p-4 sm:p-6 bg-green-50 border border-green-200 rounded-lg sm:rounded-xl">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-600 rounded-full flex items-center justify-center">
               <CheckIcon className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
             </div>
             <div>
-              <h4 className="font-semibold text-green-800 text-sm sm:text-base">Đặt chỗ thành công!</h4> {/* ✅ Updated message */}
+              <h4 className="font-semibold text-green-800 text-sm sm:text-base">Đặt chỗ thành công!</h4>
               <p className="text-xs sm:text-sm text-green-600">
-                Mã đặt chỗ: {bookingData.bookingId} {/* ✅ Updated field name */}
+                Mã đặt chỗ: {bookingData.bookingId}
               </p>
             </div>
           </div>
           <div className="text-xs sm:text-sm text-green-700 space-y-1">
             <p>🎯 <strong>Slot {bookingData.slot?.slotNo}</strong> tại <strong>{bookingData.station?.stationName}</strong> đã được đặt chỗ.</p>
             <p>📧 Bạn sẽ nhận được thông báo qua email và SMS.</p>
-            <p>⏰ Vui lòng đến trạm đúng giờ đã hẹn: <strong>{selectedDateTime?.date}</strong> lúc <strong>{selectedDateTime?.time}</strong></p>
-            <p>🔋 Pin sẽ sẵn sàng với mức <strong>{bookingData.slot?.batteryLevel}%</strong> khi bạn đến.</p>
-            {process.env.NODE_ENV === 'development' && (
-              <p className="text-blue-600 italic">🛠️ Development: Booking được tạo với mock data</p>
-            )}
+            <p>⏰ Vui lòng đến trạm hôm nay lúc <strong>{bookingData.selectedTime}</strong></p>
+            <p>⚠️ <strong>Chỗ sẽ được giữ đến {(() => {
+              const [hour, minute] = bookingData.selectedTime.split(':');
+              const expiryHour = (parseInt(hour) + 1) % 24;
+              return `${expiryHour.toString().padStart(2, '0')}:${minute}`;
+            })()}</strong> - vui lòng đến đúng giờ!</p>
           </div>
         </div>
       )}
 
-      {/* ✅ Booking API Data Preview (Development Only) */}
-      {/* {process.env.NODE_ENV === 'development' && !bookingData && (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="font-medium text-blue-800 mb-2">🔍 API Payload Preview:</h4>
-          <pre className="text-xs bg-white p-2 rounded border overflow-x-auto">
-{JSON.stringify({
-  vehicleId: selectedCar?.vehicleId || selectedCar?.carId,
-  stationId: selectedStation?.stationId,
-  slotIds: [selectedSlot?.stationSlotId],
-  bookingDate: selectedDateTime?.isoString || new Date(selectedDateTime?.date + 'T' + selectedDateTime?.time).toISOString()
-}, null, 2)}
-          </pre>
-        </div>
-      )} */}
-
-      {/* Navigation Buttons */}
       <div className="flex flex-col sm:flex-row justify-between gap-3">
         <button
           onClick={prevStep}
-          disabled={isProcessing}
+          disabled={isCreatingBooking}
           className="order-2 sm:order-1 px-4 sm:px-6 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 transition disabled:opacity-50 text-sm sm:text-base"
         >
           ← Quay lại
@@ -208,26 +282,26 @@ const Booking = ({
         {!bookingData ? (
           <button
             onClick={handleBooking} 
-            disabled={isProcessing}
-            className="order-1 sm:order-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"
+            disabled={isCreatingBooking || !selectedTime}
+            className="order-1 sm:order-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base disabled:bg-gray-400"
           >
-            {isProcessing ? (
+            {isCreatingBooking ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>Đang tạo đặt chỗ...</span> {/* ✅ Updated processing text */}
+                <span>Đang tạo đặt chỗ...</span>
               </>
             ) : (
               <>
-                <span>Xác nhận đặt chỗ</span> {/* ✅ Updated button text */}
+                <span>Xác nhận đặt chỗ</span>
                 <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </>
             )}
           </button>
-        ) : (
+        ) : bookingData.status === 'success' ? (
           <button
-            onClick={() => window.location.href = '/driver/bookings'}
+            onClick={() => window.location.href = '/driver/booking-page'}
             className="order-1 sm:order-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-green-600 text-white hover:bg-green-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
           >
             <span>Xem đặt chỗ của tôi</span> 
@@ -235,10 +309,17 @@ const Booking = ({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
+        ) : (
+          <button
+            onClick={() => setBookingData(null)}
+            className="order-1 sm:order-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-red-600 text-white hover:bg-red-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
+          >
+            <span>Thử lại</span>
+          </button>
         )}
       </div>
     </div>
   );
 };
 
-export default Booking; 
+export default Booking;

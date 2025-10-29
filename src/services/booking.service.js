@@ -27,7 +27,7 @@ export const bookingApi = apiSlice.injectEndpoints({
       query: (bookingData) => ({
         url: `/Booking`,
         method: 'POST',
-        body: bookingData,
+        data: bookingData,
       }),
       invalidatesTags: ['Booking'],
     }),
