@@ -71,6 +71,8 @@ export const router = createBrowserRouter([
       {path: PATHS.ADMIN.USERS.LIST, element: <UserList/>},
       {path: PATHS.ADMIN.USERS.STATION_STAFF, element: <UserStationStaff/>},
       {path: PATHS.ADMIN.USERS.CREATE, element: <Placeholder title='Admin create user'/>},
+      {path: PATHS.ADMIN.BATTERY.LIST, element: <Placeholder title='Admin manage battery list'/>},
+      {path: PATHS.ADMIN.BATTERY.ADD, element: <Placeholder title='Admin add battery'/>},
       {path: PATHS.ADMIN.SUBSCRIPTIONS.LIST, element: <SubscriptionList/>},
       {path: PATHS.ADMIN.SUBSCRIPTIONS.CREATE, element: <SubscriptionCreate/>},
     ]
@@ -96,6 +98,7 @@ export const router = createBrowserRouter([
       {path: PATHS.STAFF.SWAP.HISTORY, element: <TransactionHistory title='Staff Transaction History'/>},
       {path: PATHS.STAFF.INVENTORY.LIST, element: <BatteryList/>},
       {path: PATHS.STAFF.INVENTORY.STATUS, element: <BatteryStatus title='Staff battery status'/>},
+      {path: PATHS.STAFF.INVENTORY.SLOT_MANAGE, element: <Placeholder title='Staff battery slot management'/>},
     ]
   },
   {

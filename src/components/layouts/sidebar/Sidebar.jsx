@@ -15,6 +15,7 @@ import {
   Squares2X2Icon,
   TruckIcon,
   ClipboardDocumentListIcon,
+  ReceiptPercentIcon,
   Battery100Icon,
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -58,15 +59,24 @@ const Sidebar = ({ type }) => {
           ],
         },
         {
+          key: "batteries",
+          label: "Pin xe",
+          icon: Battery100Icon,
+          children: [
+            { key: PATHS.ADMIN.BATTERY.ADD, label: "Thêm mới" },
+            { key: PATHS.ADMIN.BATTERY.LIST, label: "Danh sách" },
+          ],
+        },
+        {
           key: "subscriptions",
           label: "Gói đăng ký",
-          icon: Battery100Icon,
+          icon: ReceiptPercentIcon,
           children: [
             { key: PATHS.ADMIN.SUBSCRIPTIONS.CREATE, label: "Thêm mới" },
             { key: PATHS.ADMIN.SUBSCRIPTIONS.LIST, label: "Danh sách" },
           ],
         },
-        { key: PATHS.ADMIN.SETTINGS, label: "Cài đặt", icon: Cog6ToothIcon },
+        // { key: PATHS.ADMIN.SETTINGS, label: "Cài đặt", icon: Cog6ToothIcon },
       ],
       userMenu: [
         { key: "logout", label: "Đăng xuất", icon: ArrowLeftStartOnRectangleIcon },
@@ -81,7 +91,7 @@ const Sidebar = ({ type }) => {
         { key: PATHS.STAFF.DASHBOARD, label: "Thống kê", icon: Squares2X2Icon },
         {
           key: "swap",
-          label: "Swap Transaction",
+          label: "Giao dịch đổi pin",
           icon: Battery100Icon,
           children: [
             { key: PATHS.STAFF.SWAP.CONFIRM, label: "Yêu cầu đổi pin" },
@@ -91,11 +101,12 @@ const Sidebar = ({ type }) => {
         },
         {
           key: "inventory",
-          label: "Battery Inventory",
+          label: "Kho pin",
           icon: ClipboardDocumentListIcon,
           children: [
             { key: PATHS.STAFF.INVENTORY.LIST, label: "Danh sách pin" },
             { key: PATHS.STAFF.INVENTORY.STATUS, label: "Quản lý tình trạng" },
+            { key: PATHS.STAFF.INVENTORY.SLOT_MANAGE, label: "Quản lý slot pin" },
           ],
         },
       ],

@@ -21,6 +21,11 @@ export const PATHS = {
       STATION_STAFF: "/admin/users/station-staff",
       CREATE: "/admin/users/create",
     },
+    BATTERY: {
+      ROOT: "/admin/battery",
+      LIST: "/admin/battery/list",
+      ADD: "/admin/battery/create",
+    },
     SUBSCRIPTIONS: {
       ROOT: "/admin/subscriptions",
       LIST: "/admin/subscriptions/list",
@@ -47,6 +52,7 @@ export const PATHS = {
       ROOT: "/staff/inventory",
       LIST: "/staff/inventory/battery-list",
       STATUS: "/staff/inventory/battery-status",
+      SLOT_MANAGE: "/staff/inventory/slot-management",
     },
     PROFILE: "/staff/profile",
   },
