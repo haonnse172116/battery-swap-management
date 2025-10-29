@@ -13,7 +13,7 @@ const SlotSelection = ({
   const stationId = selectedStation?.stationId;
 
   // 🚧 TEMPORARY MOCK DATA - REMOVE WHEN API IS FIXED
-  const MOCK_ENABLED = true; // ⚠️ Set to false to use real API
+  const MOCK_ENABLED = false; // ⚠️ Set to false to use real API
   
   const mockSlots = [
     {
