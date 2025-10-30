@@ -14,6 +14,8 @@ import StationBattery from "../pages/admin/stationBattery";
 import StationComplaint from "../pages/admin/stationComplaint";
 import UserList from "../pages/admin/userList";
 import UserStationStaff from "../pages/admin/userStationStaff";
+import BatteryAdd from "../pages/admin/batteryAdd";
+import AdminBatteryList from "../pages/admin/batteryList";
 import SubscriptionCreate from "../pages/admin/subscriptionCreate";
 import SubscriptionList from "../pages/admin/subscriptionList";
 
@@ -72,8 +74,8 @@ export const router = createBrowserRouter([
       {path: PATHS.ADMIN.USERS.LIST, element: <UserList/>},
       {path: PATHS.ADMIN.USERS.STATION_STAFF, element: <UserStationStaff/>},
       {path: PATHS.ADMIN.USERS.CREATE, element: <Placeholder title='Admin create user'/>},
-      {path: PATHS.ADMIN.BATTERY.LIST, element: <Placeholder title='Admin manage battery list'/>},
-      {path: PATHS.ADMIN.BATTERY.ADD, element: <Placeholder title='Admin add battery'/>},
+      {path: PATHS.ADMIN.BATTERY.LIST, element: <AdminBatteryList/>},
+      {path: PATHS.ADMIN.BATTERY.ADD, element: <BatteryAdd/>},
       {path: PATHS.ADMIN.SUBSCRIPTIONS.LIST, element: <SubscriptionList/>},
       {path: PATHS.ADMIN.SUBSCRIPTIONS.CREATE, element: <SubscriptionCreate/>},
     ]
