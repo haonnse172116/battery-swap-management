@@ -125,6 +125,9 @@ const CarModal = ({
    
   };
 
+  // ✅ Check if vehicle already has battery
+  const vehicleHasBattery = editingCar?.batteryId && editingCar.batteryId.trim() !== "";
+
   if (!isOpen) return null;
 
   return (
@@ -200,13 +203,13 @@ const CarModal = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Pin hiện tại
               </label>
-              {editingCar.batteryId ? (
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 mb-3">
+              {vehicleHasBattery ? (
+                <div className="p-3 bg-green-50 rounded-lg border border-green-200 mb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-mono text-gray-800">{editingCar.batteryId}</span>
+                      <span className="text-sm font-mono text-green-800 font-medium">{editingCar.batteryId}</span>
                       <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
-                        Đã gán
+                        ✅ Đã gắn pin
                       </span>
                     </div>
                   </div>
@@ -217,25 +220,43 @@ const CarModal = ({
                 </div>
               )}
 
-              {/* ✅ Battery Selection Toggle - Only if vehicle has batteryTypeId */}
-              {editingCar.batteryTypeId && (
+              {/* ✅ Battery Selection Toggle - Only if vehicle has no battery and has batteryTypeId */}
+              {!vehicleHasBattery && editingCar.batteryTypeId && (
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setShowBatterySelection(!showBatterySelection)}
                     className="text-sm text-blue-600 hover:text-blue-800 underline"
                   >
-                    {editingCar.batteryId ? "Thay đổi pin" : "Gắn pin mới"}
+                    🔗 Gắn pin mới
                   </button>
+                </div>
+              )}
+
+              {/* ✅ Message when vehicle already has battery */}
+              {vehicleHasBattery && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-600">ℹ️</span>
+                    <div>
+                      <p className="text-sm text-blue-800 font-medium">
+                        Xe đã được gắn pin
+                      </p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Để thay pin, vui lòng đến trạm thay pin hoặc liên hệ hỗ trợ
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
           )}
 
-          {editingCar && showBatterySelection && editingCar.batteryTypeId && (
+          {/* ✅ Battery Selection - Only show if vehicle has no battery */}
+          {editingCar && showBatterySelection && !vehicleHasBattery && editingCar.batteryTypeId && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="text-sm font-medium text-blue-900 mb-3">
-                {editingCar.batteryId ? "Thay đổi pin" : "Gắn pin mới"}
+                🔗 Gắn pin mới
               </h4>
               
               <div className="mb-3">
@@ -273,7 +294,7 @@ const CarModal = ({
                     <option value="">-- Chọn pin --</option>
                     {availableBatteries.map((battery) => (
                       <option key={battery.batteryId} value={battery.batteryId}>
-                        {battery.typeName} • {battery.serialNo || 0} • {battery.status || 'Khả dụng'}
+                        {battery.batteryTypeName} - Seri: {battery.serialNo || 0} - {battery.status || 'Khả dụng'}
                       </option>
                     ))}
                   </select>
