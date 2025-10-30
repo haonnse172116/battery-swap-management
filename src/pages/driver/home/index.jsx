@@ -7,9 +7,9 @@ function DriverHome() {
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center">
       <img
-        src="/battery-pack-default.png"
+        src="/ev_logo.png"
         alt="Battery Icon"
-        className="w-20 mb-4 mt-12"
+        className="w-25 mb-4 mt-12"
       />
       <h1 className="text-4xl font-extrabold text-blue-700 text-center mb-4 drop-shadow">
         Chào mừng tài xế!
