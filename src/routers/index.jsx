@@ -29,6 +29,7 @@ import BatteryStatus from "../pages/staff/batteryStatus";
 import Booking from "../pages/driver/booking";
 import VerifyOtp from "../pages/auth/otp";
 import BookingsPage from "../pages/driver/bookings";
+import SwapsPage from "../pages/driver/myswaps";
 
 export const router = createBrowserRouter([
   {
@@ -85,7 +86,8 @@ export const router = createBrowserRouter([
       { path: PATHS.DRIVER.HOME, element: <DriverHome /> },
       { path: PATHS.DRIVER.MYCAR, element: <MyCar /> },
       { path: PATHS.DRIVER.BOOKING, element: <Booking /> },
-      { path: PATHS.DRIVER.BOOKINGPAGE, element: <BookingsPage /> }
+      { path: PATHS.DRIVER.BOOKINGPAGE, element: <BookingsPage /> },
+      {path: PATHS.DRIVER.MYSWAPS, element: <SwapsPage/>},
     ]
   },
   {

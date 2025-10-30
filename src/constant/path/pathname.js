@@ -62,6 +62,7 @@ export const PATHS = {
     MYCAR: "/driver/mycar",
     BOOKING: "/driver/booking",
     BOOKINGPAGE: "/driver/booking-page",
+    MYSWAPS: "/driver/my-swap",
     SUBSCRIPTION: "/driver/subscription",
     PROFILE: "/driver/profile",
   }
