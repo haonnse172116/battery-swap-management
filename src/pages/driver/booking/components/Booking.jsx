@@ -49,7 +49,7 @@ const Booking = ({
       const bookingPayload = {
         vehicleId: selectedCar?.vehicleId,
         stationId: selectedStation?.stationId, 
-        slotId: selectedSlot?.stationSlotId,
+        slotIds: [selectedSlot?.stationSlotId],
         bookingDate: today.toISOString()
       };
 
