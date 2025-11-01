@@ -28,6 +28,7 @@ import TransactionHistory from "../pages/staff/transactionHistory";
 import TransactionConfirm from "../pages/staff/transactionConfirm";
 import BatteryList  from "../pages/staff/batteryList";
 import BatteryStatus from "../pages/staff/batteryStatus";
+import BatterySlot from "../pages/staff/batterySlot";
 import Booking from "../pages/driver/booking";
 import VerifyOtp from "../pages/auth/otp";
 import BookingsPage from "../pages/driver/bookings";
@@ -102,7 +103,7 @@ export const router = createBrowserRouter([
       {path: PATHS.STAFF.SWAP.HISTORY, element: <TransactionHistory title='Staff Transaction History'/>},
       {path: PATHS.STAFF.INVENTORY.LIST, element: <BatteryList/>},
       {path: PATHS.STAFF.INVENTORY.STATUS, element: <BatteryStatus title='Staff battery status'/>},
-      {path: PATHS.STAFF.INVENTORY.SLOT_MANAGE, element: <Placeholder title='Staff battery slot management'/>},
+      {path: PATHS.STAFF.INVENTORY.SLOT_MANAGE, element: <BatterySlot/>},
     ]
   },
   {

@@ -14,7 +14,24 @@ export const stationBatterySlotApi = apiSlice.injectEndpoints({
       query: (slotData) => ({
         url: `/StationBatterySlot`,
         method: 'POST',
-        body: slotData,
+        data: slotData,
+      }),
+      invalidatesTags: ['StationSlot'],
+    }),
+    
+    updateSlot: builder.mutation({
+      query: (slotData) => ({
+        url: `/StationBatterySlot`,
+        method: 'PUT',
+        data: slotData,
+      }),
+      invalidatesTags: ['StationSlot'],
+    }),
+    
+    deleteSlot: builder.mutation({
+      query: (id) => ({
+        url: `/StationBatterySlot/${id}`,
+        method: 'DELETE',
       }),
       invalidatesTags: ['StationSlot'],
     }),
@@ -24,4 +41,6 @@ export const stationBatterySlotApi = apiSlice.injectEndpoints({
 export const {
   useGetStationSlotsQuery,
   useRegisterSlotMutation,
+  useUpdateSlotMutation,
+  useDeleteSlotMutation,
 } = stationBatterySlotApi;
