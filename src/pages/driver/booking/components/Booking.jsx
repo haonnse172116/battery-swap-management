@@ -46,13 +46,17 @@ const Booking = ({
       const [hour, minute] = selectedTime.split(':');
       today.setHours(parseInt(hour), parseInt(minute), 0, 0);
 
+       const toLocalISOString = (date) => {
+      const tzOffsetMs = date.getTimezoneOffset() * 60000; 
+      const localTime = new Date(date.getTime() - tzOffsetMs);
+      return localTime.toISOString().slice(0, -1); 
+    };
       const bookingPayload = {
         vehicleId: selectedCar?.vehicleId,
         stationId: selectedStation?.stationId, 
         slotIds: [selectedSlot?.stationSlotId],
-        bookingDate: today.toISOString()
+        bookingDate: toLocalISOString(today)
       };
-
 
       const response = await createBooking(bookingPayload).unwrap();
       

@@ -55,7 +55,7 @@ const toast = {
   },
 
   dismissAll: () => {
-    return hotToast.dismiss();
+    return hotToast.dismiss  ();
   },
 
   promise: (promise, msgs, options = {}) => {
