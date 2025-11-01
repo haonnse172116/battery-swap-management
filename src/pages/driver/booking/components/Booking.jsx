@@ -99,7 +99,7 @@ const Booking = ({
     return `${expiryHour.toString().padStart(2, '0')}:${minute}`;
   };
 
-
+   const isBookingSuccessful = bookingData?.status === 'success';
 
   return (
     <div>
@@ -263,7 +263,6 @@ const Booking = ({
           </div>
           <div className="text-xs sm:text-sm text-green-700 space-y-1">
             <p>🎯 <strong>Slot {bookingData.slot?.slotNo}</strong> tại <strong>{bookingData.station?.stationName}</strong> đã được đặt chỗ.</p>
-            <p>📧 Bạn sẽ nhận được thông báo qua email và SMS.</p>
             <p>⏰ Vui lòng đến trạm hôm nay lúc <strong>{bookingData.selectedTime}</strong></p>
             <p>⚠️ <strong>Chỗ sẽ được giữ đến {(() => {
               const [hour, minute] = bookingData.selectedTime.split(':');
@@ -271,17 +270,36 @@ const Booking = ({
               return `${expiryHour.toString().padStart(2, '0')}:${minute}`;
             })()}</strong> - vui lòng đến đúng giờ!</p>
           </div>
+          
+          {/* ✅ Success-specific warning */}
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <ExclamationTriangleIcon className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-yellow-800">
+                <strong>Lưu ý:</strong> Đặt chỗ đã được xác nhận. Vui lòng không đặt lại để tránh trùng lặp.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
       <div className="flex flex-col sm:flex-row justify-between gap-3">
-        <button
-          onClick={prevStep}
-          disabled={isCreatingBooking}
-          className="order-2 sm:order-1 px-4 sm:px-6 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 transition disabled:opacity-50 text-sm sm:text-base"
-        >
-          ← Quay lại
-        </button>
+        {!isBookingSuccessful ? (
+          <button
+            onClick={prevStep}
+            disabled={isCreatingBooking}
+            className="order-2 sm:order-1 px-4 sm:px-6 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 transition disabled:opacity-50 text-sm sm:text-base"
+          >
+            ← Quay lại
+          </button>
+        ) : (
+          <div className="order-2 sm:order-1 px-4 sm:px-6 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed text-sm sm:text-base flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <span>Đã khóa (đặt chỗ thành công)</span>
+          </div>
+        )}
         
         {!bookingData ? (
           <button
@@ -304,15 +322,26 @@ const Booking = ({
             )}
           </button>
         ) : bookingData.status === 'success' ? (
-          <button
-            onClick={() => window.location.href = '/driver/booking-page'}
-            className="order-1 sm:order-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-green-600 text-white hover:bg-green-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
-          >
-            <span>Xem đặt chỗ của tôi</span> 
-            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+          <div className="order-1 sm:order-2 flex flex-col sm:flex-row gap-2">
+            <button
+              onClick={() => window.location.href = '/driver/booking-page'}
+              className="px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-green-600 text-white hover:bg-green-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
+            >
+              <span>Xem đặt chỗ của tôi</span> 
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            <button
+              onClick={() => window.location.href = '/driver/booking'}
+              className="px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
+            >
+              <span>Đặt chỗ mới</span>
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </div>
         ) : (
           <button
             onClick={() => setBookingData(null)}
