@@ -247,28 +247,22 @@ const Booking = ({
         </div>
       )}
 
-      {/* ✅ Booking Success */}
+      {/* ✅ Booking Success - Updated for pending confirmation */}
       {bookingData?.status === 'success' && (
-        <div className="mb-6 p-4 sm:p-6 bg-green-50 border border-green-200 rounded-lg sm:rounded-xl">
+        <div className="mb-6 p-4 sm:p-6 bg-amber-50 border border-amber-200 rounded-lg sm:rounded-xl">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-600 rounded-full flex items-center justify-center">
-              <CheckIcon className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-600 rounded-full flex items-center justify-center">
+              <ClockIcon className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
             </div>
             <div>
-              <h4 className="font-semibold text-green-800 text-sm sm:text-base">Đặt chỗ thành công!</h4>
-              <p className="text-xs sm:text-sm text-green-600">
-                Mã đặt chỗ: {bookingData.bookingId}
-              </p>
+              <h4 className="font-semibold text-amber-800 text-sm sm:text-base">Yêu cầu đặt chỗ đã được gửi!</h4>
             </div>
           </div>
-          <div className="text-xs sm:text-sm text-green-700 space-y-1">
-            <p>🎯 <strong>Slot {bookingData.slot?.slotNo}</strong> tại <strong>{bookingData.station?.stationName}</strong> đã được đặt chỗ.</p>
-            <p>⏰ Vui lòng đến trạm hôm nay lúc <strong>{bookingData.selectedTime}</strong></p>
-            <p>⚠️ <strong>Chỗ sẽ được giữ đến {(() => {
-              const [hour, minute] = bookingData.selectedTime.split(':');
-              const expiryHour = (parseInt(hour) + 1) % 24;
-              return `${expiryHour.toString().padStart(2, '0')}:${minute}`;
-            })()}</strong> - vui lòng đến đúng giờ!</p>
+          <div className="text-xs sm:text-sm text-amber-700 space-y-1">
+            <p>📋 Yêu cầu đặt <strong>Slot {bookingData.slot?.slotNo}</strong> tại <strong>{bookingData.station?.stationName}</strong> đã được gửi.</p>
+            <p>⏰ Thời gian đặt: hôm nay lúc <strong>{bookingData.selectedTime}</strong></p>
+            <p>⏳ <strong>Đang chờ nhân viên trạm xác nhận...</strong></p>
+            <p>📱 Bạn sẽ nhận được thông báo khi yêu cầu được duyệt hoặc từ chối.</p>
           </div>
         </div>
       )}
@@ -287,7 +281,7 @@ const Booking = ({
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            <span>Đã khóa (đặt chỗ thành công)</span>
+            <span>Đã khóa (yêu cầu đã gửi)</span>
           </div>
         )}
         
@@ -300,11 +294,11 @@ const Booking = ({
             {isCreatingBooking ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>Đang tạo đặt chỗ...</span>
+                <span>Đang gửi yêu cầu...</span>
               </>
             ) : (
               <>
-                <span>Xác nhận đặt chỗ</span>
+                <span>Gửi yêu cầu đặt chỗ</span>
                 <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
@@ -315,9 +309,9 @@ const Booking = ({
           <div className="order-1 sm:order-2 flex flex-col sm:flex-row gap-2">
             <button
               onClick={() => window.location.href = '/driver/booking-page'}
-              className="px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-green-600 text-white hover:bg-green-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
+              className="px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
             >
-              <span>Xem đặt chỗ của tôi</span> 
+              <span>Xem yêu cầu của tôi</span> 
               <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
@@ -326,7 +320,7 @@ const Booking = ({
               onClick={() => window.location.href = '/driver/booking'}
               className="px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
             >
-              <span>Đặt chỗ mới</span>
+              <span>Tạo yêu cầu mới</span>
               <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
