@@ -270,16 +270,6 @@ const Booking = ({
               return `${expiryHour.toString().padStart(2, '0')}:${minute}`;
             })()}</strong> - vui lòng đến đúng giờ!</p>
           </div>
-          
-          {/* ✅ Success-specific warning */}
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <div className="flex items-start gap-2">
-              <ExclamationTriangleIcon className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-yellow-800">
-                <strong>Lưu ý:</strong> Đặt chỗ đã được xác nhận. Vui lòng không đặt lại để tránh trùng lặp.
-              </p>
-            </div>
-          </div>
         </div>
       )}
 
