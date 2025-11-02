@@ -41,33 +41,43 @@ const AuthorizedLayoutContent = ({ children, type }) => {
   const { accessToken, user, role, needsActivation } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    // ✅ 1. Check authentication
+    // Check authentication first
     if (!accessToken || !user) {
       navigate(PATHS.AUTH.LOGIN, { replace: true });
       return;
     }
 
-    // ✅ 2. Check activation status
-    if (needsActivation || user.status === 'Inactive') {
+    // Check activation status - ONLY if user is actually inactive
+    if (user.status === 'Inactive' && needsActivation) {
       navigate(PATHS.AUTH.VERIFY_OTP, { replace: true });
       return;
     }
 
-    // ✅ 3. Check role permission
-    if (!canAccessPath(role, location.pathname)) {
-      const defaultPath = getDefaultPathByRole(role);
+    //  Check role permission
+    if (!canAccessPath(user.role || role, location.pathname)) {
+      const defaultPath = getDefaultPathByRole(user.role || role);
       navigate(defaultPath, { replace: true });
       return;
     }
   }, [accessToken, user, role, needsActivation, location.pathname, navigate]);
 
-  // Show loading while checking
-  if (!accessToken || !user || needsActivation) {
+  if (!accessToken || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Đang kiểm tra quyền truy cập...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (user.status === 'Inactive' && needsActivation) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang chuyển hướng đến trang xác thực...</p>
         </div>
       </div>
     );

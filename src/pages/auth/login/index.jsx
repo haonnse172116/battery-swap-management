@@ -16,20 +16,19 @@ function Login() {
 
   const { needsActivation, user, role, accessToken } = useSelector((state) => state.auth);
 
-  // ✅ Auto redirect if already logged in
   useEffect(() => {
-    if (accessToken && user && !needsActivation && user.status === 'Active') {
-      const defaultPath = getDefaultPathByRole(role);
+    // If fully authenticated (has accessToken and user)
+    if (accessToken && user && user.status === 'Active') {
+      const defaultPath = getDefaultPathByRole(user.role || role); // Fallback to role
       navigate(defaultPath, { replace: true });
+      return;
     }
-  }, [accessToken, user, role, needsActivation, navigate]);
-
-  // ✅ Redirect to OTP if inactive
-  useEffect(() => {
-    if (needsActivation || (user && user.status === 'Inactive')) {
+    // If needs activation (from current login attempt)
+    if (needsActivation) {
       navigate(PATHS.AUTH.VERIFY_OTP, { replace: true });
+      return;
     }
-  }, [needsActivation, user, navigate]);
+  }, [accessToken, user, role, needsActivation, navigate]); // Keep role in deps
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -40,7 +39,6 @@ function Login() {
 
     try {
       await login(form).unwrap();
-      // Navigation handled by useEffect
     } catch (error) {
       alert(error.data?.message || 'Đăng nhập thất bại');
     }

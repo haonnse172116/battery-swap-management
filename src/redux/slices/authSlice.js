@@ -4,7 +4,6 @@ const initialState = {
   accessToken: null,
   user: null,
   role: null,
-  // Temp token cho OTP flow
   tempToken: null,
   tempEmail: null,
   tempUserId: null,
@@ -15,8 +14,8 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    setCredentials: (state, { payload }) => {
-      const { accessToken, user } = payload;
+    setCredentials: (state, action) => {
+      const { accessToken, user } = action.payload;
       state.accessToken = accessToken;
       state.user = user;
       state.role = user?.role || null;
@@ -26,32 +25,25 @@ const authSlice = createSlice({
       state.tempUserId = null;
       state.needsActivation = false;
     },
-
-    setTempToken: (state, { payload }) => {
-      state.tempToken = payload.token;
-      state.tempEmail = payload.email;
-      state.tempUserId = payload.userId;
-      state.needsActivation = payload.needsActivation || false;
+    setTempToken: (state, action) => {
+      const { token, email, userId, needsActivation, role } = action.payload;
+      state.tempToken = token;
+      state.tempEmail = email;
+      state.tempUserId = userId;
+      state.needsActivation = needsActivation || false;
+      if (role) state.role = role; 
     },
-
-    clearTempToken: (state) => {
+    clearTemp: (state) => {
       state.tempToken = null;
       state.tempEmail = null;
       state.tempUserId = null;
       state.needsActivation = false;
     },
-
     logout: (state) => {
-      state.accessToken = null;
-      state.user = null;
-      state.role = null;
-      state.tempToken = null;
-      state.tempEmail = null;
-      state.tempUserId = null;
-      state.needsActivation = false;
+      Object.assign(state, initialState);
     },
   },
 });
 
-export const { setCredentials, setTempToken, clearTempToken, logout } = authSlice.actions;
+export const { setCredentials, setTempToken, clearTemp, logout } = authSlice.actions;
 export default authSlice.reducer;
