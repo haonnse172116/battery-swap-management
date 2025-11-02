@@ -10,30 +10,27 @@ import {
   useGetEstimatedPriceMutation 
 } from "../../../../services/booking.service";
 
-const BUSINESS_START = 6;  // 6:00
-const BUSINESS_END = 22;   // 22:00
+const BUSINESS_START = 6;  
+const BUSINESS_END = 22;
 
-// ✅ convert Date -> ISO local (không có Z)
 const toLocalISOString = (date) => {
   const tzOffsetMs = date.getTimezoneOffset() * 60000;
   const local = new Date(date.getTime() - tzOffsetMs);
   return local.toISOString().slice(0, -1);
 };
 
-// ✅ kiểm tra giờ làm việc
 const isWithinBusinessHours = (date = new Date()) => {
   const h = date.getHours();
   return h >= BUSINESS_START && h < BUSINESS_END;
 };
 
-// ✅ lấy giờ khả dụng tiếp theo (ít nhất +1h, nếu >30p thì +2h)
 const getNextAvailableTime = (date = new Date()) => {
   const currentHour = date.getHours();
   const currentMinute = date.getMinutes();
 
   if (!isWithinBusinessHours(date)) return "";
 
-  const rawNext = currentMinute > 30 ? currentHour + 2 : currentHour + 1;
+  const rawNext = currentMinute > 30 ? currentHour + 1 : currentHour + 1;
   const nextHour = Math.max(BUSINESS_START, rawNext);
 
   if (nextHour > BUSINESS_END) return "";
@@ -41,32 +38,39 @@ const getNextAvailableTime = (date = new Date()) => {
   return `${nextHour.toString().padStart(2, "0")}:00`;
 };
 
-// ✅ sinh list time (6:00 → 22:00) nhưng phải ≥ giờ tối thiểu
 const generateTimeOptions = (now = new Date()) => {
+  
   if (!isWithinBusinessHours(now)) return [];
 
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
 
-  // giờ bắt đầu tối thiểu
-  let startHour = currentMinute > 30 ? currentHour + 2 : currentHour + 1;
+  let startHour = currentMinute > 30 ? currentHour + 1 : currentHour + 1;
+
   if (startHour < BUSINESS_START) startHour = BUSINESS_START;
 
   const times = [];
-  for (let hour = startHour; hour <= BUSINESS_END; hour++) {
+
+  
+  const LAST_HOUR_CAN_BOOK = BUSINESS_END - 1; 
+
+  for (let hour = startHour; hour <= LAST_HOUR_CAN_BOOK; hour++) {
     const base = hour.toString().padStart(2, "0");
-    // 00
+
+    
     times.push(`${base}:00`);
 
-    // chỉ push :30 nếu vẫn < BUSINESS_END (22:30 thì bỏ)
-    if (hour < BUSINESS_END) {
+    
+    
+    if (hour < LAST_HOUR_CAN_BOOK) {
+      
       times.push(`${base}:30`);
     }
   }
+
   return times;
 };
 
-// ✅ giờ hết hạn = +1h so với giờ chọn
 const getExpiryTimeFromSelected = (selectedTime) => {
   if (!selectedTime) return "";
   const [h, m] = selectedTime.split(":");
@@ -74,7 +78,7 @@ const getExpiryTimeFromSelected = (selectedTime) => {
   return `${expiryHour.toString().padStart(2, "0")}:${m}`;
 };
 
-// ✅ format tiền
+
 const formatPrice = (price) => {
   if (!price || price === 0) return "Miễn phí";
   return new Intl.NumberFormat("vi-VN", {
@@ -91,7 +95,7 @@ const Booking = ({
   setBookingData,
   prevStep,
 }) => {
-  // ✅ chọn giờ mặc định
+  
   const [selectedTime, setSelectedTime] = useState(() => getNextAvailableTime());
   const [estimatedPrice, setEstimatedPrice] = useState(null);
 
@@ -107,10 +111,10 @@ const Booking = ({
 
   const bookingPossible = isWithinBusinessHours();
 
-  // ✅ tạo list time 1 lần/mỗi khi giờ thay đổi
+  
   const timeOptions = useMemo(() => generateTimeOptions(new Date()), []);
 
-  // ✅ fetch giá
+  
   useEffect(() => {
     const fetchEstimatedPrice = async () => {
       if (!selectedCar?.vehicleId || !selectedStation?.stationId) return;
@@ -142,7 +146,7 @@ const Booking = ({
     getEstimatedPrice,
   ]);
 
-  // ✅ đặt chỗ
+  
   const handleBooking = async () => {
     if (!selectedTime) return;
 
@@ -160,7 +164,7 @@ const Booking = ({
 
       const res = await createBooking(bookingPayload).unwrap();
 
-      // backend có thể trả format khác nhau nên giữ fallback
+      
       const success = res?.success ?? true;
       if (!success) {
         throw new Error(res?.message || "Booking creation failed");
