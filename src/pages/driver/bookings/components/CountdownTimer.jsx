@@ -1,46 +1,51 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getDateForCountdown } from '../../../../utils/booking';
 
-const CountdownTimer = ({ targetDate }) => {
-  const [timeLeft, setTimeLeft] = useState('');
-  const [isExpired, setIsExpired] = useState(false);
+const CountdownTimer = ({ targetDate, onExpire }) => {
+  const [timeLeft, setTimeLeft] = useState(null);
 
   useEffect(() => {
-    const tick = () => {
-      const now = Date.now();
-      const target = new Date(targetDate).getTime();
-      const diff = target - now;
+    // ✅ Use the helper function to parse Vietnamese date format
+    const target = getDateForCountdown(targetDate);
+    
+    const updateTimer = () => {
+      const now = new Date();
+      const difference = target - now;
 
-      if (diff <= 0) {
-        setIsExpired(true);
-        setTimeLeft('Đã hết hạn');
+      if (difference <= 0) {
+        setTimeLeft(null);
+        if (onExpire) onExpire();
         return;
       }
-      const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const s = Math.floor((diff % (1000 * 60)) / 1000);
 
-      if (d > 0) setTimeLeft(`${d}d ${h}h ${m}m`);
-      else if (h > 0) setTimeLeft(`${h}h ${m}m ${s}s`);
-      else if (m > 0) setTimeLeft(`${m}m ${s}s`);
-      else setTimeLeft(`${s}s`);
+      const hours = Math.floor(difference / (1000 * 60 * 60));
+      const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+      setTimeLeft({ hours, minutes, seconds });
     };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [targetDate]);
 
-  if (isExpired) {
-    return (
-      <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-mono">
-        <span>⏰</span><span>Hết hạn</span>
-      </div>
-    );
-  }
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(interval);
+  }, [targetDate, onExpire]);
+
+  if (!timeLeft) return null;
+
+  const isUrgent = timeLeft.hours === 0 && timeLeft.minutes <= 15;
 
   return (
-    <div className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-mono">
-      <span>⏱️</span><span>{timeLeft}</span>
+    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-mono ${
+      isUrgent 
+        ? 'bg-red-100 text-red-700 animate-pulse' 
+        : 'bg-blue-100 text-blue-700'
+    }`}>
+      <span>⏰</span>
+      <span>
+        {timeLeft.hours > 0 && `${timeLeft.hours}h `}
+        {timeLeft.minutes}m {timeLeft.seconds}s
+      </span>
     </div>
   );
 };
