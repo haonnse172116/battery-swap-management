@@ -36,6 +36,16 @@ export const getStatusConfig = (status) => {
         iconColor: 'text-red-600',
         tone: 'red',
       };
+    
+    case 'expired':
+      return {
+        label: 'Đã hết hạn',
+        bgColor: 'bg-gray-50',
+        textColor: 'text-gray-700',
+        borderColor: 'border-gray-300',
+        iconColor: 'text-gray-600',
+        tone: 'gray',
+      };
     default:
       return {
         label: status || 'Không xác định',
@@ -48,26 +58,27 @@ export const getStatusConfig = (status) => {
   }
 };
 
+
 export const parseVietnameseDate = (dateString) => {
   try {
     if (!dateString) return null;
     
-    // Handle ISO format (fallback)
+    
     if (dateString.includes('T') || dateString.includes('Z')) {
       return new Date(dateString);
     }
     
-    // Parse DD/MM/YYYY HH:mm format
+    
     const dateTimeRegex = /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})$/;
     const match = dateString.match(dateTimeRegex);
     
     if (match) {
       const [, day, month, year, hour, minute] = match;
-      // Month is 0-indexed in JavaScript Date
+      
       return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute));
     }
     
-    // Try parsing as regular date if regex doesn't match
+    
     const parsed = new Date(dateString);
     return isNaN(parsed.getTime()) ? null : parsed;
   } catch (error) {
@@ -76,7 +87,69 @@ export const parseVietnameseDate = (dateString) => {
   }
 };
 
-// ✅ Updated formatDateTime to handle Vietnamese date format
+
+export const isExpired = (timeSlot, status) => {
+  try {
+    const date = parseVietnameseDate(timeSlot);
+    if (!date) return false;
+    
+    const now = new Date();
+    const isOverdue = date < now;
+    const isNotFinal = ['pending', 'confirmed'].includes(status?.toLowerCase());
+    
+    return isOverdue && isNotFinal;
+  } catch (error) {
+    console.warn('isExpired error:', error, 'for timeSlot:', timeSlot);
+    return false;
+  }
+};
+
+
+export const getEffectiveStatus = (timeSlot, status) => {
+  if (isExpired(timeSlot, status)) {
+    return 'expired';
+  }
+  return status;
+};
+
+
+export const isUpcoming = (timeSlot, status) => {
+  try {
+    if (isExpired(timeSlot, status)) return false;
+    
+    const date = parseVietnameseDate(timeSlot);
+    if (!date) return false;
+    
+    return date > new Date() &&
+      !['cancelled', 'completed', 'expired'].includes(status?.toLowerCase());
+  } catch (error) {
+    console.warn('isUpcoming error:', error, 'for timeSlot:', timeSlot);
+    return false;
+  }
+};
+
+
+export const isUrgent = (timeSlot, status) => {
+  try {
+    if (isExpired(timeSlot, status)) return false;
+    
+    const date = parseVietnameseDate(timeSlot);
+    if (!date) return false;
+    
+    const now = new Date();
+    const diff = date - now;
+    return (
+      diff > 0 &&
+      diff <= 60 * 60 * 1000 && 
+      !['cancelled', 'completed', 'expired'].includes(status?.toLowerCase())
+    );
+  } catch (error) {
+    console.warn('isUrgent error:', error, 'for timeSlot:', timeSlot);
+    return false;
+  }
+};
+
+
 export const formatDateTime = (dateString) => {
   try {
     const date = parseVietnameseDate(dateString);
@@ -102,7 +175,6 @@ export const formatDateTime = (dateString) => {
   }
 };
 
-// ✅ Updated formatDate to handle Vietnamese date format
 export const formatDate = (dateString) => {
   try {
     const date = parseVietnameseDate(dateString);
@@ -119,40 +191,45 @@ export const formatDate = (dateString) => {
   }
 };
 
-// ✅ Updated isUpcoming to handle Vietnamese date format
-export const isUpcoming = (timeSlot, status) => {
-  try {
-    const date = parseVietnameseDate(timeSlot);
-    if (!date) return false;
-    
-    return date > new Date() &&
-      !['cancelled', 'completed'].includes(status?.toLowerCase());
-  } catch (error) {
-    console.warn('isUpcoming error:', error, 'for timeSlot:', timeSlot);
-    return false;
-  }
-};
 
-// ✅ Updated isUrgent to handle Vietnamese date format
-export const isUrgent = (timeSlot, status) => {
+export const getTimeStatus = (timeSlot) => {
   try {
     const date = parseVietnameseDate(timeSlot);
-    if (!date) return false;
+    if (!date) return null;
     
     const now = new Date();
     const diff = date - now;
-    return (
-      diff > 0 &&
-      diff <= 60 * 60 * 1000 && // 1 hour
-      !['cancelled', 'completed'].includes(status?.toLowerCase())
-    );
+    
+    if (diff < 0) {
+      
+      const overdue = Math.abs(diff);
+      const hours = Math.floor(overdue / (1000 * 60 * 60));
+      const minutes = Math.floor((overdue % (1000 * 60 * 60)) / (1000 * 60));
+      
+      return {
+        type: 'overdue',
+        hours,
+        minutes,
+        text: 'Đã quá hạn'
+      };
+    } else {
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      
+      return {
+        type: 'upcoming',
+        hours,
+        minutes,
+        text: hours > 0 ? `Còn ${hours}h ${minutes}m` : `Còn ${minutes}m`
+      };
+    }
   } catch (error) {
-    console.warn('isUrgent error:', error, 'for timeSlot:', timeSlot);
-    return false;
+    return null;
   }
 };
 
-// ✅ Updated filterBookingsByDate to handle Vietnamese date format
+
 export const filterBookingsByDate = (
   bookings,
   dateFilter,
@@ -209,7 +286,7 @@ export const filterBookingsByDate = (
   });
 };
 
-// ✅ Helper function to format date for display in Vietnamese
+
 export const formatVietnameseDateTime = (dateString) => {
   try {
     const date = parseVietnameseDate(dateString);
@@ -228,7 +305,7 @@ export const formatVietnameseDateTime = (dateString) => {
   }
 };
 
-// ✅ Helper function specifically for countdown timer
+
 export const getDateForCountdown = (timeSlot) => {
   try {
     const date = parseVietnameseDate(timeSlot);
