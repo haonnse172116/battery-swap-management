@@ -16,7 +16,7 @@ import toast from '../../../utils/toast';
 
 function VerifyOtp() {
   const navigate = useNavigate();
-  const dispatch = useDispatch(); // ✅ Add dispatch
+  const dispatch = useDispatch();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [countdown, setCountdown] = useState(60);
   const [canResend, setCanResend] = useState(false);
@@ -86,10 +86,10 @@ function VerifyOtp() {
     }
     try {
       await verifyOtp({ otp: otpString, token: tempToken }).unwrap();
-      toast.success('✅ Xác thực thành công!');           
+      toast.success('Xác thực thành công!');           
     } catch (error) {
-      console.error('❌ OTP verification failed:', error);
-      toast.error('❌ ' + (error.data?.errorMessage || error.data?.content || 'OTP không hợp lệ'));
+      console.error('OTP verification failed:', error);
+      toast.error((error.data?.errorMessage || error.data?.content || 'OTP không hợp lệ'));
     }
   };
 
@@ -97,7 +97,7 @@ function VerifyOtp() {
     if (!canResend) return;
     try {
       await resendOtp().unwrap();
-      toast.success('📧 OTP mới đã được gửi!');
+      toast.success('OTP mới đã được gửi!');
       setCountdown(60);
       setCanResend(false);
       setOtp(['', '', '', '', '', '']);
