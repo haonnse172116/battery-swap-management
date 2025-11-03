@@ -77,7 +77,8 @@ export const bookingApi = apiSlice.injectEndpoints({
         { type: 'Booking', id: bookingId },
         'Booking',
       ],
-    
+    }), // ✅ Thêm dấu phẩy thiếu
+
     // ✅ POST /Booking/estimate-price - Get estimated price
     getEstimatedPrice: builder.mutation({
       query: ({ vehicleId, stationId }) => ({
