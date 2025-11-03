@@ -77,9 +77,10 @@ const Sidebar = ({ type }) => {
             { key: PATHS.ADMIN.SUBSCRIPTIONS.LIST, label: "Danh sách" },
           ],
         },
-        // { key: PATHS.ADMIN.SETTINGS, label: "Cài đặt", icon: Cog6ToothIcon },
       ],
       userMenu: [
+        // ✅ Add Profile for Admin
+        { key: PATHS.ADMIN.PROFILE, label: "Hồ sơ", icon: UserCircleIcon },
         { key: "logout", label: "Đăng xuất", icon: ArrowLeftStartOnRectangleIcon },
       ],
       home: PATHS.ADMIN.DASHBOARD,
@@ -112,6 +113,8 @@ const Sidebar = ({ type }) => {
         },
       ],
       userMenu: [
+        // ✅ Add Profile for Staff
+        { key: PATHS.STAFF.PROFILE, label: "Hồ sơ", icon: UserCircleIcon },
         { key: "logout", label: "Đăng xuất", icon: ArrowLeftStartOnRectangleIcon },
       ],
       home: PATHS.STAFF.DASHBOARD,
