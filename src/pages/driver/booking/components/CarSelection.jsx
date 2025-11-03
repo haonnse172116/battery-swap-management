@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { useGetMyVehiclesQuery } from '../../../../services/vehicle.service';
 import { TruckIcon } from '@heroicons/react/24/outline';
+import CarIcon from '../../../../constant/svg/Car';
 
 const CarSelection = ({ selectedCar, setSelectedCar, nextStep }) => {
   const currentUser = useSelector((state) => state.auth.user);
@@ -13,9 +14,11 @@ const CarSelection = ({ selectedCar, setSelectedCar, nextStep }) => {
     error 
   } = useGetMyVehiclesQuery();
 
-  const vehicles = vehiclesData?.content || [];
+  const vehicles = useMemo(() => {
+    const allVehicles = vehiclesData?.content || [];
+    return allVehicles.filter(car => car.batteryId); 
+  }, [vehiclesData]);
 
-  
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8 sm:py-12">
@@ -27,7 +30,6 @@ const CarSelection = ({ selectedCar, setSelectedCar, nextStep }) => {
     );
   }
 
-  
   if (isError) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6 text-center">
@@ -44,22 +46,28 @@ const CarSelection = ({ selectedCar, setSelectedCar, nextStep }) => {
     );
   }
 
-  
+  // ✅ Updated empty state message
   if (vehicles.length === 0) {
+    const totalVehicles = vehiclesData?.content?.length || 0;
+    const vehiclesWithoutBattery = totalVehicles - vehicles.length;
+    
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 sm:p-8 text-center">
         <TruckIcon className="w-12 h-12 sm:w-16 sm:h-16 text-yellow-600 mx-auto mb-4" />
         <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">
-          Chưa có xe nào
+          Không có xe nào sẵn sàng để swap pin
         </h3>
         <p className="text-sm sm:text-base text-gray-600 mb-4">
-          Bạn cần thêm xe trước khi đặt lịch swap pin
+          {totalVehicles === 0 
+            ? "Bạn chưa có xe nào. Thêm xe và gắn pin để bắt đầu swap."
+            : `Bạn có ${totalVehicles} xe nhưng ${vehiclesWithoutBattery} xe chưa có pin. Cần gắn pin trước khi swap.`
+          }
         </p>
         <button
           onClick={() => window.location.href = '/driver/mycar'}
           className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition text-sm sm:text-base"
         >
-          Thêm xe ngay
+          {totalVehicles === 0 ? "Thêm xe ngay" : "Quản lý xe"}
         </button>
       </div>
     );
@@ -69,10 +77,12 @@ const CarSelection = ({ selectedCar, setSelectedCar, nextStep }) => {
     <div>
       <div className="mb-4 sm:mb-6">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Chọn xe của bạn</h2>
-        <p className="text-sm sm:text-base text-gray-600">Chọn xe cần thay pin để tiếp tục ({vehicles.length} xe)</p>
+        <p className="text-sm sm:text-base text-gray-600">
+          Chọn xe cần thay pin để tiếp tục ({vehicles.length} xe sẵn sàng)
+        </p>
       </div>
 
-      {/* Vehicle List */}
+      {/* Vehicle List - chỉ xe có pin */}
       <div className="space-y-3 sm:space-y-4">
         {vehicles.map((car) => (
           <div
@@ -95,15 +105,14 @@ const CarSelection = ({ selectedCar, setSelectedCar, nextStep }) => {
               </div>
             )}
 
-            {/* Car Image */}
-            <img
-              src="/vf8.png"
-              alt={`${car.vBrand} ${car.model}`}
-              className="w-20 h-16 sm:w-24 sm:h-20 rounded-lg object-cover flex-shrink-0 bg-gray-100"
-              onError={(e) => {
-                e.target.src = '/vf8.png';
-              }}
-            />
+            {/* ✅ Car Icon - chỉ xe có pin */}
+            <div className="flex-shrink-0">
+              <div className="w-20 h-16 sm:w-24 sm:h-20 rounded-lg flex items-center justify-center bg-green-50 border-2 border-green-200">
+                <div className="text-center">
+                  <CarIcon className="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-1 text-green-600" />
+                </div>
+              </div>
+            </div>
 
             {/* Car Info */}
             <div className="flex-1 min-w-0">
@@ -130,13 +139,12 @@ const CarSelection = ({ selectedCar, setSelectedCar, nextStep }) => {
                   </div>
                 )}
 
-                {car.batteryId && (
-                  <div className="flex items-center gap-1.5 bg-gray-100 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg">
-                    <span className="text-xs text-gray-600">
-                      Pin: <span className="font-mono font-medium">{car.batteryId.slice(0, 6)}...</span>
-                    </span>
-                  </div>
-                )}
+                {/* ✅ Luôn có batteryId vì đã filter */}
+                <div className="flex items-center gap-1.5 bg-gray-100 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg">
+                  <span className="text-xs text-gray-600">
+                    Pin: <span className="font-mono font-medium">{car.batteryId.slice(0, 6)}...</span>
+                  </span>
+                </div>
 
                 {/* User Name (for debugging) - Hidden on mobile */}
                 {car.userName && (
@@ -152,7 +160,7 @@ const CarSelection = ({ selectedCar, setSelectedCar, nextStep }) => {
         ))}
       </div>
 
-      {/* ✅ Always show navigation - Next button only active when car selected */}
+      {/* Navigation */}
       <div className="mt-4 sm:mt-6">
         {selectedCar ? (
           <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl border border-blue-200">
@@ -170,11 +178,9 @@ const CarSelection = ({ selectedCar, setSelectedCar, nextStep }) => {
                     Loại pin: <span className="font-medium text-purple-700">{selectedCar.batteryTypeName}</span>
                   </p>
                 )}
-                {selectedCar.batteryId && (
-                  <p className="text-xs sm:text-sm text-gray-600 mt-1 hidden sm:block">
-                    Pin hiện tại: <span className="font-mono text-gray-800">{selectedCar.batteryId.slice(0, 12)}...</span>
-                  </p>
-                )}
+                <p className="text-xs sm:text-sm text-gray-600 mt-1 hidden sm:block">
+                  Pin hiện tại: <span className="font-mono text-gray-800">{selectedCar.batteryId.slice(0, 12)}...</span>
+                </p>
               </div>
 
               <button

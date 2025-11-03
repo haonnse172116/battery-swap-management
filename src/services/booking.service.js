@@ -77,6 +77,18 @@ export const bookingApi = apiSlice.injectEndpoints({
         { type: 'Booking', id: bookingId },
         'Booking',
       ],
+    
+    // ✅ POST /Booking/estimate-price - Get estimated price
+    getEstimatedPrice: builder.mutation({
+      query: ({ vehicleId, stationId }) => ({
+        url: `/Booking/estimate-price`,
+        method: 'POST',
+        data: {
+          vehicleId,
+          stationId
+        },
+      }),
+      // Don't cache this as price may change frequently
     }),
   }),
 });
@@ -89,4 +101,5 @@ export const {
   useGetPendingBookingsByStationQuery,
   useRejectBookingMutation,
   useConfirmBookingMutation,
+  useGetEstimatedPriceMutation,
 } = bookingApi;

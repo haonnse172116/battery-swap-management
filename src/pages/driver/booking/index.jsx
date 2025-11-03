@@ -11,6 +11,7 @@ import CarSelection from "./components/CarSelection";
 import StationSelection from "./components/StationSelection";
 import SlotSelection from "./components/SlotSelection";
 import Booking from "./components/Booking"; 
+import CarIcon from "../../../constant/svg/Car";
 
 const BookingPage = () => { 
   const [step, setStep] = useState(1);
@@ -41,7 +42,7 @@ const BookingPage = () => {
   const stepConfig = [
     { 
       label: "Chọn xe", 
-      icon: TruckIcon,
+      icon: CarIcon,
       data: selectedCar ? {
         main: `${selectedCar.vBrand} ${selectedCar.model}`,
         sub: selectedCar.licensePlate
@@ -254,119 +255,6 @@ const BookingPage = () => {
           )}
         </div>
       </div>
-
-      {/* ✅ Enhanced Booking Summary */}
-      {(selectedCar || selectedStation || selectedSlot) && (
-        <div className="mt-8 bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl border border-blue-200 shadow-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
-            <h3 className="font-bold text-white text-lg flex items-center gap-2">
-              <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
-                📋
-              </div>
-              Tóm tắt đặt chỗ
-            </h3>
-          </div>
-          
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Car Info */}
-              {selectedCar && (
-                <div className="group">
-                  <div className="flex items-center gap-4 p-4 rounded-xl bg-white border border-blue-100 shadow-sm group-hover:shadow-md transition-all duration-200">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-                      🚗
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-bold text-gray-900 text-lg">
-                        {selectedCar.vBrand} {selectedCar.model}
-                      </div>
-                      <div className="text-gray-600 font-mono text-sm bg-gray-100 px-2 py-1 rounded mt-1 inline-block">
-                        {selectedCar.licensePlate}
-                      </div>
-                      {selectedCar.batteryTypeName && (
-                        <div className="text-xs text-purple-700 bg-purple-100 px-2 py-0.5 rounded mt-1 inline-block">
-                          🔋 {selectedCar.batteryTypeName}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Station Info */}
-              {selectedStation && (
-                <div className="group">
-                  <div className="flex items-center gap-4 p-4 rounded-xl bg-white border border-green-100 shadow-sm group-hover:shadow-md transition-all duration-200">
-                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-                      ⚡
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-bold text-gray-900 text-lg">
-                        {selectedStation.stationName}
-                      </div>
-                      <div className="text-gray-600 text-sm">
-                        {selectedStation.address}
-                      </div>
-                      {selectedStation.distance && (
-                        <div className="text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded mt-1 inline-block">
-                          📍 {selectedStation.distance}km
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Slot Info */}
-              {selectedSlot && (
-                <div className="group">
-                  <div className="flex items-center gap-4 p-4 rounded-xl bg-white border border-purple-100 shadow-sm group-hover:shadow-md transition-all duration-200">
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-                      🔌
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-bold text-gray-900 text-lg">
-                        Slot {selectedSlot.slotNo}
-                      </div>
-                      <div className="text-gray-600 text-sm">
-                        {selectedSlot.batteryLevel ? `Pin ${selectedSlot.batteryLevel}%` : 'Slot đã chọn'}
-                      </div>
-                      {selectedSlot.batteryId && (
-                        <div className="text-xs text-purple-700 bg-purple-100 px-2 py-0.5 rounded mt-1 inline-block">
-                          🔋 Pin ID: {selectedSlot.batteryId.slice(0, 8)}...
-                        </div>
-                      )}
-                      <div className="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded mt-1 inline-block">
-                        ✅ Đã chọn slot
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Progress Indicator */}
-            <div className="mt-6 pt-4 border-t border-gray-200">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">
-                  Tiến độ: {step}/4 bước
-                </span>
-                <div className="flex items-center gap-2">
-                  <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-blue-500 to-green-500 rounded-full transition-all duration-500"
-                      style={{ width: `${(step / 4) * 100}%` }}
-                    />
-                  </div>
-                  <span className="text-gray-700 font-medium">
-                    {Math.round((step / 4) * 100)}%
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
