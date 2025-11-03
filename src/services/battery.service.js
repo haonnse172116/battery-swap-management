@@ -26,6 +26,16 @@ export const batteryApi = apiSlice.injectEndpoints({
                 result?.content ? [...result.content.map((r) => ({ type: 'Battery', id: r.id || r.batteryId })), { type: 'Battery', id: `STATION_${arg.stationId}` }] : [{ type: 'Battery', id: `STATION_${arg.stationId}` }],
         }),
 
+        // GET /api/Battery/{id}
+        getBatteriesById: builder.query({
+            query: ({ id, token } = {}) => ({
+                url: `/Battery/${id}`,
+                method: 'GET',
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            }),
+            invalidatesTags: (result, error, arg) => [{ type: 'Battery', id: arg?.id }],
+        }),
+
         // POST /Battery
         createBattery: builder.mutation({
             query: ({ battery, token } = {}) => ({
@@ -77,7 +87,7 @@ export const batteryApi = apiSlice.injectEndpoints({
             }),
             providesTags: ['Battery'],
         }),
-    
+
         // POST /Battery/attach
         attachBattery: builder.mutation({
             query: ({ batteryId, vehicleId, performByUserId }) => ({
@@ -94,6 +104,7 @@ export const batteryApi = apiSlice.injectEndpoints({
 export const {
     useGetAllBatteriesQuery,
     useGetBatteriesByStationQuery,
+    useGetBatteriesByIdQuery,
     useCreateBatteryMutation,
     useUpdateBatteryMutation,
     useDeleteBatteryMutation,
