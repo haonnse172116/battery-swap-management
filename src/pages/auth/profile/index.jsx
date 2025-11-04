@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { 
   UserCircleIcon, 
@@ -15,7 +15,6 @@ import {
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { 
-  useGetMyProfileQuery,
   useUpdateProfileMutation,
   useChangePasswordMutation,
 } from '../../../services/user.service';
@@ -23,6 +22,7 @@ import { useLazyGetCloudinarySignatureQuery, uploadToCloudinary } from '../../..
 import { PATHS } from '../../../constant/path/pathname';
 import { logout } from '../../../redux/slices/authSlice';
 import CarIcon from '../../../constant/svg/Car';
+import useUser from '../../../hooks/useUser';
 
 const ROLE_CONFIG = {
   admin: {
@@ -69,13 +69,9 @@ const ROLE_CONFIG = {
 const Profile = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { role, user: authUser } = useSelector((state) => state.auth);
-  const { 
-    data: profileData, 
-    isLoading: isLoadingProfile, 
-    error: profileError,
-    refetch 
-  } = useGetMyProfileQuery();
+  
+  const { userInfo, isLoading, error } = useUser();
+  
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation();
   const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
   const [getCloudinarySignature] = useLazyGetCloudinarySignatureQuery();
@@ -98,18 +94,16 @@ const Profile = () => {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef(null);
 
-  const user = profileData?.content || authUser;
-  const currentRole = user?.role?.toLowerCase() || role;
-  const usingFallbackData = profileError && user && Object.keys(user).length > 0;
+  const currentRole = userInfo?.role?.toLowerCase() || 'driver';
   const config = ROLE_CONFIG[currentRole] || ROLE_CONFIG.driver;
   const RoleIcon = config.icon;
 
   useEffect(() => {
-    if (user) {
-      const avatarUrl = user.avatar_url || user.avatarUrl || '';
+    if (userInfo) {
+      const avatarUrl = userInfo.avatar_url || '';
       setEditForm({
-        fullName: user.fullName || '',
-        phone: user.phone || user.phoneNumber || '',
+        fullName: userInfo.fullName || '',
+        phone: userInfo.phone || '',
         avatarUrl: avatarUrl,
       });
       setAvatarPreview(avatarUrl);
@@ -121,25 +115,17 @@ const Profile = () => {
         newPassword: '',
         confirmPassword: ''
       });
+      setActiveSection('personal');
     }
-  }, [user, user?.role, user?.userId]); 
+  }, [userInfo?.userId]); 
 
   useEffect(() => {
-    setActiveSection('personal');
-  }, [currentRole, user?.userId]); 
-  useEffect(() => {
-    if (profileError?.status === 401) {
+    if (error?.status === 401) {
       toast.error('Phiên đăng nhập đã hết hạn');
       dispatch(logout());
       navigate(PATHS.AUTH.LOGIN);
     }
-  }, [profileError, dispatch, navigate]);
-
-  useEffect(() => {
-    if (user?.userId && !isLoadingProfile) {
-      refetch();
-    }
-  }, [user?.userId, refetch, isLoadingProfile]);
+  }, [error, dispatch, navigate]);
 
   const handleAvatarSelect = (e) => {
     const file = e.target.files?.[0];
@@ -165,10 +151,12 @@ const Profile = () => {
       const sigResp = await getCloudinarySignature({ fileName: avatarFile.name }).unwrap();
       const sigContent = sigResp?.content || sigResp;
       if (!sigContent) throw new Error('Không lấy được signature upload');
+      
       const uploadResult = await uploadToCloudinary(avatarFile, sigContent);  
       if (!uploadResult?.secure_url) {
         throw new Error('Upload thất bại');
       }  
+      
       const avatarUrl = uploadResult.secure_url;
       setAvatarPreview(avatarUrl);
       setEditForm(prev => ({ ...prev, avatarUrl }));   
@@ -205,6 +193,7 @@ const Profile = () => {
         toast.error('Vui lòng nhập họ và tên');
         return;
       }   
+      
       let finalAvatarUrl = editForm.avatarUrl || '';
       if (avatarFile) {
         const uploadToast = toast.loading('Đang tải ảnh lên...');
@@ -220,22 +209,21 @@ const Profile = () => {
   
       const payload = {
         fullName: editForm.fullName.trim(),
-        email: user?.email,
+        email: userInfo?.email,
         phone: editForm.phone.trim(),
         avatarUrl: finalAvatarUrl,
       };
+      
       await updateProfile(payload).unwrap();  
       toast.success('Cập nhật thông tin thành công!');
       setIsEditing(false);
       setAvatarFile(null);
-      refetch();
     } catch (error) {
       console.error('Update profile failed:', error);
       toast.error(error?.data?.message || error?.message || 'Cập nhật thất bại');
     }
   };
 
-  
   const handleChangePassword = async (e) => {
     e.preventDefault();
     
@@ -269,8 +257,7 @@ const Profile = () => {
     }
   };
 
-  
-  if (isLoadingProfile) {
+  if (isLoading) {
     return (
       <div className="px-6 py-8 max-w-6xl mx-auto">
         <div className="flex items-center justify-center py-16">
@@ -283,8 +270,7 @@ const Profile = () => {
     );
   }
 
-  
-  if (profileError && (!user || Object.keys(user).length === 0)) {
+  if (error && !userInfo) {
     return (
       <div className="px-6 py-8 max-w-6xl mx-auto">
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
@@ -292,55 +278,42 @@ const Profile = () => {
           <p className="text-yellow-800 mb-4 font-medium">
             ⚠️ Không thể tải thông tin người dùng từ server
           </p>
-          <div className="flex gap-3 justify-center">
-            <button
-              onClick={() => refetch()}
-              className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition text-sm"
-            >
-              Thử lại
-            </button>
-            <button
-              onClick={() => {
-                dispatch(logout());
-                navigate(PATHS.AUTH.LOGIN);
-              }}
-              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm"
-            >
-              Đăng nhập lại
-            </button>
-          </div>
+          <button
+            onClick={() => {
+              dispatch(logout());
+              navigate(PATHS.AUTH.LOGIN);
+            }}
+            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm"
+          >
+            Đăng nhập lại
+          </button>
         </div>
       </div>
     );
   }
 
-  
+  if (!userInfo) {
+    return (
+      <div className="px-6 py-8 max-w-6xl mx-auto">
+        <div className="text-center py-16">
+          <p className="text-gray-600">Không có thông tin người dùng</p>
+        </div>
+      </div>
+    );
+  }
+
   const renderPersonalSection = () => (
     <div className="space-y-6">
-      {usingFallbackData && (
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <div className="flex items-center gap-2">
-            <ExclamationTriangleIcon className="w-5 h-5 text-orange-600" />
-            <p className="text-orange-800 text-sm">
-              Đang hiển thị thông tin từ phiên đăng nhập. Một số tính năng có thể bị hạn chế.
-            </p>
-            <button onClick={() => refetch()} className="text-orange-600 hover:underline text-sm ml-auto">
-              Thử lại
-            </button>
-          </div>
-        </div>
-      )}
-
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900">Thông tin cá nhân</h3>
         <button
           onClick={() => setIsEditing(!isEditing)}
-          disabled={isUpdating || uploadingAvatar || usingFallbackData}
+          disabled={isUpdating || uploadingAvatar}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition ${
             isEditing 
               ? 'bg-gray-100 text-gray-700 border-gray-300' 
               : `${config.bgColor} ${config.textColor} ${config.borderColor}`
-          } ${(isUpdating || uploadingAvatar || usingFallbackData) ? 'opacity-50 cursor-not-allowed' : ''}`}
+          } ${(isUpdating || uploadingAvatar) ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           <PencilSquareIcon className="w-4 h-4" />
           {isUpdating ? 'Đang cập nhật...' : 
@@ -350,11 +323,12 @@ const Profile = () => {
       </div>
 
       <div className="grid gap-6">
+        {/* Avatar section */}
         <div className="flex items-center gap-6">
           <div className={`relative w-20 h-20 rounded-full ${config.bgColor} flex items-center justify-center overflow-hidden group`}>
-            {(avatarPreview || user?.avatar_url || user?.avatarUrl) ? (
+            {(avatarPreview || userInfo?.avatar_url) ? (
               <img 
-                src={avatarPreview || user?.avatar_url || user?.avatarUrl} 
+                src={avatarPreview || userInfo?.avatar_url} 
                 alt="Avatar" 
                 className="w-full h-full object-cover"
                 onError={() => {
@@ -366,7 +340,7 @@ const Profile = () => {
               <UserCircleIcon className={`w-12 h-12 ${config.textColor}`} />
             )}
             
-            {isEditing && !usingFallbackData && (
+            {isEditing && (
               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                 {uploadingAvatar ? (
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
@@ -392,25 +366,25 @@ const Profile = () => {
           </div>
           
           <div className="flex-1">
-            <h4 className="text-xl font-semibold text-gray-900">{user?.fullName}</h4>
-            <p className="text-gray-600 capitalize">{user?.role}</p>
-            <p className="text-sm text-gray-500">ID: {user?.userId}</p>
-            {user?.createdAt && (
+            <h4 className="text-xl font-semibold text-gray-900">{userInfo?.fullName}</h4>
+            <p className="text-gray-600 capitalize">{userInfo?.role}</p>
+            <p className="text-sm text-gray-500">ID: {userInfo?.userId}</p>
+            {userInfo?.createdAt && (
               <p className="text-xs text-gray-400">
-                Tham gia: {new Date(user.createdAt).toLocaleDateString('vi-VN')}
+                Tham gia: {new Date(userInfo.createdAt).toLocaleDateString('vi-VN')}
               </p>
             )}
             
-            {isEditing && !usingFallbackData && (
+            {isEditing && (
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingAvatar}
                   className={`text-xs px-3 py-1 rounded-lg border ${config.borderColor} ${config.textColor} hover:bg-gray-50 transition disabled:opacity-50`}
                 >
-                  {(avatarPreview || user?.avatar_url || user?.avatarUrl) ? 'Thay đổi' : 'Thêm ảnh'}
+                  {(avatarPreview || userInfo?.avatar_url) ? 'Thay đổi' : 'Thêm ảnh'}
                 </button>
-                {(avatarPreview || user?.avatar_url || user?.avatarUrl) && (
+                {(avatarPreview || userInfo?.avatar_url) && (
                   <button
                     onClick={handleRemoveAvatar}
                     disabled={uploadingAvatar}
@@ -424,12 +398,13 @@ const Profile = () => {
           </div>
         </div>
 
+        {/* Form fields */}
         <div className="grid md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Họ và tên *
             </label>
-            {isEditing && !usingFallbackData ? (
+            {isEditing ? (
               <input
                 type="text"
                 name="fullName"
@@ -441,7 +416,7 @@ const Profile = () => {
             ) : (
               <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
                 <UserIcon className="w-5 h-5 text-gray-400" />
-                <span>{user?.fullName}</span>
+                <span>{userInfo?.fullName}</span>
               </div>
             )}
           </div>
@@ -452,7 +427,7 @@ const Profile = () => {
             </label>
             <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
               <EnvelopeIcon className="w-5 h-5 text-gray-400" />
-              <span>{user?.email}</span>
+              <span>{userInfo?.email}</span>
               <span className="text-xs text-gray-500 ml-auto">(Không thể thay đổi)</span>
             </div>
           </div>
@@ -461,7 +436,7 @@ const Profile = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Số điện thoại
             </label>
-            {isEditing && !usingFallbackData ? (
+            {isEditing ? (
               <input
                 type="tel"
                 name="phone"
@@ -472,7 +447,7 @@ const Profile = () => {
             ) : (
               <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
                 <PhoneIcon className="w-5 h-5 text-gray-400" />
-                <span>{user?.phone || user?.phoneNumber || 'Chưa cập nhật'}</span>
+                <span>{userInfo?.phone || 'Chưa cập nhật'}</span>
               </div>
             )}
           </div>
@@ -483,16 +458,17 @@ const Profile = () => {
             </label>
             <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
               <div className={`w-3 h-3 rounded-full ${
-                user?.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
+                userInfo?.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
               }`} />
-              <span className={user?.status === 'Active' ? 'text-green-700' : 'text-red-700'}>
-                {user?.status === 'Active' ? 'Hoạt động' : (user?.status || 'Không xác định')}
+              <span className={userInfo?.status === 'Active' ? 'text-green-700' : 'text-red-700'}>
+                {userInfo?.status === 'Active' ? 'Hoạt động' : (userInfo?.status || 'Không xác định')}
               </span>
             </div>
           </div>
         </div>
 
-        {isEditing && !usingFallbackData && (
+        {/* Save/Cancel buttons */}
+        {isEditing && (
           <div className="flex gap-3">
             <button
               onClick={handleSaveProfile}
@@ -506,10 +482,10 @@ const Profile = () => {
             <button
               onClick={() => {
                 setIsEditing(false);
-                const avatarUrl = user?.avatar_url || user?.avatarUrl || '';
+                const avatarUrl = userInfo?.avatar_url || '';
                 setEditForm({
-                  fullName: user?.fullName || '',
-                  phone: user?.phone || user?.phoneNumber || '',
+                  fullName: userInfo?.fullName || '',
+                  phone: userInfo?.phone || '',
                   avatarUrl: avatarUrl,
                 });
                 setAvatarPreview(avatarUrl);
@@ -526,20 +502,11 @@ const Profile = () => {
     </div>
   );
 
-  
-    const renderSecuritySection = () => (
+  const renderSecuritySection = () => (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold text-gray-900">Bảo mật tài khoản</h3>
       
-      {usingFallbackData && (
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <p className="text-orange-800 text-sm">
-            ⚠️ Đổi mật khẩu bị vô hiệu hóa khi không thể kết nối server.
-          </p>
-        </div>
-      )}
-      
-      <div className={`p-6 ${config.bgColor} rounded-xl ${config.borderColor} border ${usingFallbackData ? 'opacity-50' : ''}`}>
+      <div className={`p-6 ${config.bgColor} rounded-xl ${config.borderColor} border`}>
         <h4 className="font-semibold text-gray-900 mb-4">Đổi mật khẩu</h4>
         
         <form onSubmit={handleChangePassword} className="space-y-4" autoComplete="off">
@@ -560,8 +527,7 @@ const Profile = () => {
               name="oldPassword"
               value={passwordForm.oldPassword}
               onChange={handlePasswordChange}
-              disabled={usingFallbackData}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               required
               autoComplete="new-password"
               autoCorrect="off"
@@ -581,8 +547,7 @@ const Profile = () => {
               name="newPassword"
               value={passwordForm.newPassword}
               onChange={handlePasswordChange}
-              disabled={usingFallbackData}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               minLength={6}
               required
               autoComplete="new-password"
@@ -603,8 +568,7 @@ const Profile = () => {
               name="confirmPassword"
               value={passwordForm.confirmPassword}
               onChange={handlePasswordChange}
-              disabled={usingFallbackData}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               required
               autoComplete="new-password"
               autoCorrect="off"
@@ -617,9 +581,9 @@ const Profile = () => {
 
           <button
             type="submit"
-            disabled={isChangingPassword || usingFallbackData}
+            disabled={isChangingPassword}
             className={`px-6 py-2 bg-gradient-to-r ${config.gradient} text-white rounded-lg hover:opacity-90 transition ${
-              (isChangingPassword || usingFallbackData) ? 'opacity-50 cursor-not-allowed' : ''
+              isChangingPassword ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
             {isChangingPassword ? 'Đang đổi...' : 'Đổi mật khẩu'}
