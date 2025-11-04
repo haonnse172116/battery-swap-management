@@ -55,24 +55,31 @@ export default function UserStationStaff() {
     if (!users) return [];
     // user object shape may vary: try common keys id / userId
     return users.filter((u) => {
-      const uid = String(u.userId ?? u.id ?? u.userId ?? '');
-      // if station not chosen, show all staff
-      if (!stationId) return true;
+      const uid = String(u.userId ?? u.id ?? '');
+      // if station not chosen, show all staff (still allow searching)
+      if (!stationId) return (
+        !debouncedSearch ? true :
+        (String(u.fullName || u.staffName || u.name || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+         String(u.email || u.userEmail || '').toLowerCase().includes(debouncedSearch.toLowerCase()))
+      );
+      // if station chosen, exclude already assigned
       return !assignedUserIds.has(uid);
     });
-  }, [users, stationId, assignedUserIds]);
+  }, [users, stationId, assignedUserIds, debouncedSearch]);
 
-  // avatar placeholder
-  function Avatar({ name, url }) {
+  // Avatar component (shared)
+  function Avatar({ name, url, size = 12 }) {
+    const w = size === 16 ? 'w-16 h-16' : size === 14 ? 'w-14 h-14' : 'w-12 h-12';
     if (url) {
       return (
-        <img src={url} alt={name || 'Avatar'} className="w-12 h-12 rounded-full object-cover"/>
+        <img src={url} alt={name || 'Avatar'} className={`${w} rounded-full object-cover`} />
       );
     }
     const initials = name
-      ? name.split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase()  : 'U';
+      ? name.split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase()
+      : 'U';
     return (
-      <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold text-gray-700">
+      <div className={`${w} rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold text-gray-700`}>
         {initials}
       </div>
     );
@@ -81,7 +88,7 @@ export default function UserStationStaff() {
   // handlers
   const handleAssign = async (user) => {
     if (!stationId) return toast.error('Vui lòng chọn trạm trước khi gán nhân viên.');
-    const userId = String(user.userId ?? user.id ?? user.userId ?? '');
+    const userId = String(user.userId ?? user.id ?? '');
     if (!userId) return toast.error('Không tìm thấy userId của người dùng.');
 
     // validate already assigned (shouldn't happen because filtered above, but double-check)
@@ -91,7 +98,7 @@ export default function UserStationStaff() {
       await toast.promise(
         assignStationStaff({ stationId: String(stationId), userId }).unwrap(),
         {
-          loading: `Đang gán ${user.name ?? user.staffName ?? user.full_name ?? 'nhân viên'}...`,
+          loading: `Đang gán nhân viên ${user.fullName || user.staffName || user.name}...`,
           success: 'Gán nhân viên thành công',
           error: (err) => err?.data?.message || 'Gán thất bại',
         }
@@ -105,7 +112,7 @@ export default function UserStationStaff() {
   };
 
   const handleDeleteClick = (item) => {
-    setConfirmTarget({ stationStaffId: item.stationStaffId || item.id, staffName: item.staffName || item.staffName });
+    setConfirmTarget({ stationStaffId: item.stationStaffId || item.id, staffName: item.staffName || item.staffName || item.userName || '' });
     setConfirmOpen(true);
   };
 
@@ -138,13 +145,14 @@ export default function UserStationStaff() {
         <h1 className="text-2xl font-semibold text-gray-800">Phân công nhân viên cho trạm</h1>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* equal two-column layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Left column: staff list (unassigned relative to selected station) */}
-        <div className="md:col-span-2">
+        <div>
           <div className="flex items-center justify-between mb-3">
             <div>
               <h2 className="text-lg font-medium text-gray-800">Danh sách nhân viên</h2>
-              <div className="text-sm text-gray-500">Chỉ hiện những nhân viên chưa được phân cho trạm đang chọn</div>
+              <div className="text-sm text-gray-500">Hiện những nhân viên chưa được phân cho trạm đang chọn</div>
             </div>
 
             <input
@@ -162,14 +170,14 @@ export default function UserStationStaff() {
               <div className="p-4 text-center text-gray-400 bg-white rounded shadow">Không tìm thấy nhân viên chưa phân công</div>
             ) : (
               unassignedStaff.map((u) => {
-                const uid = String(u.userId ?? u.id ?? u.userId ?? '—');
-                const displayName = u.fullName || '—';
-                const displayEmail = u.email || '—';
-                const avatarUrl = u.avatarUrl || u.avatar || '';
+                const uid = String(u.userId ?? u.id ?? '');
+                const displayName = u.fullName || u.staffName || u.name || '—';
+                const displayEmail = u.email || u.userEmail || '—';
+                const avatarUrl = u.avatarUrl || u.avatar || u.userAvatar || '';
 
                 return (
                   <div
-                    key={uid || Math.random()}
+                    key={uid || `${displayName}-${Math.random()}`}
                     className="bg-white rounded-lg shadow-sm p-3 flex items-center justify-between border border-gray-100"
                   >
                     <div className="flex items-center gap-3">
@@ -198,24 +206,24 @@ export default function UserStationStaff() {
 
         {/* Right column: assigned staff for selected station */}
         <div>
-          <div className="mb-3">
-            <h2 className="text-lg font-medium text-gray-800">Nhân viên ở trạm</h2>
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm text-gray-500">Trạm: {stations.find(s => String(s.stationId || s.id) === String(stationId))?.name || 'Chưa chọn'}</div>
-
-              <select
-                value={stationId}
-                onChange={(e) => setStationId(e.target.value)}
-                className="border rounded px-3 py-2 text-sm"
-              >
-                <option value="">-- Chọn trạm --</option>
-                {stations.map((st) => (
-                  <option key={st.stationId || st.id} value={st.stationId || st.id}>
-                    {st.name || st.stationName || `${st.address || ''}`}
-                  </option>
-                ))}
-              </select>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-medium text-gray-800">Nhân viên ở trạm</h2>
+              <div className="text-sm text-gray-500">Chọn trạm để xem nhân viên đã được phân công</div>
             </div>
+
+            <select
+              value={stationId}
+              onChange={(e) => setStationId(e.target.value)}
+              className="border rounded px-3 py-2 text-sm"
+            >
+              <option value="">-- Chọn trạm --</option>
+              {stations.map((st) => (
+                <option key={st.stationId || st.id} value={st.stationId || st.id}>
+                  {st.name || st.stationName || `${st.address || ''}`}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="space-y-3">
@@ -225,13 +233,20 @@ export default function UserStationStaff() {
               <div className="p-4 text-center text-gray-400 bg-white rounded shadow">Trạm chưa có nhân viên</div>
             ) : (
               stationStaff.map((s) => {
-                const sid = s.stationStaffId || s.id;
+                const sid = s.stationStaffId || s.id || `${s.userId}-${s.stationId}`;
+                const name = s.staffName || s.userName || s.fullName || '—';
+                const email = s.staffEmail || s.userEmail || s.email || '';
+                const avatarUrl = s.avatarUrl || s.staffAvatar || s.userAvatar || s.avatar || '';
+
                 return (
                   <div key={sid} className="bg-white rounded-lg shadow-sm p-4 border border-gray-100 flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-gray-800">{s.staffName || s.staffName || s.userName || '—'}</div>
-                      <div className="text-xs text-gray-500">{s.staffEmail || s.userEmail || ''}</div>
-                      <div className="text-xs text-gray-400 mt-1">Gán lúc: {s.assignedAt ? new Date(s.assignedAt).toLocaleString() : (s.assigned_at || '—')}</div>
+                    <div className="flex items-center gap-3">
+                      <Avatar name={name} url={avatarUrl} size={14} />
+                      <div>
+                        <div className="font-medium text-gray-800">{name}</div>
+                        <div className="text-xs text-gray-500">{email}</div>
+                        <div className="text-xs text-gray-400 mt-1">Gán lúc: {s.assignedAt ? new Date(s.assignedAt).toLocaleString() : (s.assigned_at || '—')}</div>
+                      </div>
                     </div>
 
                     <div className="flex flex-col items-end gap-2">
@@ -241,7 +256,7 @@ export default function UserStationStaff() {
                       >
                         Bỏ phân công
                       </button>
-                      {/* <div className="text-xs text-gray-500">ID: {sid}</div> */}
+                      <div className="text-xs text-gray-500">ID: {sid}</div>
                     </div>
                   </div>
                 );
