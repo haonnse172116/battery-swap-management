@@ -8,7 +8,6 @@ import {
   PhoneIcon,
   EnvelopeIcon,
   UserIcon,
-  TruckIcon,
   ShieldCheckIcon,
   BriefcaseIcon,
   CameraIcon,
@@ -23,6 +22,7 @@ import {
 import { useLazyGetCloudinarySignatureQuery, uploadToCloudinary } from '../../../services/upload.service';
 import { PATHS } from '../../../constant/path/pathname';
 import { logout } from '../../../redux/slices/authSlice';
+import CarIcon from '../../../constant/svg/Car';
 
 const ROLE_CONFIG = {
   admin: {
@@ -53,7 +53,7 @@ const ROLE_CONFIG = {
   },
   driver: {
     title: 'Hồ sơ Tài xế',
-    icon: TruckIcon,
+    icon: CarIcon,
     color: 'indigo',
     gradient: 'from-indigo-600 to-indigo-400',
     bgColor: 'bg-indigo-50',
