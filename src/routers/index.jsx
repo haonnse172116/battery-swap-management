@@ -22,7 +22,6 @@ import SubscriptionList from "../pages/admin/subscriptionList";
 import DriverHome from "../pages/driver/home";
 import MyCar from "../pages/driver/mycar";
 
-// import StaffDashboard from "../pages/staff/dashboard";
 import SwapConfirm from "../pages/staff/swapConfirm";
 import TransactionHistory from "../pages/staff/transactionHistory";
 import TransactionConfirm from "../pages/staff/transactionConfirm";
@@ -33,6 +32,7 @@ import Booking from "../pages/driver/booking";
 import VerifyOtp from "../pages/auth/otp";
 import BookingsPage from "../pages/driver/bookings";
 import SwapsPage from "../pages/driver/myswaps";
+import Profile from "../pages/auth/profile";
 
 export const router = createBrowserRouter([
   {
@@ -79,6 +79,7 @@ export const router = createBrowserRouter([
       {path: PATHS.ADMIN.BATTERY.ADD, element: <BatteryAdd/>},
       {path: PATHS.ADMIN.SUBSCRIPTIONS.LIST, element: <SubscriptionList/>},
       {path: PATHS.ADMIN.SUBSCRIPTIONS.CREATE, element: <SubscriptionCreate/>},
+      {path: PATHS.ADMIN.PROFILE, element: <Profile />},
     ]
   }
   ,
@@ -91,6 +92,7 @@ export const router = createBrowserRouter([
       { path: PATHS.DRIVER.BOOKING, element: <Booking /> },
       { path: PATHS.DRIVER.BOOKINGPAGE, element: <BookingsPage /> },
       {path: PATHS.DRIVER.MYSWAPS, element: <SwapsPage/>},
+      {path: PATHS.DRIVER.PROFILE, element: <Profile />},
     ]
   },
   {
@@ -104,6 +106,7 @@ export const router = createBrowserRouter([
       {path: PATHS.STAFF.INVENTORY.LIST, element: <BatteryList/>},
       {path: PATHS.STAFF.INVENTORY.STATUS, element: <BatteryStatus title='Staff battery status'/>},
       {path: PATHS.STAFF.INVENTORY.SLOT_MANAGE, element: <BatterySlot/>},
+      {path: PATHS.STAFF.PROFILE, element: <Profile />},
     ]
   },
   {

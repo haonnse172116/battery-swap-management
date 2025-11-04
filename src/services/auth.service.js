@@ -107,7 +107,7 @@ export const authApi = apiSlice.injectEndpoints({
             },
           }));
         } catch (error) {
-          console.error('❌ Login mutation failed:', error);
+          console.error('Login mutation failed:', error);
           throw error;
         }
       },
