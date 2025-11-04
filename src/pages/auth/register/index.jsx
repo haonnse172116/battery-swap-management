@@ -34,7 +34,7 @@ function Register() {
         fullName: form.fullName,
         email: form.email,
         password: form.password,
-        phoneNumber: form.phoneNumber,
+        phone: form.phoneNumber,
       }).unwrap();
 
       toast.success("Đăng ký thành công! Vui lòng kiểm tra email để xác thực.");
