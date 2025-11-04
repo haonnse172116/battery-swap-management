@@ -76,7 +76,6 @@ const Profile = () => {
     error: profileError,
     refetch 
   } = useGetMyProfileQuery();
-  
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation();
   const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
   const [getCloudinarySignature] = useLazyGetCloudinarySignatureQuery();
@@ -114,9 +113,20 @@ const Profile = () => {
         avatarUrl: avatarUrl,
       });
       setAvatarPreview(avatarUrl);
+      
+      setIsEditing(false);
+      setAvatarFile(null);
+      setPasswordForm({
+        oldPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
     }
-  }, [user]);
+  }, [user, user?.role, user?.userId]); 
 
+  useEffect(() => {
+    setActiveSection('personal');
+  }, [currentRole, user?.userId]); 
   useEffect(() => {
     if (profileError?.status === 401) {
       toast.error('Phiên đăng nhập đã hết hạn');
@@ -124,6 +134,12 @@ const Profile = () => {
       navigate(PATHS.AUTH.LOGIN);
     }
   }, [profileError, dispatch, navigate]);
+
+  useEffect(() => {
+    if (user?.userId && !isLoadingProfile) {
+      refetch();
+    }
+  }, [user?.userId, refetch, isLoadingProfile]);
 
   const handleAvatarSelect = (e) => {
     const file = e.target.files?.[0];

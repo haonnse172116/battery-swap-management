@@ -23,7 +23,6 @@ function Login() {
       navigate(defaultPath, { replace: true });
       return;
     }
-    // If needs activation (from current login attempt)
     if (needsActivation) {
       navigate(PATHS.AUTH.VERIFY_OTP, { replace: true });
       return;
