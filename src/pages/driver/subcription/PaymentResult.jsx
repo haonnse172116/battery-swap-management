@@ -237,7 +237,7 @@ const PaymentResult = () => {
             </h3>
             
             <div className="grid gap-4">
-              {/* ✅ PayOS Information */}
+              {/*  PayOS Information */}
               {payosOrderCode && (
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">Mã đơn hàng PayOS:</span>
@@ -307,18 +307,6 @@ const PaymentResult = () => {
                    finalStatus === 'Pending' ? 'Đang xử lý' :
                    finalStatus === 'Cancelled' ? 'Đã hủy' :
                    finalStatus === 'Failed' ? 'Thất bại' : finalStatus}
-                </span>
-              </div>
-              
-              <div className="flex justify-between items-center py-2">
-                <span className="text-sm text-gray-600 flex items-center gap-1">
-                  <CalendarDaysIcon className="w-4 h-4" />
-                  Thời gian:
-                </span>
-                <span className="font-medium">
-                  {paymentInfo?.createdAt ? formatDate(paymentInfo.createdAt) : 
-                   pendingPayment?.timestamp ? formatDate(pendingPayment.timestamp) : 
-                   'N/A'}
                 </span>
               </div>
             </div>

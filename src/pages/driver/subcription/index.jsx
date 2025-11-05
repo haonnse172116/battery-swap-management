@@ -22,14 +22,14 @@ const SubscriptionPage = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
-  // ✅ Get current user from custom hook
+  //  Get current user from custom hook
   const { userInfo: currentUser, isLoading: isLoadingUser, error: userError } = useUser();
   const userId = currentUser?.userId;
 
-  // ✅ API hooks with user dependency
+  //  API hooks with user dependency
   const { data: plansResponse, isLoading: isLoadingPlans, error: plansError, refetch: refetchPlans } = useGetSubscriptionPlansQuery({ page: 1, pageSize: 10 });
   
-  // ✅ Subscription query with user dependency - will auto refresh when user changes
+  // Subscription query with user dependency - will auto refresh when user changes
   const { 
     data: subscriptionResponse, 
     isLoading: isLoadingSubscription, 
@@ -93,15 +93,12 @@ const SubscriptionPage = () => {
     if (isPremiumPlan) {
       return [
         ...baseFeatures,
-        'Thời gian chờ tối đa 5 phút',
         'Ưu tiên cao trong hàng chờ',
-        'Thông báo trước khi hết pin',
         'Báo cáo chi tiết hàng tháng'
       ];
     } else if (isBasicPlan) {
       return [
         ...baseFeatures,
-        'Thời gian chờ tối đa 10 phút',
         'Ưu tiên tiêu chuẩn',
         'Thông báo cơ bản'
       ];
@@ -321,11 +318,6 @@ const SubscriptionPage = () => {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Gói dịch vụ thay pin</h1>
         <p className="text-gray-600">
           Chọn gói dịch vụ phù hợp với nhu cầu của bạn.
-          {currentUser && (
-            <span className="block text-sm text-blue-600 mt-1">
-              Xin chào, {currentUser.fullName || currentUser.email}
-            </span>
-          )}
         </p>
       </div>
 
@@ -373,7 +365,7 @@ const SubscriptionPage = () => {
                   {currentSubscription.planDescription && (
                     <p className="text-xs text-gray-500 mt-1">{currentSubscription.planDescription}</p>
                   )}
-                  {/* ✅ Show user info in subscription */}
+                  {/* Show user info in subscription */}
                   <p className="text-xs text-gray-400 mt-1">
                     Người sử dụng: {currentSubscription.userName || currentUser?.fullName || 'N/A'}
                   </p>
@@ -665,7 +657,7 @@ const SubscriptionPage = () => {
                 <span className="text-sm text-gray-600">Phương thức:</span>
                 <span className="font-medium">Thẻ ngân hàng</span>
               </div>
-              {/* ✅ Show user info in payment modal */}
+              {/* Show user info in payment modal */}
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-gray-600">Người thanh toán:</span>
                 <span className="font-medium text-green-600">
