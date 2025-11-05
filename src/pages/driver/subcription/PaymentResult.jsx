@@ -26,15 +26,37 @@ const PaymentResult = () => {
   const { userInfo: currentUser, isLoading: isLoadingUser } = useUser();
   
   // Extract PayOS parameters from URL
-  const payosCode = searchParams.get('code'); // "00" = success
-  const payosId = searchParams.get('id'); // PayOS transaction ID
+  const payosCode = searchParams.get('code');
+  const payosId = searchParams.get('id');
   const payosCancel = searchParams.get('cancel') === 'true';
-  const payosStatus = searchParams.get('status'); // "PAID"
+  const payosStatus = searchParams.get('status');
   const payosOrderCode = searchParams.get('orderCode');
   
   // Get payment info from localStorage 
   const pendingPayment = JSON.parse(localStorage.getItem('pendingPayment') || 'null');
-  const subPayId = pendingPayment?.subPayId;
+  
+  // ✅ Enhanced subPayId extraction with fallbacks
+  const subPayId = pendingPayment?.subPayId || 
+                   pendingPayment?.id || 
+                   pendingPayment?.paymentId || 
+                   pendingPayment?.transactionId ||
+                   payosId; // Use PayOS ID as fallback
+
+  // ✅ Debug localStorage and subPayId
+  useEffect(() => {
+    console.log('💾 LocalStorage Debug:');
+    console.log('📦 Raw pendingPayment:', localStorage.getItem('pendingPayment'));
+    console.log('📦 Parsed pendingPayment:', pendingPayment);
+    console.log('📦 SubPayId extraction:', {
+      fromSubPayId: pendingPayment?.subPayId,
+      fromId: pendingPayment?.id,
+      fromPaymentId: pendingPayment?.paymentId,
+      fromTransactionId: pendingPayment?.transactionId,
+      fromPayosId: payosId,
+      final: subPayId
+    });
+    console.log('📦 Raw payment data:', pendingPayment?.rawPaymentData);
+  }, [pendingPayment, subPayId, payosId]);
   
   // Determine payment status from PayOS params
   const getPaymentStatusFromUrl = () => {
@@ -46,40 +68,63 @@ const PaymentResult = () => {
 
   const urlPaymentStatus = getPaymentStatusFromUrl();
   
-  // Query payment details
+  // ✅ Query payment details with enhanced skip logic
   const { 
     data: paymentResponse, 
     isLoading: isLoadingPayment, 
     error: paymentError,
     refetch: refetchPayment 
   } = useGetSubscriptionPaymentQuery(subPayId, {
-    skip: !subPayId,
+    skip: !subPayId || !currentUser,
     refetchOnMountOrArgChange: true,
   });
-  console.log('Payment Response:', paymentResponse);
+
+  // ✅ Debug API query
+  useEffect(() => {
+    console.log('🌐 Payment API Query Debug:', {
+      subPayId,
+      currentUser: !!currentUser,
+      isSkipped: !subPayId || !currentUser,
+      paymentResponse,
+      isLoadingPayment,
+      paymentError
+    });
+  }, [subPayId, currentUser, paymentResponse, isLoadingPayment, paymentError]);
+
   // Query updated subscription
   const { 
     refetch: refetchSubscription 
   } = useGetMySubscriptionQuery(undefined, {
     skip: !currentUser,
   });
+
   useEffect(() => {
     if (paymentResponse?.content) {
+      console.log('📝 Setting payment info from API:', paymentResponse.content);
       setPaymentInfo(paymentResponse.content);
     }
   }, [paymentResponse]);
 
+  // Handle payment success from URL
   useEffect(() => {
     if (urlPaymentStatus === 'Success' && payosOrderCode) {
- 
-      // Show success message immediately
+      console.log('✅ Processing successful payment:', {
+        urlPaymentStatus,
+        payosOrderCode,
+        payosCode,
+        payosStatus,
+        payosId
+      });
+
       toast.success('Thanh toán thành công! Đang cập nhật thông tin gói dịch vụ...');
 
       setTimeout(() => {
+        console.log('🔄 Refetching subscription data...');
         refetchSubscription();
       }, 2000);
 
       // Clear pending payment
+      console.log('🗑️ Clearing pending payment from localStorage');
       localStorage.removeItem('pendingPayment');
     }
   }, [urlPaymentStatus, payosOrderCode, payosCode, payosStatus, payosId, refetchSubscription]);
@@ -87,11 +132,16 @@ const PaymentResult = () => {
   // Auto-refresh for pending payments
   useEffect(() => {
     if (paymentInfo?.status === 'Pending' && urlPaymentStatus === 'Pending') {
+      console.log('⏰ Setting up auto-refresh for pending payment');
       const interval = setInterval(() => {
+        console.log('🔄 Auto-refreshing payment status...');
         refetchPayment();
-      }, 3000); // Check every 3 seconds
+      }, 3000);
 
-      return () => clearInterval(interval);
+      return () => {
+        console.log('⏰ Clearing auto-refresh interval');
+        clearInterval(interval);
+      };
     }
   }, [paymentInfo?.status, urlPaymentStatus, refetchPayment]);
 
@@ -114,7 +164,7 @@ const PaymentResult = () => {
 
   // Use URL status if available, fallback to API status
   const finalStatus = urlPaymentStatus !== 'Pending' ? urlPaymentStatus : paymentInfo?.status || 'Pending';
-
+  
   const getStatusConfig = (status) => {
     switch (status?.toLowerCase()) {
       case 'success':
@@ -155,8 +205,12 @@ const PaymentResult = () => {
     }
   };
 
-  // Loading state
-  if ((isLoadingPayment && !paymentInfo && urlPaymentStatus === 'Pending') || isLoadingUser) {
+  // ✅ Enhanced loading state check
+  const isLoading = (isLoadingPayment && !paymentInfo && urlPaymentStatus === 'Pending') || 
+                    isLoadingUser || 
+                    (!subPayId && !payosOrderCode); // Still loading if no identifiers
+
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-md w-full text-center">
@@ -170,23 +224,45 @@ const PaymentResult = () => {
               Mã đơn hàng: {payosOrderCode}
             </p>
           )}
+          
+          {/* Debug info in loading state */}
+          <div className="mt-4 p-3 bg-gray-100 rounded text-left text-xs">
+            <p><strong>Debug:</strong></p>
+            <p>SubPayId: {subPayId || 'null'}</p>
+            <p>PayOS Order: {payosOrderCode || 'null'}</p>
+            <p>URL Status: {urlPaymentStatus}</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Error state
-  if (paymentError && !paymentInfo && !payosOrderCode) {
+  // ✅ Enhanced error handling
+  if (!subPayId && !payosOrderCode && urlPaymentStatus === 'Pending') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-md w-full text-center">
-          <ExclamationTriangleIcon className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <ExclamationTriangleIcon className="w-16 h-16 text-orange-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Không tìm thấy thông tin thanh toán
+            Thiếu thông tin giao dịch
           </h3>
           <p className="text-gray-600 mb-6">
-            {paymentError?.data?.message || 'Không thể tải thông tin giao dịch'}
+            Không tìm thấy thông tin giao dịch. Có thể do:
           </p>
+          
+          <div className="text-left text-sm text-gray-600 mb-6 space-y-1">
+            <p>• Phiên thanh toán đã hết hạn</p>
+            <p>• Dữ liệu localStorage bị xóa</p>
+            <p>• URL không chứa thông tin cần thiết</p>
+          </div>
+          
+          <div className="mb-4 p-3 bg-orange-100 rounded text-left text-xs">
+            <p><strong>Debug Info:</strong></p>
+            <p>SubPayId: {subPayId || 'null'}</p>
+            <p>PayOS Order: {payosOrderCode || 'null'}</p>
+            <p>LocalStorage: {localStorage.getItem('pendingPayment') ? 'exists' : 'empty'}</p>
+          </div>
+          
           <button
             onClick={() => navigate(PATHS.DRIVER.SUBSCRIPTION)}
             className="w-full py-2.5 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
@@ -200,10 +276,45 @@ const PaymentResult = () => {
 
   const statusConfig = getStatusConfig(finalStatus);
   const StatusIcon = statusConfig.icon;
+  
+  // ✅ Enhanced display data with better fallbacks
+  const displayData = {
+    planName: paymentInfo?.planName || 
+              pendingPayment?.planName || 
+              'Gói dịch vụ',
+    amount: paymentInfo?.amount || 
+            pendingPayment?.amount || 
+            pendingPayment?.planPrice || 
+            0,
+    createdAt: paymentInfo?.createdAt || 
+               pendingPayment?.timestamp || 
+               new Date().toISOString(),
+    userName: paymentInfo?.userName || 
+              currentUser?.fullName || 
+              currentUser?.email || 
+              'N/A',
+    orderCode: payosOrderCode || 
+               paymentInfo?.orderCode || 
+               pendingPayment?.orderCode || 
+               'N/A'
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
+        {/* Debug Panel - Remove in production */}
+        <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <h3 className="font-medium text-yellow-800 mb-2">🔍 Debug Information</h3>
+          <div className="text-sm text-yellow-700 space-y-1">
+            <p><strong>SubPayId:</strong> {subPayId || 'null'}</p>
+            <p><strong>PayOS Order:</strong> {payosOrderCode || 'null'}</p>
+            <p><strong>URL Status:</strong> {urlPaymentStatus}</p>
+            <p><strong>Final Status:</strong> {finalStatus}</p>
+            <p><strong>Payment Info:</strong> {paymentInfo ? 'Loaded from API' : 'Using localStorage'}</p>
+            <p><strong>Has Pending Payment:</strong> {pendingPayment ? 'Yes' : 'No'}</p>
+          </div>
+        </div>
+
         {/* Main Result Card */}
         <div className={`bg-white rounded-2xl shadow-sm border-2 ${statusConfig.borderColor} ${statusConfig.bgColor} p-8 mb-6`}>
           <div className="text-center mb-8">
@@ -235,50 +346,23 @@ const PaymentResult = () => {
             </h3>
             
             <div className="grid gap-4">
-              {/*  PayOS Information */}
-              {payosOrderCode && (
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm text-gray-600">Mã đơn hàng PayOS:</span>
-                  <span className="font-mono text-sm font-medium">{payosOrderCode}</span>
-                </div>
-              )}
+              {/* Enhanced order code display */}
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-sm text-gray-600">Mã đơn hàng:</span>
+                <span className="font-mono text-sm font-medium">{displayData.orderCode}</span>
+              </div>
 
-              {payosId && (
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm text-gray-600">ID giao dịch PayOS:</span>
-                  <span className="font-mono text-sm font-medium">{payosId}</span>
-                </div>
-              )}
-
-              {/* Internal payment info */}
-              {paymentInfo?.subPayId && (
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm text-gray-600">Mã giao dịch nội bộ:</span>
-                  <span className="font-mono text-sm font-medium">{paymentInfo.subPayId}</span>
-                </div>
-              )}
-              
-              {/* Plan info from localStorage or API */}
+              {/* Plan name */}
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-sm text-gray-600">Gói dịch vụ:</span>
-                <span className="font-medium">
-                  {paymentInfo?.planName || pendingPayment?.planName || 'N/A'}
-                </span>
+                <span className="font-medium">{displayData.planName}</span>
               </div>
               
-              {currentUser && (
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm text-gray-600">Khách hàng:</span>
-                  <span className="font-medium">
-                    {paymentInfo?.userName || currentUser?.fullName || currentUser?.email}
-                  </span>
-                </div>
-              )}
-              
+              {/* Amount */}
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-sm text-gray-600">Số tiền:</span>
                 <span className="font-semibold text-lg text-blue-600">
-                  {formatPrice(paymentInfo?.amount || pendingPayment?.amount || 0)}
+                  {formatPrice(displayData.amount)}
                 </span>
               </div>
               
