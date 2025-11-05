@@ -8,17 +8,17 @@ import { logout as logoutAction } from "../../../redux/slices/authSlice";
 import {
   HomeIcon,
   UserGroupIcon,
-  Cog6ToothIcon,
   UserCircleIcon,
   BuildingStorefrontIcon,
   ArrowLeftStartOnRectangleIcon,
   Squares2X2Icon,
-  TruckIcon,
   ClipboardDocumentListIcon,
   ReceiptPercentIcon,
   Battery100Icon,
   ArrowLeftIcon,
   ArrowRightIcon,
+  BanknotesIcon,
+  CalendarDateRangeIcon,
 } from "@heroicons/react/24/outline";
 import CarIcon from "../../../constant/svg/Car";
 
@@ -126,10 +126,11 @@ const Sidebar = ({ type }) => {
       menu: [
         { key: PATHS.DRIVER.HOME, label: "Trang chủ", icon: HomeIcon },
         { key: PATHS.DRIVER.MYCAR, label: "Xe của tôi", icon: CarIcon },
-        { key: PATHS.DRIVER.BOOKING, label: "Đặt lịch", icon: ClipboardDocumentListIcon },
+        { key: PATHS.DRIVER.BOOKING, label: "Đặt lịch", icon: CalendarDateRangeIcon },
         { key: PATHS.DRIVER.BOOKINGPAGE, label: "Danh sách đặt lịch", icon: ClipboardDocumentListIcon },
         { key: PATHS.DRIVER.MYSWAPS, label: "Lịch sử đổi pin", icon: ReceiptPercentIcon },
         { key: PATHS.DRIVER.SUBSCRIPTION, label: "Đăng ký gói", icon: Battery100Icon },
+        { key: PATHS.DRIVER.PAYMENTS, label: "Lịch sử thanh toán", icon: BanknotesIcon },
       ],
       userMenu: [
         { key: PATHS.DRIVER.PROFILE, label: "Cá nhân", icon: UserCircleIcon },

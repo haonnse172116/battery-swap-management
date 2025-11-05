@@ -65,6 +65,7 @@ export const PATHS = {
     MYSWAPS: "/driver/my-swap",
     SUBSCRIPTION: "/driver/subscription",
     SUBSCRIPTION_PAYMENT: "/driver/subscription/payment",
+    PAYMENTS: "/driver/payments",
     PROFILE: "/driver/profile",
   }
 };
