@@ -1,12 +1,9 @@
 import React from 'react';
 import {
   MapPinIcon,
-  ClockIcon,
-  TruckIcon,
   BoltIcon,
   ClockIcon,
   MapPinIcon,
-  TruckIcon,
   CheckCircleIcon,
   XCircleIcon,
   ExclamationCircleIcon,
