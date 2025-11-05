@@ -1,5 +1,8 @@
 import React from 'react';
 import {
+  MapPinIcon,
+  ClockIcon,
+  TruckIcon,
   BoltIcon,
   ClockIcon,
   MapPinIcon,
@@ -18,22 +21,12 @@ import {
   isUrgent,
   isExpired,
   getEffectiveStatus,
-  getTimeStatus
+  getDateForCountdown
 } from '../../../../utils/booking';
 import CarIcon from '../../../../constant/svg/Car';
 
-const ICON_BY_TONE = {
-  yellow: ExclamationCircleIcon,
-  blue: CheckCircleIcon,
-  green: CheckCircleIcon,
-  red: XCircleIcon,
-  gray: ExclamationCircleIcon,
-};
-
-const BookingCard = ({ booking }) => {
-  const timeSlotFormatted = formatDateTime(booking.timeSlot);
-  
-  // ✅ Use effective status to handle expired bookings
+const BookingCard = ({ booking, onUpdate }) => {
+  // ✅ Use utils for all time-related operations
   const effectiveStatus = getEffectiveStatus(booking.timeSlot, booking.status);
   const statusConfig = getStatusConfig(effectiveStatus);
   
@@ -44,13 +37,31 @@ const BookingCard = ({ booking }) => {
   
   const StatusIcon = ICON_BY_TONE[statusConfig.tone];
 
-  // ✅ Format price for display
-  const formatPrice = (price) => {
-    if (!price || price === 0) return 'Miễn phí';
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(price);
+  const handleRefresh = () => {
+    try {
+      if (onUpdate && typeof onUpdate === 'function') {
+        onUpdate();
+      }
+    } catch (error) {
+      console.warn('Failed to refresh data:', error);
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'confirmed':
+        return <CheckCircleIcon className="w-5 h-5" />;
+      case 'pending':
+        return <ExclamationCircleIcon className="w-5 h-5" />;
+      case 'completed':
+        return <CheckCircleIcon className="w-5 h-5" />;
+      case 'cancelled':
+        return <XCircleIcon className="w-5 h-5" />;
+      case 'expired':
+        return <ClockIcon className="w-5 h-5" />;
+      default:
+        return <ExclamationCircleIcon className="w-5 h-5" />;
+    }
   };
 
   return (
@@ -164,6 +175,33 @@ const BookingCard = ({ booking }) => {
               <p className="text-xs text-purple-700 bg-purple-100 px-2 py-0.5 rounded mt-1 inline-block">
                 🔋 {booking.batteryTypeName}
               </p>
+              
+              {/* ✅ Only show ONE time indicator - prioritize countdown for upcoming, status for others */}
+              {upcoming && countdownDate ? (
+                <div className="mt-2">
+                  <CountdownTimer 
+                    targetDate={countdownDate}
+                    onExpire={handleRefresh} 
+                  />
+                </div>
+              ) : timeStatus && (
+                <div className={`text-xs font-medium mt-2 px-2 py-1 rounded ${
+                  timeStatus.type === 'overdue' 
+                    ? 'bg-red-100 text-red-700' 
+                    : timeStatus.type === 'today'
+                    ? 'bg-orange-100 text-orange-700'
+                    : 'bg-green-100 text-green-700'
+                }`}>
+                  {timeStatus.text}
+                </div>
+              )}
+              
+              <div className="flex items-center gap-1 mt-2">
+                <MapPinIcon className="w-4 h-4 text-gray-500" />
+                <p className="text-sm text-gray-600">
+                  {booking.stationName || 'Chưa xác định trạm'}
+                </p>
+              </div>
             </div>
           </div>
 

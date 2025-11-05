@@ -16,9 +16,28 @@ const BookingsPage = () => {
 
   const { data: bookingsResponse, isLoading, error, refetch } = useGetMyBookingsQuery();
 
+  // ✅ Safe refetch function
   const handleRefresh = () => {
-    toast.info('🔄 Đang làm mới dữ liệu...');
-    refetch();
+    toast.info('Đang làm mới dữ liệu...');
+    try {
+      if (refetch) {
+        refetch();
+      }
+    } catch (error) {
+      console.warn('Refetch error:', error);
+      toast.error('Không thể làm mới dữ liệu');
+    }
+  };
+
+  // ✅ Safe update handler for child components
+  const handleUpdate = () => {
+    try {
+      if (refetch && currentUser?.userId) {
+        refetch();
+      }
+    } catch (error) {
+      console.warn('Update error:', error);
+    }
   };
 
   useEffect(() => {
@@ -200,21 +219,16 @@ const BookingsPage = () => {
       {/* Booking List */}
       {!isLoading && !error && sortedBookings.length > 0 && (
         <div className="space-y-4">
-          {sortedBookings.map((b) => (
-            <BookingCard key={b.bookingId} booking={b} />
+          {sortedBookings.map((booking) => (
+            <BookingCard 
+              key={booking.bookingId || booking.id} 
+              booking={booking}
+              onUpdate={handleUpdate} // ✅ Use safe update handler
+            />
           ))}
         </div>
       )}
 
-      {/* Pagination */}
-      {bookingsResponse?.pagination &&
-        bookingsResponse.pagination.totalCount > bookingsResponse.pagination.pageSize && (
-          <div className="mt-8 flex justify-center">
-            <div className="text-sm text-gray-600">
-              Hiển thị {sortedBookings.length} / {bookingsResponse.pagination.totalCount} lịch đặt
-            </div>
-          </div>
-        )}
     </div>
   );
 };

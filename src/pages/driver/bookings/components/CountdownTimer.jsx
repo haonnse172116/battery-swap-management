@@ -1,28 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { getDateForCountdown } from '../../../../utils/booking';
+import { ClockIcon } from '@heroicons/react/24/outline';
 
 const CountdownTimer = ({ targetDate, onExpire }) => {
   const [timeLeft, setTimeLeft] = useState(null);
 
   useEffect(() => {
-    // ✅ Use the helper function to parse Vietnamese date format
-    const target = getDateForCountdown(targetDate);
-    
-    const updateTimer = () => {
-      const now = new Date();
-      const difference = target - now;
+    if (!targetDate) return;
 
-      if (difference <= 0) {
+    const updateTimer = () => {
+      const now = new Date().getTime();
+      const target = new Date(targetDate).getTime();
+      
+      if (isNaN(target)) {
         setTimeLeft(null);
-        if (onExpire) onExpire();
         return;
       }
 
-      const hours = Math.floor(difference / (1000 * 60 * 60));
-      const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+      const difference = target - now;
 
-      setTimeLeft({ hours, minutes, seconds });
+      if (difference > 0) {
+        const hours = Math.floor(difference / (1000 * 60 * 60));
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+        setTimeLeft({ hours, minutes, seconds });
+      } else {
+        setTimeLeft(null);
+        // ✅ Safe onExpire call with additional checks
+        if (onExpire && typeof onExpire === 'function') {
+          try {
+            onExpire();
+          } catch (error) {
+            console.warn('CountdownTimer onExpire error:', error);
+          }
+        }
+      }
     };
 
     updateTimer();
@@ -31,21 +43,28 @@ const CountdownTimer = ({ targetDate, onExpire }) => {
     return () => clearInterval(interval);
   }, [targetDate, onExpire]);
 
-  if (!timeLeft) return null;
+  if (!timeLeft) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-gray-500">
+        <ClockIcon className="w-3 h-3" />
+        <span>Đã hết hạn</span>
+      </div>
+    );
+  }
 
   const isUrgent = timeLeft.hours === 0 && timeLeft.minutes <= 15;
-
+  
   return (
-    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-mono ${
-      isUrgent 
-        ? 'bg-red-100 text-red-700 animate-pulse' 
-        : 'bg-blue-100 text-blue-700'
+    <div className={`flex items-center gap-2 text-xs font-medium ${
+      isUrgent ? 'text-red-600' : 'text-blue-600'
     }`}>
-      <span>⏰</span>
+      <ClockIcon className="w-3 h-3" />
       <span>
         {timeLeft.hours > 0 && `${timeLeft.hours}h `}
-        {timeLeft.minutes}m {timeLeft.seconds}s
+        {timeLeft.minutes > 0 && `${timeLeft.minutes}m `}
+        {timeLeft.seconds}s
       </span>
+      {isUrgent && <span className="text-red-500 font-bold">🚨</span>}
     </div>
   );
 };
