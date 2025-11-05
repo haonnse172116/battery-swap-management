@@ -1,4 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { useGetStationStaffByUserIdQuery } from '@/services/stationStaff.service';
 import { useGetStationsQuery } from '@/services/station.service';
 import { useGetBatteriesByStationQuery, useGetAllBatteriesQuery } from '@/services/battery.service';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -30,6 +32,16 @@ export default function BatteryList() {
 
   const { data: stationsData } = useGetStationsQuery({ page: 1, pageSize: 12 });
   const stations = stationsData?.content || [];
+
+  const userId = useSelector(state => state.auth.user?.userId || state.auth.user?.id || null);
+  const { data: stationStaffRes } = useGetStationStaffByUserIdQuery(userId, { skip: !userId });
+  const assignedStationId = stationStaffRes?.content?.stationId ?? null;
+
+  useEffect(() => {
+    if (assignedStationId) {
+      setViewingStationId(assignedStationId);
+    }
+  }, [assignedStationId]);
 
   // fetch all batteries to compute per-station aggregated counts used on station cards
   const { data: allBatteriesData } = useGetAllBatteriesQuery({ page: 1, pageSize: 1000 });
@@ -121,9 +133,20 @@ export default function BatteryList() {
                   </div>
 
                   <div className="mt-6">
-                    <button onClick={() => openStation(station.stationId || station.id)} className="block mx-auto w-3/4 text-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
-                      Chi tiết danh sách pin
-                    </button>
+                    {/** disable button if user not assigned to this station (when assignedStationId exists) */}
+                    {(() => {
+                      const stId = station.stationId || station.id;
+                      const disabled = assignedStationId && String(assignedStationId) !== String(stId);
+                      return (
+                        <button
+                          onClick={() => !disabled && openStation(stId)}
+                          disabled={disabled}
+                          className={`block mx-auto w-3/4 text-center px-4 py-2 ${disabled ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'} rounded-md transition`}
+                        >
+                          {disabled ? 'Không có quyền' : 'Chi tiết danh sách pin'}
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
