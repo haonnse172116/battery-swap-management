@@ -63,8 +63,8 @@ export const PATHS = {
     BOOKING: "/driver/booking",
     BOOKINGPAGE: "/driver/booking-page",
     MYSWAPS: "/driver/my-swap",
-    SUBSCRIPTION: "/driver/subcription",
-    SUBSCRIPTION_PAYMENT: "/driver/subcription/payment",
+    SUBSCRIPTION: "/driver/subscription",
+    SUBSCRIPTION_PAYMENT: "/driver/subscription/payment",
     PROFILE: "/driver/profile",
   }
 };
