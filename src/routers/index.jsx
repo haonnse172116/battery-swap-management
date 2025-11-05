@@ -25,7 +25,7 @@ import MyCar from "../pages/driver/mycar";
 import SwapConfirm from "../pages/staff/swapConfirm";
 import TransactionHistory from "../pages/staff/transactionHistory";
 import TransactionConfirm from "../pages/staff/transactionConfirm";
-import BatteryList  from "../pages/staff/batteryList";
+import BatteryList from "../pages/staff/batteryList";
 import BatteryStatus from "../pages/staff/batteryStatus";
 import BatterySlot from "../pages/staff/batterySlot";
 import Booking from "../pages/driver/booking";
@@ -35,53 +35,54 @@ import SwapsPage from "../pages/driver/myswaps";
 import SubscriptionPage from "../pages/driver/subcription";
 import PaymentResult from "../pages/driver/subcription/PaymentResult";
 import Profile from "../pages/auth/profile";
+import PaymentsPage from "../pages/driver/payments";
 
 export const router = createBrowserRouter([
   {
     path: PATHS.PUBLIC.LANDING,
-    element: 
-    <DefaultLayout>
-      <Landing />
-    </DefaultLayout>,
+    element:
+      <DefaultLayout>
+        <Landing />
+      </DefaultLayout>,
   },
-   {
+  {
     path: PATHS.AUTH.LOGIN,
-    element: 
-    <DefaultLayout>
-     <Login />
-    </DefaultLayout>,
+    element:
+      <DefaultLayout>
+        <Login />
+      </DefaultLayout>,
   },
   {
     path: PATHS.AUTH.REGISTER,
-    element: 
-    <DefaultLayout>
-     <Register />
-    </DefaultLayout>,
+    element:
+      <DefaultLayout>
+        <Register />
+      </DefaultLayout>,
   },
-   {
-    path: PATHS.AUTH.VERIFY_OTP, 
-    element: 
-    <DefaultLayout>
-     <VerifyOtp />
-    </DefaultLayout>,
+  {
+    path: PATHS.AUTH.VERIFY_OTP,
+    element:
+      <DefaultLayout>
+        <VerifyOtp />
+      </DefaultLayout>,
   },
   {
     path: PATHS.ADMIN.ROOT,
     element: <AuthorizedLayout type='admin' />,
     children: [
       { path: PATHS.ADMIN.DASHBOARD, element: <Dashboard /> },
-      {path: PATHS.ADMIN.STATIONS.LIST, element: <StationList/>},
-      {path: PATHS.ADMIN.STATIONS.STATION_BATTERY, element: <StationBattery/>},
-      {path: PATHS.ADMIN.STATIONS.COMPLAINTS, element: <StationComplaint/>},
-      {path: PATHS.ADMIN.STATIONS.ADD, element: <StationAdd/>},
-      {path: PATHS.ADMIN.USERS.LIST, element: <UserList/>},
-      {path: PATHS.ADMIN.USERS.STATION_STAFF, element: <UserStationStaff/>},
-      {path: PATHS.ADMIN.USERS.CREATE, element: <Placeholder title='Admin create user'/>},
-      {path: PATHS.ADMIN.BATTERY.LIST, element: <AdminBatteryList/>},
-      {path: PATHS.ADMIN.BATTERY.ADD, element: <BatteryAdd/>},
-      {path: PATHS.ADMIN.SUBSCRIPTIONS.LIST, element: <SubscriptionList/>},
-      {path: PATHS.ADMIN.SUBSCRIPTIONS.CREATE, element: <SubscriptionCreate/>},
-      {path: PATHS.ADMIN.PROFILE, element: <Profile />},
+      { path: PATHS.ADMIN.STATIONS.LIST, element: <StationList /> },
+      { path: PATHS.ADMIN.STATIONS.STATION_BATTERY, element: <StationBattery /> },
+      { path: PATHS.ADMIN.STATIONS.COMPLAINTS, element: <StationComplaint /> },
+      { path: PATHS.ADMIN.STATIONS.ADD, element: <StationAdd /> },
+      { path: PATHS.ADMIN.USERS.LIST, element: <UserList /> },
+      { path: PATHS.ADMIN.USERS.STATION_STAFF, element: <UserStationStaff /> },
+      { path: PATHS.ADMIN.USERS.CREATE, element: <Placeholder title='Admin create user' /> },
+      { path: PATHS.ADMIN.BATTERY.LIST, element: <AdminBatteryList /> },
+      { path: PATHS.ADMIN.BATTERY.ADD, element: <BatteryAdd /> },
+      { path: PATHS.ADMIN.SUBSCRIPTIONS.LIST, element: <SubscriptionList /> },
+      { path: PATHS.ADMIN.SUBSCRIPTIONS.CREATE, element: <SubscriptionCreate /> },
+      { path: PATHS.ADMIN.PROFILE, element: <Profile /> },
     ]
   }
   ,
@@ -93,27 +94,25 @@ export const router = createBrowserRouter([
       { path: PATHS.DRIVER.MYCAR, element: <MyCar /> },
       { path: PATHS.DRIVER.BOOKING, element: <Booking /> },
       { path: PATHS.DRIVER.BOOKINGPAGE, element: <BookingsPage /> },
-      {path: PATHS.DRIVER.MYSWAPS, element: <SwapsPage/>},
-      {path: PATHS.DRIVER.SUBSCRIPTION, element: <SubscriptionPage />},
-      {
-  path: PATHS.DRIVER.SUBSCRIPTION_PAYMENT,
-  element: <PaymentResult />,
-},
-      {path: PATHS.DRIVER.PROFILE, element: <Profile />},
+      { path: PATHS.DRIVER.MYSWAPS, element: <SwapsPage /> },
+      { path: PATHS.DRIVER.SUBSCRIPTION, element: <SubscriptionPage /> },
+      { path: PATHS.DRIVER.SUBSCRIPTION_PAYMENT, element: <PaymentResult /> },
+      { path: PATHS.DRIVER.PAYMENTS, element: <PaymentsPage /> },
+      { path: PATHS.DRIVER.PROFILE, element: <Profile /> },
     ]
   },
   {
     path: PATHS.STAFF.ROOT,
-    element:  <AuthorizedLayout type='staff' />,
-    children:  [
-      {path: PATHS.STAFF.DASHBOARD, element: <Placeholder title='Staff Dashboard'/>},
-      {path: PATHS.STAFF.SWAP.CONFIRM, element: <SwapConfirm/>},
-      {path: PATHS.STAFF.SWAP.PAYMENT, element: <TransactionConfirm title='Staff Confirm Transaction'/>},
-      {path: PATHS.STAFF.SWAP.HISTORY, element: <TransactionHistory title='Staff Transaction History'/>},
-      {path: PATHS.STAFF.INVENTORY.LIST, element: <BatteryList/>},
-      {path: PATHS.STAFF.INVENTORY.STATUS, element: <BatteryStatus title='Staff battery status'/>},
-      {path: PATHS.STAFF.INVENTORY.SLOT_MANAGE, element: <BatterySlot/>},
-      {path: PATHS.STAFF.PROFILE, element: <Profile />},
+    element: <AuthorizedLayout type='staff' />,
+    children: [
+      { path: PATHS.STAFF.DASHBOARD, element: <Placeholder title='Staff Dashboard' /> },
+      { path: PATHS.STAFF.SWAP.CONFIRM, element: <SwapConfirm /> },
+      { path: PATHS.STAFF.SWAP.PAYMENT, element: <TransactionConfirm title='Staff Confirm Transaction' /> },
+      { path: PATHS.STAFF.SWAP.HISTORY, element: <TransactionHistory title='Staff Transaction History' /> },
+      { path: PATHS.STAFF.INVENTORY.LIST, element: <BatteryList /> },
+      { path: PATHS.STAFF.INVENTORY.STATUS, element: <BatteryStatus title='Staff battery status' /> },
+      { path: PATHS.STAFF.INVENTORY.SLOT_MANAGE, element: <BatterySlot /> },
+      { path: PATHS.STAFF.PROFILE, element: <Profile /> },
     ]
   },
   {

@@ -17,12 +17,21 @@ import {
   isUrgent,
   isExpired,
   getEffectiveStatus,
+  getTimeStatus,
   getDateForCountdown
 } from '../../../../utils/booking';
 import CarIcon from '../../../../constant/svg/Car';
 
+// ✅ Add missing ICON_BY_TONE constant
+const ICON_BY_TONE = {
+  yellow: ExclamationCircleIcon,
+  blue: CheckCircleIcon,
+  green: CheckCircleIcon,
+  red: XCircleIcon,
+  gray: ClockIcon,
+};
+
 const BookingCard = ({ booking, onUpdate }) => {
-  // ✅ Use utils for all time-related operations
   const effectiveStatus = getEffectiveStatus(booking.timeSlot, booking.status);
   const statusConfig = getStatusConfig(effectiveStatus);
   
@@ -30,6 +39,10 @@ const BookingCard = ({ booking, onUpdate }) => {
   const urgent = isUrgent(booking.timeSlot, booking.status);
   const expired = isExpired(booking.timeSlot, booking.status);
   const timeStatus = getTimeStatus(booking.timeSlot);
+  
+  // ✅ Fix format functions usage
+  const { date: timeSlotDate, time: timeSlotTime } = formatDateTime(booking.timeSlot);
+  const countdownDate = getDateForCountdown(booking.timeSlot);
   
   const StatusIcon = ICON_BY_TONE[statusConfig.tone];
 
@@ -41,6 +54,14 @@ const BookingCard = ({ booking, onUpdate }) => {
     } catch (error) {
       console.warn('Failed to refresh data:', error);
     }
+  };
+
+  const formatPrice = (price) => {
+    if (price === null || price === undefined) return 'N/A';
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(price);
   };
 
   const getStatusIcon = (status) => {
@@ -122,7 +143,7 @@ const BookingCard = ({ booking, onUpdate }) => {
             <div className={`px-2 py-1 rounded text-xs font-medium ${
               timeStatus.type === 'overdue' 
                 ? 'bg-red-100 text-red-700' 
-                : timeStatus.hours === 0 && timeStatus.minutes <= 60
+                : timeStatus.type === 'today'
                 ? 'bg-orange-100 text-orange-700'
                 : 'bg-blue-100 text-blue-700'
             }`}>
@@ -168,36 +189,11 @@ const BookingCard = ({ booking, onUpdate }) => {
                 {booking.vehicleBrand} {booking.vehicleModel}
               </p>
               <p className="text-sm text-gray-600 font-mono">{booking.licensePlate}</p>
-              <p className="text-xs text-purple-700 bg-purple-100 px-2 py-0.5 rounded mt-1 inline-block">
-                🔋 {booking.batteryTypeName}
-              </p>
-              
-              {/* ✅ Only show ONE time indicator - prioritize countdown for upcoming, status for others */}
-              {upcoming && countdownDate ? (
-                <div className="mt-2">
-                  <CountdownTimer 
-                    targetDate={countdownDate}
-                    onExpire={handleRefresh} 
-                  />
-                </div>
-              ) : timeStatus && (
-                <div className={`text-xs font-medium mt-2 px-2 py-1 rounded ${
-                  timeStatus.type === 'overdue' 
-                    ? 'bg-red-100 text-red-700' 
-                    : timeStatus.type === 'today'
-                    ? 'bg-orange-100 text-orange-700'
-                    : 'bg-green-100 text-green-700'
-                }`}>
-                  {timeStatus.text}
-                </div>
-              )}
-              
-              <div className="flex items-center gap-1 mt-2">
-                <MapPinIcon className="w-4 h-4 text-gray-500" />
-                <p className="text-sm text-gray-600">
-                  {booking.stationName || 'Chưa xác định trạm'}
+              {booking.batteryTypeName && (
+                <p className="text-xs text-purple-700 bg-purple-100 px-2 py-0.5 rounded mt-1 inline-block">
+                  🔋 {booking.batteryTypeName}
                 </p>
-              </div>
+              )}
             </div>
           </div>
 
@@ -209,7 +205,9 @@ const BookingCard = ({ booking, onUpdate }) => {
             <div className="min-w-0 flex-1">
               <h4 className="font-medium text-gray-900 mb-1">Trạm thay pin</h4>
               <p className="text-sm text-gray-700 font-medium">{booking.stationName}</p>
-              <p className="text-xs text-gray-600">{booking.stationAddress}</p>
+              {booking.stationAddress && (
+                <p className="text-xs text-gray-600">{booking.stationAddress}</p>
+              )}
             </div>
           </div>
 
@@ -235,13 +233,16 @@ const BookingCard = ({ booking, onUpdate }) => {
                 Thời gian đặt {urgent && <span className="text-red-500 ml-1">🚨</span>}
                 {expired && <span className="text-gray-500 ml-1">⏰</span>}
               </h4>
-              <p className="text-sm text-gray-700 font-medium">{timeSlotFormatted.date}</p>
-              <p className="text-sm text-gray-600">Lúc {timeSlotFormatted.time}</p>
+              <p className="text-sm text-gray-700 font-medium">{timeSlotDate}</p>
+              <p className="text-sm text-gray-600">Lúc {timeSlotTime}</p>
 
               {/* ✅ Enhanced time status display */}
-              {upcoming && !expired && (
+              {upcoming && !expired && countdownDate && (
                 <div className="mt-2">
-                  <CountdownTimer targetDate={booking.timeSlot} />
+                  <CountdownTimer 
+                    targetDate={countdownDate} 
+                    onExpire={handleRefresh}
+                  />
                 </div>
               )}
               {urgent && !expired && (
@@ -280,7 +281,7 @@ const BookingCard = ({ booking, onUpdate }) => {
               {booking.estimatedPrice !== undefined && (
                 <div className="flex items-center gap-1 mb-1">
                   <CurrencyDollarIcon className="w-3 h-3 text-green-600" />
-                  <span className="text-xs text-gray-600">Chi phí dự kiến:</span>
+                  <span className="text-xs text-gray-600">Chi phí:</span>
                   <span className="text-xs font-semibold text-green-600">
                     {formatPrice(booking.estimatedPrice)}
                   </span>
