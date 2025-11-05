@@ -34,6 +34,7 @@ import VerifyOtp from "../pages/auth/otp";
 import BookingsPage from "../pages/driver/bookings";
 import SwapsPage from "../pages/driver/myswaps";
 import SubscriptionPage from "../pages/driver/subcription";
+import PaymentResult from "../pages/driver/subcription/PaymentResult";
 
 export const router = createBrowserRouter([
   {
@@ -93,6 +94,10 @@ export const router = createBrowserRouter([
       { path: PATHS.DRIVER.BOOKINGPAGE, element: <BookingsPage /> },
       {path: PATHS.DRIVER.MYSWAPS, element: <SwapsPage/>},
       {path: PATHS.DRIVER.SUBSCRIPTION, element: <SubscriptionPage />},
+      {
+  path: PATHS.DRIVER.SUBSCRIPTION_PAYMENT,
+  element: <PaymentResult />,
+},
     ]
   },
   {
