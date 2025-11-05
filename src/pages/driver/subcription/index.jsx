@@ -160,7 +160,6 @@ const SubscriptionPage = () => {
   const confirmUpgrade = async () => {
     if (!selectedPlan) return;
 
-    // ✅ Double check user authentication
     if (!currentUser || !userId) {
       toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại');
       setShowUpgradeModal(false);
@@ -180,80 +179,85 @@ const SubscriptionPage = () => {
         paymentMethod: 'Card'
       }).unwrap();
 
-      // ✅ Debug: Log full API response
-      console.log('🌐 Purchase API Response (Full):', purchaseResponse);
-      console.log('🌐 Purchase API Content:', purchaseResponse?.content);
-      console.log('🌐 Purchase API Success:', purchaseResponse?.success);
-      console.log('🌐 Purchase API Message:', purchaseResponse?.message);
-
-      const paymentData = purchaseResponse.content;
+      // ✅ Debug: Log FULL API response structure
+      console.log('🌐 FULL Purchase API Response:', JSON.stringify(purchaseResponse, null, 2));
       
-      // ✅ Debug: Log payment data structure
-      console.log('💳 Payment Data Structure:', paymentData);
-      console.log('💳 Available Keys:', paymentData ? Object.keys(paymentData) : 'No payment data');
+      const paymentData = purchaseResponse.content;
+      console.log('💳 Payment Data Keys:', paymentData ? Object.keys(paymentData) : 'No content');
+      console.log('💳 Payment Data Values:', paymentData);
 
       if (paymentData?.paymentUrl) {
-        // ✅ Enhanced localStorage with more debugging
-        const paymentInfo = {
-          // API response fields (adjust based on actual API response)
-          subPayId: paymentData.subPayId || paymentData.id || paymentData.paymentId || paymentData.transactionId,
-          planName: selectedPlan.name,
-          amount: paymentData.amount || selectedPlan.price,
-          orderCode: paymentData.orderCode || paymentData.orderNumber,
-          paymentUrl: paymentData.paymentUrl,
-          userId: userId,
-          timestamp: new Date().toISOString(),
-          // Store original plan data for fallback
-          planId: selectedPlan.id,
-          planPrice: selectedPlan.price,
-          // Store all payment data for debugging
-          rawPaymentData: paymentData
-        };
+        // ✅ Find the REAL subPayId field name from API response
+        const realSubPayId = paymentData.subPayId || 
+                          paymentData.subscriptionPaymentId || 
+                          paymentData.paymentId || 
+                          paymentData.id ||
+                          paymentData.transactionId;
 
-        console.log('💾 Storing payment info to localStorage:', paymentInfo);
-        localStorage.setItem('pendingPayment', JSON.stringify(paymentInfo));
-
-        // ✅ Verify localStorage write
-        const storedData = localStorage.getItem('pendingPayment');
-        console.log('💾 Verified localStorage data:', storedData);
-
-        // Redirect to PayOS
-        console.log('🔄 Redirecting to PayOS:', paymentData.paymentUrl);
-        window.location.href = paymentData.paymentUrl;
-      } else {
-        console.error('❌ No payment URL in response:', paymentData);
-        throw new Error('Không nhận được URL thanh toán');
-      }
-    } catch (error) {
-      console.error('❌ Purchase failed:', error);
-      console.error('❌ Error details:', {
-        data: error?.data,
-        message: error?.message,
-        status: error?.status,
-        originalStatus: error?.originalStatus
+      console.log('🔍 Searching for subPayId in response:', {
+        subPayId: paymentData.subPayId,
+        subscriptionPaymentId: paymentData.subscriptionPaymentId,
+        paymentId: paymentData.paymentId,
+        id: paymentData.id,
+        transactionId: paymentData.transactionId,
+        realSubPayId: realSubPayId
       });
-      
-      // ✅ Enhanced error handling
-      let errorMessage = 'Không thể tạo đơn thanh toán';
-      
-      if (error?.data?.message) {
-        errorMessage = error.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-      
-      // ✅ Check for specific error cases
-      if (errorMessage.toLowerCase().includes('active') || 
-          errorMessage.toLowerCase().includes('đang hoạt động') ||
-          errorMessage.toLowerCase().includes('subscription already exists')) {
-        errorMessage = 'Bạn đã có gói dịch vụ đang hoạt động. Không thể đăng ký thêm gói mới.';
-      }
-      
-      toast.error(errorMessage);
-    } finally {
-      setShowUpgradeModal(false);
+
+      const paymentInfo = {
+        // ✅ Store the REAL subPayId from your API
+        subPayId: realSubPayId,
+        planName: selectedPlan.name,
+        amount: paymentData.amount || selectedPlan.price,
+        orderCode: paymentData.orderCode,
+        paymentUrl: paymentData.paymentUrl,
+        userId: userId,
+        timestamp: new Date().toISOString(),
+        planId: selectedPlan.id,
+        planPrice: selectedPlan.price,
+        // Store PayOS ID separately for reference
+        payosId: paymentData.payosId || paymentData.payosTransactionId,
+        // Store ALL payment data for debugging
+        rawPaymentData: paymentData
+      };
+
+      console.log('💾 Storing enhanced payment info:', paymentInfo);
+      localStorage.setItem('pendingPayment', JSON.stringify(paymentInfo));
+
+      // Verify storage
+      const storedData = localStorage.getItem('pendingPayment');
+      console.log('💾 Verified stored data:', JSON.parse(storedData));
+
+      // Redirect to PayOS
+      console.log('🔄 Redirecting to PayOS:', paymentData.paymentUrl);
+      window.location.href = paymentData.paymentUrl;
+    } else {
+      console.error('❌ No payment URL in response:', paymentData);
+      throw new Error('Không nhận được URL thanh toán');
     }
-  };
+  } catch (error) {
+    console.error('❌ Purchase failed:', error);
+    console.error('❌ Error response:', error?.response?.data);
+    
+    let errorMessage = 'Không thể tạo đơn thanh toán';
+    
+    if (error?.data?.message) {
+      errorMessage = error.data.message;
+    } else if (error?.message) {
+      errorMessage = error.message;
+    }
+    
+    // Check for specific error cases
+    if (errorMessage.toLowerCase().includes('active') || 
+        errorMessage.toLowerCase().includes('đang hoạt động') ||
+        errorMessage.toLowerCase().includes('subscription already exists')) {
+      errorMessage = 'Bạn đã có gói dịch vụ đang hoạt động. Không thể đăng ký thêm gói mới.';
+    }
+    
+    toast.error(errorMessage);
+  } finally {
+    setShowUpgradeModal(false);
+  }
+};
 
   // ✅ Enhanced payment return handling with user context
   useEffect(() => {
