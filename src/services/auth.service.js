@@ -1,5 +1,5 @@
 import { apiSlice } from "../api/apiSlice";
-import { setCredentials, logout, setTempToken } from "../redux/slices/authSlice";
+import { setCredentials, setTempToken, logout } from "../redux/slices/authSlice";
 
 export const authApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -11,74 +11,81 @@ export const authApi = apiSlice.injectEndpoints({
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
-          const { data } = await queryFulfilled;
+          const { data } = await queryFulfilled;       
+          sessionStorage.setItem('tempPassword', arg.password);
           
           dispatch(setTempToken({
             token: data.content.token,
             email: arg.email,
             userId: data.content.userId,
+            needsActivation: true,
           }));
         } catch (error) {
-          console.error('Register failed:', error);
+          sessionStorage.removeItem('tempPassword');
           throw error;
         }
       },
     }),
     
     verifyOtp: builder.mutation({
-      query: ({ otp, token }) => ({
+      query: ({ otp }) => ({
         url: `/Auth/activate-account/${otp}`,
         method: 'POST',
         data: { otp },
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       }),
-      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+      async onQueryStarted(arg, { dispatch, queryFulfilled, getState }) {
         try {
           const { data } = await queryFulfilled;
           
-          dispatch(setCredentials({
-            accessToken: data.content.token,
-            user: {
-              userId: data.content.userId,
-              fullName: data.content.fullName,
-              email: data.content.email,
-              role: data.content.role,
-              status: data.content.status,
-            },
-          }));
+          if (data.success) {
+            
+            const { auth } = getState();
+            const tempPassword = sessionStorage.getItem('tempPassword');
+                       
+            if (auth.tempEmail && tempPassword) {
+              
+              try {
+                const loginResult = await dispatch(authApi.endpoints.login.initiate({
+                  email: auth.tempEmail,
+                  password: tempPassword
+                })).unwrap();
+                                
+                sessionStorage.removeItem('tempPassword');
+                
+              } catch (loginError) {
+                sessionStorage.removeItem('tempPassword');
+                throw new Error('Auto-login failed after OTP verification');
+              }
+            } else {
+              console.warn('⚠️ Missing email or password for auto-login');
+              throw new Error('Missing credentials for auto-login');
+            }
+          }
         } catch (error) {
-          console.error('OTP verification failed:', error);
+          console.error('❌ OTP verification failed:', error);
+          sessionStorage.removeItem('tempPassword');
           throw error;
         }
       },
     }),
     
-    // ========== RESEND OTP ==========
     resendOtp: builder.mutation({
-      query: (token) => ({
+      query: () => ({
         url: '/Auth/resend-register-otp',
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       }),
     }),
     
-    // ========== LOGIN ==========
     login: builder.mutation({
       query: (credentials) => ({
         url: '/Auth/login',
         method: 'POST',
         data: credentials,
       }),
-      invalidatesTags: ['User'],
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          
-          // ✅ Check status
+                    
           if (data.content.status === 'Inactive') {
             dispatch(setTempToken({
               token: data.content.token,
@@ -89,7 +96,6 @@ export const authApi = apiSlice.injectEndpoints({
             return;
           }
           
-          // ✅ Active user
           dispatch(setCredentials({
             accessToken: data.content.token,
             user: {
@@ -101,25 +107,23 @@ export const authApi = apiSlice.injectEndpoints({
             },
           }));
         } catch (error) {
-          console.error('Login failed:', error);
+          console.error('Login mutation failed:', error);
           throw error;
         }
       },
     }),
     
-    // ========== LOGOUT ==========
     logout: builder.mutation({
       query: () => ({
         url: '/Auth/logout',
         method: 'POST',
       }),
-      invalidatesTags: ['User'],
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           await queryFulfilled;
+        } finally {
           dispatch(logout());
-        } catch (error) {
-          dispatch(logout());
+          sessionStorage.removeItem('tempPassword');
         }
       },
     }),

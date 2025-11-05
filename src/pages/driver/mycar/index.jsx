@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useSelector } from "react-redux";
 import {
   useCreateVehicleMutation,
   useUpdateVehicleMutation,
@@ -9,9 +8,12 @@ import { useAttachBatteryMutation } from "../../../services/battery.service";
 import {
   PlusIcon,
   PencilSquareIcon,
+  Battery100Icon,
 } from "@heroicons/react/24/outline";
 import CarModal from "./components/CarModal";
 import toast from "../../../utils/toast";
+import CarIcon from "../../../constant/svg/Car";
+
 
 const MyCar = () => {
   const { data: vehiclesData, isLoading, refetch } = useGetMyVehiclesQuery();
@@ -44,7 +46,9 @@ const MyCar = () => {
 
   // ✅ Handle save vehicle (battery type required for creation)
   const handleSave = async (formData) => {
-    const loadingToastId = toast.loading(editingCar ? 'Đang cập nhật xe...' : 'Đang thêm xe...');
+    const loadingToastId = toast.loading(
+      editingCar ? "Đang cập nhật xe..." : "Đang thêm xe..."
+    );
 
     try {
       if (editingCar) {
@@ -61,7 +65,7 @@ const MyCar = () => {
         }).unwrap();
 
         toast.dismiss(loadingToastId);
-        toast.success(`🚗 Cập nhật xe ${formData.licensePlate} thành công!`);
+        toast.success(`Cập nhật xe ${formData.licensePlate} thành công!`);
       } else {
         // ✅ Create new vehicle (battery type required)
         const createData = {
@@ -74,20 +78,26 @@ const MyCar = () => {
         await createVehicle(createData).unwrap();
 
         toast.dismiss(loadingToastId);
-        toast.success(`🚗 Thêm xe ${formData.licensePlate} thành công! Giờ bạn có thể gắn pin tương ứng.`);
+        toast.success(
+          `Thêm xe ${formData.licensePlate} thành công! Giờ bạn có thể gắn pin tương ứng.`
+        );
       }
 
       setShowModal(false);
       refetch();
     } catch (err) {
-      console.error('Save vehicle error:', err);
+      console.error("Save vehicle error:", err);
       toast.dismiss(loadingToastId);
-      toast.error(err.data?.message || 'Có lỗi xảy ra khi lưu xe');
+      toast.error(err.data?.message || "Có lỗi xảy ra khi lưu xe");
     }
   };
 
-  const handleAttachBattery = async ({ vehicleId, batteryId, performByUserId }) => {
-    const loadingToastId = toast.loading('Đang gắn pin...');
+  const handleAttachBattery = async ({
+    vehicleId,
+    batteryId,
+    performByUserId,
+  }) => {
+    const loadingToastId = toast.loading("Đang gắn pin...");
 
     try {
       await attachBattery({
@@ -98,13 +108,13 @@ const MyCar = () => {
 
       toast.dismiss(loadingToastId);
       toast.success(`🔗 Gắn pin thành công!`);
-      
+
       setShowModal(false);
       refetch();
     } catch (err) {
-      console.error('Attach battery error:', err);
+      console.error("Attach battery error:", err);
       toast.dismiss(loadingToastId);
-      toast.error(err.data?.message || 'Có lỗi xảy ra khi gắn pin');
+      toast.error(err.data?.message || "Có lỗi xảy ra khi gắn pin");
     }
   };
 
@@ -148,11 +158,15 @@ const MyCar = () => {
             >
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <div className="flex-shrink-0">
-                  <img
-                    src="/vf8.png"
-                    alt={`${car.vBrand} ${car.model}`}
-                    className="w-full sm:w-32 h-24 sm:h-24 object-cover rounded-lg border border-gray-200 shadow-sm"
-                  />
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                      car.batteryId
+                        ? "bg-green-100 text-green-600"
+                        : "bg-gray-100 text-gray-400"
+                    }`}
+                  >
+                      <CarIcon className="w-6 h-6" />
+                  </div>
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -189,11 +203,17 @@ const MyCar = () => {
                       <button
                         onClick={() => handleOpenEdit(car)}
                         className="flex items-center gap-2 text-blue-600 hover:text-blue-800 px-3 py-2 rounded-lg hover:bg-blue-50 transition border border-blue-200 hover:border-blue-300"
-                        title={car.batteryId ? "Chỉnh sửa xe" : "Chỉnh sửa xe / Gắn pin"}
+                        title={
+                          car.batteryId
+                            ? "Chỉnh sửa xe"
+                            : "Chỉnh sửa xe / Gắn pin"
+                        }
                       >
                         <PencilSquareIcon className="w-4 h-4" />
                         <span className="text-sm font-medium">
-                          {car.batteryId ? "Chỉnh sửa" : "Chỉnh sửa / Gắn pin"}
+                          {car.batteryId
+                            ? "Chỉnh sửa"
+                            : "Chỉnh sửa / Gắn pin"}
                         </span>
                       </button>
                     </div>
@@ -227,7 +247,7 @@ const MyCar = () => {
         onClose={handleCloseModal}
         editingCar={editingCar}
         onSave={handleSave}
-        onAttachBattery={handleAttachBattery} 
+        onAttachBattery={handleAttachBattery}
         isLoading={isCreating || isUpdating || isAttaching}
       />
     </div>

@@ -13,7 +13,7 @@ const statusColor = {
 };
 
 function ImageWithFallback({ src, alt, className }) {
-  const fallback = 'https://b2232832.smushcdn.com/2232832/wp-content/uploads/2023/04/EV-urban-myth_01.jpg?lossy=1&strip=0&webp=1';
+  const fallback = '/android-chrome-512x512.png';
   return <img src={src || fallback} alt={alt} className={className} onError={(e) => { e.currentTarget.src = fallback; }} />;
 }
 
@@ -228,7 +228,7 @@ export default function BatteryList() {
                 <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Ảnh */}
                   <div className="md:col-span-1 flex justify-center items-start">
-                    <ImageWithFallback src={selectedBattery.imageUrl || selectedBattery.imageURL} alt={`Battery ${selectedBattery.batteryId}`} className="w-full h-44 object-cover rounded-md" />
+                    <ImageWithFallback src={selectedBattery.imageUrl || selectedBattery.imageURL} alt={`Battery ${selectedBattery.batteryId}`} className="w-full h-44 object-cover rounded-md border" />
                   </div>
 
                   {/* Thông tin */}

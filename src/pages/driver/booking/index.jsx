@@ -11,6 +11,7 @@ import CarSelection from "./components/CarSelection";
 import StationSelection from "./components/StationSelection";
 import SlotSelection from "./components/SlotSelection";
 import Booking from "./components/Booking"; 
+import CarIcon from "../../../constant/svg/Car";
 
 const BookingPage = () => { 
   const [step, setStep] = useState(1);
@@ -41,7 +42,7 @@ const BookingPage = () => {
   const stepConfig = [
     { 
       label: "Chọn xe", 
-      icon: TruckIcon,
+      icon: CarIcon,
       data: selectedCar ? {
         main: `${selectedCar.vBrand} ${selectedCar.model}`,
         sub: selectedCar.licensePlate

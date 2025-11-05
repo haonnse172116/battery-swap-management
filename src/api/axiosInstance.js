@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getAccessToken } from '../utils/auth';
+import { getAuthToken } from '../utils/auth';
 import { store } from '../redux/store';
 import { logout } from '../redux/slices/authSlice';
 
@@ -16,7 +16,7 @@ const axiosInstance = axios.create({
 // Request interceptor - add access token to headers
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = getAccessToken();
+    const token = getAuthToken();
     if (token && config.headers) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }

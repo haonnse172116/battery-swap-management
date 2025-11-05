@@ -1,119 +1,268 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import toast from 'react-hot-toast';
+import {
+  useGetAllBookingsQuery,
+  useGetPendingBookingsByStationQuery,
+  useConfirmBookingMutation,
+  useRejectBookingMutation,
+} from '@/services/booking.service';
+import { useGetBatteriesByIdQuery } from '@/services/battery.service';
+import { useInitPaymentMutation } from '@/services/payment.service';
+import ConfirmModal from '@/components/common/ConfirmModal.jsx';
 
-// Dữ liệu mock tổng hợp từ các bảng liên quan
-const mockBookings = [
-  {
-    booking_id: 'BK001',
-    created_at: '2025-10-17 08:30',
-    user: { full_name: 'Nguyễn Văn A', phone: '0901234567', email: 'a@gmail.com' },
-    vehicle: { model: 'VF e34', license_plate: '51A-12345' },
-    battery_return: {
-      battery_id: 'BAT001',
-      type: 'Lithium',
-      status: 'đang sử dụng',
-      voltage: '48V',
-      capacity_wh: '3200',
-    },
-    battery_give: {
-      battery_id: 'BAT010',
-      type: 'Lithium',
-      status: 'sẵn sàng',
-      voltage: '48V',
-      capacity_wh: '3200',
-    },
-  },
-  {
-    booking_id: 'BK002',
-    created_at: '2025-10-17 09:10',
-    user: { full_name: 'Trần Thị B', phone: '0902345678', email: 'b@gmail.com' },
-    vehicle: { model: 'VinFast Klara', license_plate: '59B1-67890' },
-    battery_return: {
-      battery_id: 'BAT002',
-      type: 'Lithium',
-      status: 'đang sử dụng',
-      voltage: '48V',
-      capacity_wh: '2800',
-    },
-    battery_give: {
-      battery_id: 'BAT011',
-      type: 'Lithium',
-      status: 'sẵn sàng',
-      voltage: '48V',
-      capacity_wh: '2800',
-    },
-  },
-];
+function BatteryDetails({ batteryId }) {
+  const { data } = useGetBatteriesByIdQuery({ id: batteryId }, { skip: !batteryId });
+  const b = data?.content ? (Array.isArray(data.content) ? data.content[0] : data.content) : data || null;
+  if (!b) return null;
+  return (
+    <div className="mt-2 text-sm text-gray-600">
+      <div>Serial: {b.serialNo || b.id || b.batteryId || '—'}</div>
+      <div>Loại: {b.batteryTypeName || b.type || '—'}</div>
+      <div>Điện áp: {b.voltage || '—'}V - {b.capacityWh || '—'} Wh</div>
+    </div>
+  );
+}
 
 const statusColor = {
-  'sẵn sàng': 'bg-green-100 text-green-700',
-  'đang sử dụng': 'bg-yellow-100 text-yellow-700',
-  'đang sạc': 'bg-blue-100 text-blue-700',
-  'hỏng': 'bg-red-100 text-red-700',
+  Pending: 'bg-yellow-100 text-yellow-800',
+  Confirmed: 'bg-green-100 text-green-700',
+  Cancelled: 'bg-red-100 text-red-700',
+  Completed: 'bg-blue-100 text-blue-700',
 };
 
-const SwapConfirm = () => {
-  const [bookings, setBookings] = useState(mockBookings);
+export default function SwapConfirm({ stationId = null }) {
+  const {
+    data: pendingByStationData,
+    isLoading: loadingStationPending,
+    refetch: refetchStationPending,
+  } = useGetPendingBookingsByStationQuery(
+    stationId ? { stationId, page: 1, size: 50, search: '', status: 'Pending' } : null,
+    { skip: !stationId }
+  );
 
-  const handleApprove = (id) => {
-    setBookings(prev => prev.filter(b => b.booking_id !== id));
-    alert('Đã xác nhận đổi pin cho booking ' + id);
+  const {
+    data: allBookingsData,
+    isLoading: loadingAll,
+    refetch: refetchAll,
+  } = useGetAllBookingsQuery({ page: 1, size: 100, search: '' }, { skip: !!stationId });
+
+  const [confirmBooking] = useConfirmBookingMutation();
+  const [rejectBooking] = useRejectBookingMutation();
+  const [initPayment] = useInitPaymentMutation();
+
+  // confirm modal state
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState(null); // { bookingId, toBatteryId }
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  // normalize list to render
+  const bookings = useMemo(() => {
+    if (stationId) return pendingByStationData?.content || [];
+    const list = allBookingsData?.content || [];
+    return list.filter((b) => (b.status || '').toLowerCase() === 'pending');
+  }, [stationId, pendingByStationData, allBookingsData]);
+
+  const loading = stationId ? loadingStationPending : loadingAll;
+  const refetch = stationId ? refetchStationPending : refetchAll;
+
+  // open confirm modal: require toBatteryId present (from batteryReturn.id)
+  const onConfirmClick = (bookingId, toBatteryId) => {
+    if (!toBatteryId) {
+      toast.error('Không tìm thấy mã pin thay thế (toBatteryId). Không thể tạo swap.');
+      return;
+    }
+    setConfirmTarget({ bookingId, toBatteryId });
+    setConfirmOpen(true);
   };
-  const handleReject = (id) => {
-    setBookings(prev => prev.filter(b => b.booking_id !== id));
-    alert('Đã từ chối booking ' + id);
+
+  // execute confirm + initPayment, then open paymentUrl in new tab
+  const onConfirmExecute = async () => {
+    if (!confirmTarget) return;
+    const { bookingId, toBatteryId } = confirmTarget;
+    setConfirmLoading(true);
+
+    try {
+      // 1) confirm booking
+      await toast.promise(
+        confirmBooking(bookingId).unwrap(),
+        {
+          loading: 'Đang xác nhận...',
+          success: 'Xác nhận thành công',
+          error: (err) => err?.data?.message || 'Xác nhận thất bại',
+        }
+      );
+
+      // 2) init payment (Cash) and open returned paymentUrl
+      const paymentResp = await toast.promise(
+        initPayment({ bookingId, paymentMethod: 'Cash' }).unwrap(),
+        {
+          loading: 'Đang khởi tạo thanh toán...',
+          success: 'Khởi tạo thanh toán thành công',
+          error: (err) => err?.data?.message || 'Khởi tạo thanh toán thất bại',
+        }
+      );
+
+      // extract paymentUrl (support a few possible shapes)
+      const paymentUrl =
+        paymentResp?.content?.paymentUrl ||
+        paymentResp?.content?.payment_url ||
+        paymentResp?.paymentUrl ||
+        paymentResp?.payment_url ||
+        null;
+
+      if (paymentUrl) {
+        // open in new tab
+        try {
+          window.open(paymentUrl, '_blank', 'noopener,noreferrer');
+        } catch (openErr) {
+          // fallback: create anchor and click
+          const a = document.createElement('a');
+          a.href = paymentUrl;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }
+      } else {
+        toast.error('Không tìm thấy paymentUrl từ response.');
+      }
+
+      // success actions
+      setConfirmOpen(false);
+      setConfirmTarget(null);
+      refetch && refetch();
+    } catch (err) {
+      // toast.promise already displayed errors for each step
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+
+  const onReject = async (bookingId) => {
+    const reason = window.prompt('Lý do từ chối (bắt buộc):');
+    if (reason === null) return; // user cancelled prompt
+    if (!reason.trim()) return alert('Vui lòng nhập lý do từ chối.');
+
+    try {
+      await toast.promise(
+        rejectBooking({ bookingId, reason }).unwrap(),
+        {
+          loading: 'Đang từ chối...',
+          success: 'Từ chối thành công',
+          error: (err) => err?.data?.message || err?.message || 'Từ chối thất bại',
+        }
+      );
+      refetch && refetch();
+    } catch (err) {
+      // handled
+    }
   };
 
   return (
-    <div className="p-6 min-h-screen">
-      <h1 className="text-2xl font-semibold mb-6 text-gray-800">Danh sách chờ duyệt đổi pin</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {bookings.length === 0 ? (
+    <>
+      <div className="p-6 min-h-screen">
+        <h1 className="text-2xl font-semibold mb-6 text-gray-800">Danh sách chờ duyệt đổi pin</h1>
+
+        {loading ? (
+          <div className="p-6 text-center">Đang tải...</div>
+        ) : bookings.length === 0 ? (
           <div className="p-6 text-center text-gray-400 bg-white rounded-xl shadow col-span-2">Không có booking chờ duyệt</div>
         ) : (
-          bookings.map(bk => (
-            <div key={bk.booking_id} className="bg-white rounded-xl shadow p-6 flex flex-col gap-3 border border-gray-100">
-              <div className="flex items-center justify-between mb-2">
-                <div className="font-bold text-blue-700 text-lg">#{bk.booking_id}</div>
-                <div className="text-xs text-gray-400">{bk.created_at}</div>
-              </div>
-              <div className="flex flex-col gap-1 text-sm">
-                <div><span className="font-semibold">Tài xế:</span> {bk.user.full_name} - {bk.user.phone}</div>
-                <div><span className="font-semibold">Xe:</span> {bk.vehicle.model} - {bk.vehicle.license_plate}</div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                {/* Pin khách đặt */}
-                <div className="bg-gray-50 rounded-lg p-3 border">
-                  <div className="font-semibold text-gray-700 mb-1">Pin khách đặt</div>
-                  <div className="text-xs text-gray-500 mb-1">Mã pin: <span className="font-semibold text-gray-800">{bk.battery_return.battery_id}</span></div>
-                  <div className="text-xs text-gray-500 mb-1">Loại: {bk.battery_return.type}</div>
-                  <div className="text-xs text-gray-500 mb-1">Trạng thái: <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor[bk.battery_return.status]}`}>{bk.battery_return.status}</span></div>
-                  <div className="text-xs text-gray-500">{bk.battery_return.voltage} - {bk.battery_return.capacity_wh} Wh</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {bookings.map((bk) => {
+              const createdAt = bk.createdAt ? new Date(bk.createdAt).toLocaleString() : (bk.created_at || '');
+              const bookingId = bk.bookingId || bk.booking_id || '—';
+              const userName = bk.userName || bk.user?.full_name || bk.user?.name || '—';
+              const userPhone = bk.userPhone || bk.user?.phone || '—';
+              const vehicle = `${bk.vehicleBrand || bk.vehicle?.model || ''}`.trim();
+              const license = bk.licensePlate || bk.vehicle?.license_plate || '—';
+              const estimatedPrice = bk.estimatedPrice || bk.estimatedPrice || '—';
+
+              // batteryReturn: use this as toBatteryId
+              const batteryReturn = {
+                id: bk.batteryId || bk.battery_return?.battery_id || bk.battery_return?.id || '—',
+                type: bk.batteryTypeName || bk.battery_return?.type || '—',
+                status: bk.status || bk.battery_return?.status || 'Pending',
+                voltage: bk.battery_return?.voltage || '—',
+                capacity: bk.battery_return?.capacity_wh || bk.capacityWh || '—',
+              };
+
+              // batteryGive (if any) - kept for display only
+              const batteryGive = {
+                id: bk.batteryGiveId || bk.battery_give?.battery_id || '—',
+                type: bk.battery_give?.type || '—',
+                status: bk.battery_give?.status || '—',
+                voltage: bk.battery_give?.voltage || '—',
+                capacity: bk.battery_give?.capacity_wh || '—',
+              };
+
+              return (
+                <div key={bookingId} className="bg-white rounded-xl shadow p-6 flex flex-col gap-3 border border-gray-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-bold text-blue-700 text-lg">#{bookingId}</div>
+                    <div className="text-xs text-gray-400">{createdAt}</div>
+                  </div>
+
+                  <div className="flex flex-col gap-1 text-sm">
+                    <div><span className="font-semibold">Tài xế:</span> {userName} - <span className="font-semibold">SĐT:</span> {userPhone}</div>
+                    <div><span className="font-semibold">Xe:</span> {vehicle} - {license}</div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 mt-2">
+                    <div className="bg-gray-50 rounded-lg p-3 border">
+                      <div className="font-semibold text-gray-700 mb-1">Pin khách đặt</div>
+                      <div className="text-xs text-gray-500 mb-1">Mã pin: <span className="font-semibold text-gray-800">{batteryReturn.id}</span></div>
+                      <div className="text-xs text-gray-500 mb-1">
+                        Trạng thái:&nbsp;
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor[(batteryReturn.status || '').replace(/\s+/g, '')] || 'bg-gray-100 text-gray-700'}`}>
+                          {batteryReturn.status}
+                        </span>
+                      </div>
+                      {batteryReturn.id && <BatteryDetails batteryId={batteryReturn.id} />}
+                    </div>
+
+                    <div className="flex items-center gap-2 justify-end">
+                      <span className="text-gray-700 font-semibold">Tổng tiền thanh toán:</span>
+                      <span className="text-green-700 font-bold text-lg">{estimatedPrice} VNĐ</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 mt-4 justify-end">
+                    <button
+                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold"
+                      onClick={() => onConfirmClick(bookingId, batteryReturn.id)}
+                    >
+                      Xác nhận đổi pin
+                    </button>
+
+                    <button
+                      className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-semibold"
+                      onClick={() => onReject(bookingId)}
+                    >
+                      Từ chối
+                    </button>
+                  </div>
                 </div>
-                {/* Pin trạm sẽ cấp */}
-                <div className="bg-gray-50 rounded-lg p-3 border">
-                  <div className="font-semibold text-gray-700 mb-1">Pin trạm sẽ cấp</div>
-                  <div className="text-xs text-gray-500 mb-1">Mã pin: <span className="font-semibold text-gray-800">{bk.battery_give.battery_id}</span></div>
-                  <div className="text-xs text-gray-500 mb-1">Loại: {bk.battery_give.type}</div>
-                  <div className="text-xs text-gray-500 mb-1">Trạng thái: <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor[bk.battery_give.status]}`}>{bk.battery_give.status}</span></div>
-                  <div className="text-xs text-gray-500">{bk.battery_give.voltage} - {bk.battery_give.capacity_wh} Wh</div>
-                </div>
-              </div>
-              <div className="flex gap-3 mt-4 justify-end">
-                <button
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold"
-                  onClick={() => handleApprove(bk.booking_id)}
-                >Xác nhận đổi pin</button>
-                <button
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-semibold"
-                  onClick={() => handleReject(bk.booking_id)}
-                >Từ chối</button>
-              </div>
-            </div>
-          ))
+              );
+            })}
+          </div>
         )}
       </div>
-    </div>
-  );
-};
 
-export default SwapConfirm;
+      <ConfirmModal
+        open={confirmOpen}
+        title="Xác nhận đổi pin"
+        onConfirm={onConfirmExecute}
+        onCancel={() => { setConfirmOpen(false); setConfirmTarget(null); }}
+        isLoading={confirmLoading}
+        confirmText="Xác nhận"
+        cancelText="Hủy"
+      >
+        <div className="text-sm text-gray-700">
+          Bạn chắc chắn muốn xác nhận và tạo thanh toán cho booking <strong>{confirmTarget?.bookingId}</strong> với mã pin <strong>{confirmTarget?.toBatteryId}</strong> ?
+        </div>
+      </ConfirmModal>
+    </>
+  );
+}

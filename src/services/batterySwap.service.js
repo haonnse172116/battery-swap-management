@@ -2,7 +2,7 @@ import { apiSlice } from '../api/apiSlice';
 
 export const batterySwapApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    // ✅ GET /me - Get user's battery swaps
+    // GET /BatterySwap/my-swaps
     getMySwaps: builder.query({
       query: () => ({
         url: `/BatterySwap/my-swaps`,
@@ -10,26 +10,43 @@ export const batterySwapApi = apiSlice.injectEndpoints({
       }),
       providesTags: ['BatterySwap'],
     }),
-    
-    // ✅ GET /BatterySwap/{id} - Get specific swap by ID
+
+    // GET /BatterySwap/{id}
     getSwapById: builder.query({
       query: (swapId) => ({
         url: `/BatterySwap/${swapId}`,
         method: 'GET',
       }),
-      providesTags: (result, error, swapId) => [
-        { type: 'BatterySwap', id: swapId }
-      ],
+      providesTags: (result, error, swapId) => [{ type: 'BatterySwap', id: swapId }],
     }),
-    
-    // ✅ POST /BatterySwap - Create new swap (if needed)
+
+    // GET /BatterySwap/station/{stationId}?page=&pageSize=&search=
+    getSwapsByStation: builder.query({
+      query: ({ stationId = '', page = 1, pageSize = 10, search = '' } = {}) => ({
+        url: `/BatterySwap/station/${stationId}`,
+        method: 'GET',
+        params: { stationId, page, pageSize, search },
+      }),
+      providesTags: (result, error, arg) =>
+        result?.content
+          ? [
+              ...result.content.map((s) => ({ type: 'BatterySwap', id: s.id || s.swapId })),
+              { type: 'BatterySwap', id: `STATION_${arg.stationId}` },
+            ]
+          : [{ type: 'BatterySwap', id: `STATION_${arg?.stationId}` }],
+    }),
+
+    // POST /BatterySwap/create
     createSwap: builder.mutation({
       query: (swapData) => ({
-        url: `/BatterySwap`,
+        url: `/BatterySwap/create`,
         method: 'POST',
         data: swapData,
       }),
-      invalidatesTags: ['BatterySwap'],
+      invalidatesTags: (result, error, arg) => [
+        'BatterySwap',
+        arg?.stationId ? { type: 'BatterySwap', id: `STATION_${arg.stationId}` } : null,
+      ].filter(Boolean),
     }),
   }),
 });
@@ -37,5 +54,6 @@ export const batterySwapApi = apiSlice.injectEndpoints({
 export const {
   useGetMySwapsQuery,
   useGetSwapByIdQuery,
+  useGetSwapsByStationQuery,
   useCreateSwapMutation,
 } = batterySwapApi;

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PATHS } from "../../../constant/path/pathname";
 import { useRegisterMutation } from "../../../services/auth.service";
+import toast from '../../../utils/toast';
 
 function Register() {
   const navigate = useNavigate();
@@ -21,25 +22,26 @@ function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (form.password !== form.confirmPassword) {
-      alert("Mật khẩu không khớp!");
+      toast.error('Mật khẩu xác nhận không khớp');
       return;
     }
 
     try {
+     sessionStorage.setItem('tempPassword', form.password);    
       await register({
         fullName: form.fullName,
         email: form.email,
         password: form.password,
-        phoneNumber: form.phoneNumber,
+        phone: form.phoneNumber,
       }).unwrap();
-      
-      // ✅ Navigate to OTP page
+
+      toast.success("Đăng ký thành công! Vui lòng kiểm tra email để xác thực.");
       navigate(PATHS.AUTH.VERIFY_OTP);
-      
     } catch (error) {
-      alert(error.data?.message || 'Đăng ký thất bại');
+      sessionStorage.removeItem('tempPassword');
+      toast.error((error.data?.errorMessage || 'Đăng ký thất bại'));
     }
   };
 

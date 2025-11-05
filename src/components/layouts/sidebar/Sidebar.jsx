@@ -20,6 +20,7 @@ import {
   ArrowLeftIcon,
   ArrowRightIcon,
 } from "@heroicons/react/24/outline";
+import CarIcon from "../../../constant/svg/Car";
 
 const Sidebar = ({ type }) => {
   const { collapsed, setCollapsed, mobileOpen, setMobileOpen } = useSidebar();
@@ -76,9 +77,10 @@ const Sidebar = ({ type }) => {
             { key: PATHS.ADMIN.SUBSCRIPTIONS.LIST, label: "Danh sách" },
           ],
         },
-        // { key: PATHS.ADMIN.SETTINGS, label: "Cài đặt", icon: Cog6ToothIcon },
       ],
       userMenu: [
+        // ✅ Add Profile for Admin
+        { key: PATHS.ADMIN.PROFILE, label: "Hồ sơ", icon: UserCircleIcon },
         { key: "logout", label: "Đăng xuất", icon: ArrowLeftStartOnRectangleIcon },
       ],
       home: PATHS.ADMIN.DASHBOARD,
@@ -105,12 +107,14 @@ const Sidebar = ({ type }) => {
           icon: ClipboardDocumentListIcon,
           children: [
             { key: PATHS.STAFF.INVENTORY.LIST, label: "Danh sách pin" },
-            { key: PATHS.STAFF.INVENTORY.STATUS, label: "Quản lý tình trạng" },
+            // { key: PATHS.STAFF.INVENTORY.STATUS, label: "Quản lý tình trạng" },
             { key: PATHS.STAFF.INVENTORY.SLOT_MANAGE, label: "Quản lý slot pin" },
           ],
         },
       ],
       userMenu: [
+        // ✅ Add Profile for Staff
+        { key: PATHS.STAFF.PROFILE, label: "Hồ sơ", icon: UserCircleIcon },
         { key: "logout", label: "Đăng xuất", icon: ArrowLeftStartOnRectangleIcon },
       ],
       home: PATHS.STAFF.DASHBOARD,
@@ -121,7 +125,7 @@ const Sidebar = ({ type }) => {
       gradient: "from-indigo-600 via-blue-400 to-blue-500",
       menu: [
         { key: PATHS.DRIVER.HOME, label: "Trang chủ", icon: HomeIcon },
-        { key: PATHS.DRIVER.MYCAR, label: "Xe của tôi", icon: TruckIcon },
+        { key: PATHS.DRIVER.MYCAR, label: "Xe của tôi", icon: CarIcon },
         { key: PATHS.DRIVER.BOOKING, label: "Đặt lịch", icon: ClipboardDocumentListIcon },
         { key: PATHS.DRIVER.BOOKINGPAGE, label: "Danh sách đặt lịch", icon: ClipboardDocumentListIcon },
         { key: PATHS.DRIVER.MYSWAPS, label: "Lịch sử đổi pin", icon: ReceiptPercentIcon },
