@@ -11,6 +11,15 @@ export const batterySwapApi = apiSlice.injectEndpoints({
       providesTags: ['BatterySwap'],
     }),
 
+    // GET /BatterySwap/driver/me
+    getDriverSwapHistory: builder.query({
+      query: () => ({
+        url: `/BatterySwap/driver/me`,
+        method: 'GET',
+      }),
+      providesTags: ['BatterySwap', 'DriverHistory'],
+    }),
+
     // GET /BatterySwap/{id}
     getSwapById: builder.query({
       query: (swapId) => ({
@@ -53,6 +62,7 @@ export const batterySwapApi = apiSlice.injectEndpoints({
 
 export const {
   useGetMySwapsQuery,
+  useGetDriverSwapHistoryQuery,
   useGetSwapByIdQuery,
   useGetSwapsByStationQuery,
   useCreateSwapMutation,
