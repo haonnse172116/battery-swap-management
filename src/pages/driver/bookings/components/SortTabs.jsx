@@ -7,27 +7,23 @@ const OPTIONS = [
   { key: 'recent',  label: 'Gần đây',   icon: '🕒' },
 ];
 
-const SortTabs = ({ sortBy, setSortBy, stats }) => { 
+const SortTabs = ({ sortBy, onChange }) => {
   return (
     <div className="mb-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="flex flex-wrap">
-        {OPTIONS.map(option => (
+        {OPTIONS.map((o) => (
           <button
-            key={option.key}
-            onClick={() => setSortBy(option.key)} 
-            className={`px-4 py-3 border-r border-gray-100 last:border-r-0 transition-colors flex-1 min-w-0 ${
-              sortBy === option.key
-                ? 'bg-blue-50 text-blue-700 font-medium'
-                : 'hover:bg-gray-50 text-gray-600 hover:text-gray-800'
+            key={o.key}
+            onClick={() => onChange(o.key)}
+            className={`px-4 py-3 border-b-2 transition-colors flex-1 min-w-0 ${
+              sortBy === o.key
+                ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
+                : 'border-transparent hover:bg-gray-50 text-gray-600 hover:text-gray-800'
             }`}
           >
             <span className="flex items-center justify-center gap-2">
-              <span>{option.icon}</span>
-              <span className="truncate">{option.label}</span>
-              {/* ✅ Show count for upcoming */}
-              {option.key === 'upcoming' && stats && (
-                <span className="text-xs opacity-75">({stats.upcoming})</span>
-              )}
+              <span>{o.icon}</span>
+              <span className="truncate">{o.label}</span>
             </span>
           </button>
         ))}

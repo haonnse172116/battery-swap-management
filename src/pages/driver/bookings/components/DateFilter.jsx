@@ -3,21 +3,24 @@ import { FunnelIcon } from '@heroicons/react/24/outline';
 import { filterBookingsByDate } from '../../../../utils/booking';
 
 const DateFilter = ({
+  bookings,
   dateFilter,
-  setDateFilter, // ✅ Fix prop name
+  onChangeFilter,
   customDateFrom,
   customDateTo,
   setCustomDateFrom,
   setCustomDateTo,
 }) => {
-  // ✅ Remove bookings dependency - get from parent
+  const COUNT = (key) =>
+    filterBookingsByDate(bookings, key, customDateFrom, customDateTo).length;
+
   const OPTIONS = [
-    { key: 'all',        label: 'Tất cả' },
-    { key: 'today',      label: 'Hôm nay' },
-    { key: 'this_week',  label: 'Tuần này' },
-    { key: 'this_month', label: 'Tháng này' },
-    { key: 'last_month', label: 'Tháng trước' },
-    { key: 'custom',     label: 'Tùy chọn' },
+    { key: 'all',        label: 'Tất cả',    count: bookings.length },
+    { key: 'today',      label: 'Hôm nay',   count: COUNT('today') },
+    { key: 'this_week',  label: 'Tuần này',  count: COUNT('this_week') },
+    { key: 'this_month', label: 'Tháng này', count: COUNT('this_month') },
+    { key: 'last_month', label: 'Tháng trước', count: COUNT('last_month') },
+    { key: 'custom',     label: 'Tùy chọn',  count: dateFilter === 'custom' ? COUNT('custom') : 0 },
   ];
 
   return (
@@ -27,19 +30,20 @@ const DateFilter = ({
         <h3 className="font-medium text-gray-900">Lọc theo thời gian</h3>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
-        {OPTIONS.map((option) => (
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-4">
+        {OPTIONS.map((o) => (
           <button
-            key={option.key}
-            onClick={() => setDateFilter(option.key)} // ✅ Use correct prop
+            key={o.key}
+            onClick={() => onChangeFilter(o.key)}
             className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              dateFilter === option.key
+              dateFilter === o.key
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
             <div className="text-center">
-              <div>{option.label}</div>
+              <div>{o.label}</div>
+              <div className="text-xs opacity-75">({o.count})</div>
             </div>
           </button>
         ))}

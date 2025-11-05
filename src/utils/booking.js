@@ -230,69 +230,58 @@ export const getTimeStatus = (timeSlot) => {
 };
 
 
-// ✅ Add missing filterBookingsByDate function
-export const filterBookingsByDate = (bookings, filter, customFrom = '', customTo = '') => {
-  if (!bookings || !Array.isArray(bookings)) return [];
-  if (filter === 'all') return bookings;
+export const filterBookingsByDate = (
+  bookings,
+  dateFilter,
+  customDateFrom,
+  customDateTo
+) => {
+  if (dateFilter === 'all') return bookings;
 
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  return bookings.filter(booking => {
-    const bookingDate = parseVietnameseDate(booking.timeSlot);
-    if (!bookingDate || isNaN(bookingDate.getTime())) return false;
+  return bookings.filter((b) => {
+    try {
+      const date = parseVietnameseDate(b.timeSlot);
+      if (!date) return false;
+      
+      const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-    // Normalize booking date to start of day for comparison
-    const bookingDateOnly = new Date(bookingDate.getFullYear(), bookingDate.getMonth(), bookingDate.getDate());
-
-    switch (filter) {
-      case 'today': {
-        return bookingDateOnly.getTime() === today.getTime();
+      switch (dateFilter) {
+        case 'today':
+          return day.getTime() === today.getTime();
+        case 'tomorrow': {
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          return day.getTime() === tomorrow.getTime();
+        }
+        case 'this_week': {
+          const weekStart = new Date(today);
+          weekStart.setDate(today.getDate() - today.getDay());
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 6);
+          return date >= weekStart && date <= weekEnd;
+        }
+        case 'this_month':
+          return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+        case 'last_month': {
+          const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+          return date.getMonth() === lastMonth.getMonth() && date.getFullYear() === lastMonth.getFullYear();
+        }
+        case 'custom': {
+          if (!customDateFrom || !customDateTo) return true;
+          const from = new Date(customDateFrom);
+          const to = new Date(customDateTo);
+          to.setHours(23, 59, 59, 999);
+          return date >= from && date <= to;
+        }
+        default:
+          return true;
       }
-
-      case 'this_week': {
-        const startOfWeek = new Date(today);
-        const dayOfWeek = today.getDay();
-        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Monday = 0
-        startOfWeek.setDate(today.getDate() - daysToMonday);
-        
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6);
-
-        return bookingDateOnly >= startOfWeek && bookingDateOnly <= endOfWeek;
-      }
-
-      case 'this_month': {
-        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        
-        return bookingDateOnly >= startOfMonth && bookingDateOnly <= endOfMonth;
-      }
-
-      case 'last_month': {
-        const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
-        
-        return bookingDateOnly >= startOfLastMonth && bookingDateOnly <= endOfLastMonth;
-      }
-
-      case 'custom': {
-        if (!customFrom || !customTo) return false;
-        
-        const fromDate = new Date(customFrom);
-        const toDate = new Date(customTo);
-        
-        if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) return false;
-        
-        // Normalize custom dates
-        const fromDateOnly = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
-        const toDateOnly = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
-        
-        return bookingDateOnly >= fromDateOnly && bookingDateOnly <= toDateOnly;
-      }
-
-      default:
-        return true;
+    } catch (error) {
+      console.warn('filterBookingsByDate error:', error, 'for booking:', b);
+      return false;
     }
   });
 };
