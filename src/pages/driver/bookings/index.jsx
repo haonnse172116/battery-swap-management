@@ -22,7 +22,7 @@ const BookingsPage = () => {
   };
 
   useEffect(() => {
-    if (error) toast.error('❌ Không thể tải danh sách đặt chỗ');
+    if (error) toast.error('Không thể tải danh sách đặt chỗ');
   }, [error]);
 
   // Use real API data
