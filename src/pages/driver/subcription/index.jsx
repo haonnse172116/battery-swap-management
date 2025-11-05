@@ -16,17 +16,17 @@ import toast from '../../../utils/toast';
 import { useGetSubscriptionPlansQuery } from '../../../services/subcriptionPlan.service';
 import { usePurchaseSubscriptionMutation } from '../../../services/subscriptionPayment.service';
 import { useGetMySubscriptionQuery } from '../../../services/subcription.service';
-import { useUser } from '../../../hooks/useUser'; // ✅ Use custom hook
+import { useUser } from '../../../hooks/useUser';
 
 const SubscriptionPage = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
-  //  Get current user from custom hook
+  // Get current user from custom hook
   const { userInfo: currentUser, isLoading: isLoadingUser, error: userError } = useUser();
   const userId = currentUser?.userId;
 
-  //  API hooks with user dependency
+  // API hooks with user dependency
   const { data: plansResponse, isLoading: isLoadingPlans, error: plansError, refetch: refetchPlans } = useGetSubscriptionPlansQuery({ page: 1, pageSize: 10 });
   
   // Subscription query with user dependency - will auto refresh when user changes
@@ -36,21 +36,20 @@ const SubscriptionPage = () => {
     error: subscriptionError, 
     refetch: refetchSubscription 
   } = useGetMySubscriptionQuery(undefined, {
-    skip: !userId, // Skip if no user
-    refetchOnMountOrArgChange: true, // Refetch when component mounts or args change
+    skip: !userId,
+    refetchOnMountOrArgChange: true,
   });
   
   const [purchaseSubscription, { isLoading: isPurchasing }] = usePurchaseSubscriptionMutation();
 
-  // ✅ Auto-refetch subscription when user changes
+  // Auto-refetch subscription when user changes
   useEffect(() => {
     if (userId) {
-      console.log('User changed, refetching subscription data for user:', userId);
       refetchSubscription();
     }
   }, [userId, refetchSubscription]);
 
-  // ✅ Process API data
+  // Process API data
   const availablePlans = plansResponse?.content || [];
   const totalPlans = plansResponse?.pagination?.totalCount || 0;
   const currentSubscription = subscriptionResponse?.content || null;
@@ -118,7 +117,6 @@ const SubscriptionPage = () => {
   };
 
   const handleUpgrade = (plan) => {
-    // ✅ Check if user is logged in
     if (!currentUser || !userId) {
       toast.error('Vui lòng đăng nhập để sử dụng dịch vụ');
       return;
@@ -129,7 +127,7 @@ const SubscriptionPage = () => {
       return;
     }
     
-    // ✅ Check for active subscription that prevents new subscription
+    // Check for active subscription that prevents new subscription
     if (currentSubscription && 
         currentSubscription.status === 'Active' && 
         !currentSubscription.isExpired && 
@@ -138,10 +136,9 @@ const SubscriptionPage = () => {
       return;
     }
     
-    // ✅ For current plan renewal - check if renewal is allowed
+    // For current plan renewal - check if renewal is allowed
     if (isCurrentPlan(plan.id)) {
       if (currentSubscription.status === 'Active' && !currentSubscription.isExpired) {
-        // Check if near expiry (within 7 days) or already expired
         if (currentSubscription.daysRemaining > 7) {
           toast.error('Gói dịch vụ của bạn vẫn còn thời gian sử dụng. Bạn có thể gia hạn khi còn 7 ngày hoặc ít hơn.');
           return;
@@ -167,106 +164,70 @@ const SubscriptionPage = () => {
     }
 
     try {
-      console.log('🛒 Starting purchase request:', {
-        planId: selectedPlan.id,
-        planName: selectedPlan.name,
-        paymentMethod: 'Card',
-        userId: userId
-      });
-
       const purchaseResponse = await purchaseSubscription({
         planId: selectedPlan.id,
         paymentMethod: 'Card'
       }).unwrap();
 
-      // ✅ Debug: Log FULL API response structure
-      console.log('🌐 FULL Purchase API Response:', JSON.stringify(purchaseResponse, null, 2));
-      
       const paymentData = purchaseResponse.content;
-      console.log('💳 Payment Data Keys:', paymentData ? Object.keys(paymentData) : 'No content');
-      console.log('💳 Payment Data Values:', paymentData);
 
       if (paymentData?.paymentUrl) {
-        // ✅ Find the REAL subPayId field name from API response
+        // Find the real subPayId field name from API response
         const realSubPayId = paymentData.subPayId || 
-                          paymentData.subscriptionPaymentId || 
-                          paymentData.paymentId || 
-                          paymentData.id ||
-                          paymentData.transactionId;
+                            paymentData.subscriptionPaymentId || 
+                            paymentData.paymentId || 
+                            paymentData.id ||
+                            paymentData.transactionId;
 
-      console.log('🔍 Searching for subPayId in response:', {
-        subPayId: paymentData.subPayId,
-        subscriptionPaymentId: paymentData.subscriptionPaymentId,
-        paymentId: paymentData.paymentId,
-        id: paymentData.id,
-        transactionId: paymentData.transactionId,
-        realSubPayId: realSubPayId
-      });
+        const paymentInfo = {
+          subPayId: realSubPayId,
+          planName: selectedPlan.name,
+          amount: paymentData.amount || selectedPlan.price,
+          orderCode: paymentData.orderCode,
+          paymentUrl: paymentData.paymentUrl,
+          userId: userId,
+          timestamp: new Date().toISOString(),
+          planId: selectedPlan.id,
+          planPrice: selectedPlan.price,
+          payosId: paymentData.payosId || paymentData.payosTransactionId,
+          rawPaymentData: paymentData
+        };
 
-      const paymentInfo = {
-        // ✅ Store the REAL subPayId from your API
-        subPayId: realSubPayId,
-        planName: selectedPlan.name,
-        amount: paymentData.amount || selectedPlan.price,
-        orderCode: paymentData.orderCode,
-        paymentUrl: paymentData.paymentUrl,
-        userId: userId,
-        timestamp: new Date().toISOString(),
-        planId: selectedPlan.id,
-        planPrice: selectedPlan.price,
-        // Store PayOS ID separately for reference
-        payosId: paymentData.payosId || paymentData.payosTransactionId,
-        // Store ALL payment data for debugging
-        rawPaymentData: paymentData
-      };
+        localStorage.setItem('pendingPayment', JSON.stringify(paymentInfo));
 
-      console.log('💾 Storing enhanced payment info:', paymentInfo);
-      localStorage.setItem('pendingPayment', JSON.stringify(paymentInfo));
-
-      // Verify storage
-      const storedData = localStorage.getItem('pendingPayment');
-      console.log('💾 Verified stored data:', JSON.parse(storedData));
-
-      // Redirect to PayOS
-      console.log('🔄 Redirecting to PayOS:', paymentData.paymentUrl);
-      window.location.href = paymentData.paymentUrl;
-    } else {
-      console.error('❌ No payment URL in response:', paymentData);
-      throw new Error('Không nhận được URL thanh toán');
+        // Redirect to PayOS
+        window.location.href = paymentData.paymentUrl;
+      } else {
+        throw new Error('Không nhận được URL thanh toán');
+      }
+    } catch (error) {
+      let errorMessage = 'Không thể tạo đơn thanh toán';
+      
+      if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      // Check for specific error cases
+      if (errorMessage.toLowerCase().includes('active') || 
+          errorMessage.toLowerCase().includes('đang hoạt động') ||
+          errorMessage.toLowerCase().includes('subscription already exists')) {
+        errorMessage = 'Bạn đã có gói dịch vụ đang hoạt động. Không thể đăng ký thêm gói mới.';
+      }
+      
+      toast.error(errorMessage);
+    } finally {
+      setShowUpgradeModal(false);
     }
-  } catch (error) {
-    console.error('❌ Purchase failed:', error);
-    console.error('❌ Error response:', error?.response?.data);
-    
-    let errorMessage = 'Không thể tạo đơn thanh toán';
-    
-    if (error?.data?.message) {
-      errorMessage = error.data.message;
-    } else if (error?.message) {
-      errorMessage = error.message;
-    }
-    
-    // Check for specific error cases
-    if (errorMessage.toLowerCase().includes('active') || 
-        errorMessage.toLowerCase().includes('đang hoạt động') ||
-        errorMessage.toLowerCase().includes('subscription already exists')) {
-      errorMessage = 'Bạn đã có gói dịch vụ đang hoạt động. Không thể đăng ký thêm gói mới.';
-    }
-    
-    toast.error(errorMessage);
-  } finally {
-    setShowUpgradeModal(false);
-  }
-};
+  };
 
-  // ✅ Enhanced payment return handling with user context
+  // Enhanced payment return handling with user context
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const paymentSuccess = urlParams.get('success') === 'true' || urlParams.get('payment') === 'success';
     
     if (paymentSuccess && userId) {
-      console.log('Payment return detected, refreshing subscription data for user:', userId);
-      
       // Get pending payment info
       const pendingPayment = JSON.parse(localStorage.getItem('pendingPayment') || 'null');
       
@@ -288,10 +249,9 @@ const SubscriptionPage = () => {
     }
   }, [userId, refetchSubscription]);
 
-  // ✅ Clear data when user logs out
+  // Clear data when user logs out
   useEffect(() => {
     if (!currentUser) {
-      // Clear any pending payments when user logs out
       localStorage.removeItem('pendingPayment');
     }
   }, [currentUser]);
@@ -323,7 +283,7 @@ const SubscriptionPage = () => {
 
   const isLoading = isLoadingPlans || isLoadingSubscription || isLoadingUser;
 
-  // ✅ Show login required message if no user
+  // Show login required message if no user
   if (!currentUser && !isLoadingUser) {
     return (
       <div className="px-6 py-8 max-w-7xl mx-auto">
@@ -736,7 +696,6 @@ const SubscriptionPage = () => {
                 <span className="text-sm text-gray-600">Phương thức:</span>
                 <span className="font-medium">Thẻ ngân hàng</span>
               </div>
-              {/* Show user info in payment modal */}
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-gray-600">Người thanh toán:</span>
                 <span className="font-medium text-green-600">
