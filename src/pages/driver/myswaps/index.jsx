@@ -14,6 +14,7 @@ import {
 } from '@heroicons/react/24/outline';
 import toast from '../../../utils/toast';
 import { useGetDriverSwapHistoryQuery } from '../../../services/batterySwap.service';
+import CarIcon from '../../../constant/svg/Car';
 
 const SwapsPage = () => {
   const [sortBy, setSortBy] = useState('newest');
@@ -383,7 +384,7 @@ const SwapsPage = () => {
                     {/* Vehicle Info */}
                     <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
                       <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <TruckIcon className="w-5 h-5 text-white" />
+                        <CarIcon className="w-5 h-5 text-white" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <h4 className="font-medium text-gray-900 mb-1">Phương tiện</h4>
