@@ -51,6 +51,20 @@ export const stationStaffApi = apiSlice.injectEndpoints({
     }),
 
     /**
+     * GET /StationStaff/user/{userId}
+     */
+    getStationStaffByUserId: builder.query({
+      query: ({ userId } = {}) => ({
+        url: `/StationStaff/user/${userId}`,
+        method: 'GET',
+      }),
+      providesTags: (result, error, arg) => [
+        { type: 'StationStaff', id: `USER_${arg?.userId}` },
+        'StationStaff',
+      ],
+    }),
+
+    /**
      * GET /StationStaff/station/{stationId}/all
      * returns all staff for a station (no pagination)
      */
@@ -74,5 +88,6 @@ export const {
   useAssignStationStaffMutation,
   useDeleteStationStaffMutation,
   useGetStationStaffByStationQuery,
+  useGetStationStaffByUserIdQuery,
   useGetAllStationStaffByStationQuery,
 } = stationStaffApi;
