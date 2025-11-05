@@ -17,7 +17,7 @@ const statusColor = {
 };
 
 function ImageWithFallback({ src, alt, className }) {
-    const fallback = 'https://b2232832.smushcdn.com/2232832/wp-content/uploads/2023/04/EV-urban-myth_01.jpg?lossy=1&strip=0&webp=1';
+    const fallback = '/android-chrome-512x512.png';
     return <img src={src || fallback} alt={alt} className={className} onError={(e) => { e.currentTarget.src = fallback; }} />;
 }
 
@@ -207,7 +207,7 @@ export default function AdminBatteryList() {
                                     <ImageWithFallback
                                         src={detailBattery.imageUrl || detailBattery.imageURL}
                                         alt={`Battery ${detailBattery.batteryId}`}
-                                        className="w-full h-56 object-cover rounded-md shadow-md transition-transform duration-300 group-hover:scale-105"
+                                        className="w-full h-56 object-cover rounded-md shadow-md border transition-transform duration-300 group-hover:scale-105"
                                     />
                                     <div className="absolute inset-0 rounded-lg bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </div>
@@ -216,10 +216,10 @@ export default function AdminBatteryList() {
                                 <div className="mt-4">
                                     <span
                                         className={`px-3 py-1 rounded-full text-xs font-medium ${detailBattery.status === 'Available'
-                                                ? 'bg-green-100 text-green-700'
-                                                : detailBattery.status === 'In Use'
-                                                    ? 'bg-yellow-100 text-yellow-700'
-                                                    : 'bg-gray-200 text-gray-700'
+                                            ? 'bg-green-100 text-green-700'
+                                            : detailBattery.status === 'In Use'
+                                                ? 'bg-yellow-100 text-yellow-700'
+                                                : 'bg-gray-200 text-gray-700'
                                             }`}
                                     >
                                         {detailBattery.status || 'Unknown'}
