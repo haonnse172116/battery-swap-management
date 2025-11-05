@@ -33,6 +33,16 @@ export const staffManagementBatteryApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (result, error, arg) => [{ type: 'StaffSwap', id: arg?.swapId }, { type: 'StaffSwap', id: 'LIST' }],
     }),
+
+    // PUT /staff/swaps/{swapId}/completed
+    completedSwap: builder.mutation({
+      query: ({ swapId, token } = {}) => ({
+        url: `/staff/swaps/${swapId}/completed`,
+        method: 'PUT',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }),
+      invalidatesTags: (result, error, arg) => [{ type: 'StaffSwap', id: arg?.swapId }, { type: 'StaffSwap', id: 'LIST' }],
+    }),
   }),
 });
 
@@ -40,6 +50,7 @@ export const {
   useGetStaffSwapsByStationIdQuery,
   useRejectSwapMutation,
   useConfirmSwapMutation,
+  useCompletedSwapMutation,
 } = staffManagementBatteryApi;
 
 export default staffManagementBatteryApi;
