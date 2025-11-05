@@ -2,6 +2,7 @@ import React from 'react';
 import {
   MapPinIcon,
   ClockIcon,
+  TruckIcon,
   BoltIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
@@ -17,10 +18,11 @@ import {
   isExpired,
   getEffectiveStatus,
   getDateForCountdown
-} from '../../../../utils/booking'; // ✅ Import booking utils
+} from '../../../../utils/booking';
 import CarIcon from '../../../../constant/svg/Car';
 
 const BookingCard = ({ booking, onUpdate }) => {
+  // ✅ Use utils for all time-related operations
   const effectiveStatus = getEffectiveStatus(booking.timeSlot, booking.status);
   const statusConfig = getStatusConfig(effectiveStatus);
   const { date, time } = formatDateTime(booking.timeSlot);
@@ -30,6 +32,16 @@ const BookingCard = ({ booking, onUpdate }) => {
   const urgent = isUrgent(booking.timeSlot, booking.status);
   const upcoming = isUpcoming(booking.timeSlot, booking.status);
   const expired = isExpired(booking.timeSlot, booking.status);
+
+  const handleRefresh = () => {
+    try {
+      if (onUpdate && typeof onUpdate === 'function') {
+        onUpdate();
+      }
+    } catch (error) {
+      console.warn('Failed to refresh data:', error);
+    }
+  };
 
   const getStatusIcon = (status) => {
     switch (status?.toLowerCase()) {
@@ -115,20 +127,21 @@ const BookingCard = ({ booking, onUpdate }) => {
                 <strong>Giờ:</strong> {time}
               </p>
               
-              {/* Countdown for upcoming bookings */}
-              {upcoming && (
+              {/* ✅ Only show ONE time indicator - prioritize countdown for upcoming, status for others */}
+              {upcoming && countdownDate ? (
                 <div className="mt-2">
                   <CountdownTimer 
                     targetDate={countdownDate}
-                    onExpire={() => onUpdate && onUpdate()}
+                    onExpire={handleRefresh} 
                   />
                 </div>
-              )}
-              
-              {/* Time status */}
-              {timeStatus && (
-                <div className={`text-xs font-medium mt-2 ${
-                  timeStatus.type === 'overdue' ? 'text-red-600' : 'text-green-600'
+              ) : timeStatus && (
+                <div className={`text-xs font-medium mt-2 px-2 py-1 rounded ${
+                  timeStatus.type === 'overdue' 
+                    ? 'bg-red-100 text-red-700' 
+                    : timeStatus.type === 'today'
+                    ? 'bg-orange-100 text-orange-700'
+                    : 'bg-green-100 text-green-700'
                 }`}>
                   {timeStatus.text}
                 </div>

@@ -37,9 +37,28 @@ const BookingsPage = () => {
     refetchOnMountOrArgChange: true,
   });
 
+  // ✅ Safe refetch function
   const handleRefresh = () => {
     toast.info('Đang làm mới dữ liệu...');
-    refetch();
+    try {
+      if (refetch) {
+        refetch();
+      }
+    } catch (error) {
+      console.warn('Refetch error:', error);
+      toast.error('Không thể làm mới dữ liệu');
+    }
+  };
+
+  // ✅ Safe update handler for child components
+  const handleUpdate = () => {
+    try {
+      if (refetch && currentUser?.userId) {
+        refetch();
+      }
+    } catch (error) {
+      console.warn('Update error:', error);
+    }
   };
 
   useEffect(() => {
@@ -312,25 +331,12 @@ const BookingsPage = () => {
             <BookingCard 
               key={booking.bookingId || booking.id} 
               booking={booking}
-              onUpdate={refetch}
+              onUpdate={handleUpdate} // ✅ Use safe update handler
             />
           ))}
         </div>
       )}
 
-      {/* Pagination Info */}
-      {bookingsResponse?.pagination && bookingsResponse.pagination.totalCount > 0 && (
-        <div className="mt-8 flex justify-center">
-          <div className="text-sm text-gray-600 bg-white px-4 py-2 rounded-lg border">
-            Hiển thị <strong>{sortedBookings.length}</strong> / <strong>{bookingsResponse.pagination.totalCount}</strong> lịch đặt
-            {bookingsResponse.pagination.page > 0 && (
-              <span className="ml-2">
-                - Trang {bookingsResponse.pagination.page + 1}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
