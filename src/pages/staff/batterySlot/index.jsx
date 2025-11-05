@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 /**
  * BatterySlotManager
  * - Step 1: show station cards (grid). click a card => open station view
- * - Step 2: when a station is selected: show breadcrumb + two-column slot manager (based on your second code)
+ * - Step 2: when a station is selected: show breadcrumb + two-column slot manager
  */
 
 const statusColor = {
