@@ -56,21 +56,19 @@ const PaymentResult = () => {
     skip: !subPayId,
     refetchOnMountOrArgChange: true,
   });
-
+  console.log('Payment Response:', paymentResponse);
   // Query updated subscription
   const { 
     refetch: refetchSubscription 
   } = useGetMySubscriptionQuery(undefined, {
     skip: !currentUser,
   });
-
   useEffect(() => {
     if (paymentResponse?.content) {
       setPaymentInfo(paymentResponse.content);
     }
   }, [paymentResponse]);
 
-  // Handle payment success from URL
   useEffect(() => {
     if (urlPaymentStatus === 'Success' && payosOrderCode) {
  
