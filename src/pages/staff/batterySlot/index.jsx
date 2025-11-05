@@ -4,6 +4,8 @@ import { useGetBatteriesByStationQuery } from '@/services/battery.service';
 import { useGetStationsQuery } from '@/services/station.service';
 import { useDeleteSlotMutation, useGetStationSlotsQuery, useRegisterSlotMutation, useUpdateSlotMutation } from '@/services/stationBatterySlot.service';
 import { useEffect, useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { useGetStationStaffByUserIdQuery } from '@/services/stationStaff.service';
 import toast from 'react-hot-toast';
 
 /**
@@ -23,7 +25,20 @@ const statusColor = {
 
 export default function BatterySlotManager() {
     // Station list & selection
-    const [viewStationId, setViewStationId] = useState('');
+    const [viewStationId, setViewStationId] = useState(null);
+    const userId = useSelector(state => state.auth.user?.userId || state.auth.user?.id || null);
+
+    // fetch station-staff mapping for current user
+    const { data: stationStaffRes } = useGetStationStaffByUserIdQuery(userId, { skip: !userId });
+    // stationStaffRes.content may be object or array depending on API; support both
+    const assignedStationId = stationStaffRes?.content?.stationId ?? null;
+
+    useEffect(() => {
+        if (assignedStationId) {
+          setViewStationId(assignedStationId);
+        }
+      }, [assignedStationId]);
+
     const [pageStations] = useState(1);
     const [pageSizeStations] = useState(12);
 
@@ -179,9 +194,20 @@ export default function BatterySlotManager() {
 
                                     {/* simple counts can be added if you want by querying batteries; omitted to keep it light */}
                                     <div className="mt-6">
-                                        <button onClick={() => openStation(st.stationId || st.id)} className="block mx-auto w-3/4 text-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
-                                            Quản lý slot trạm
-                                        </button>
+                                        {/** disable button if user not assigned to this station (when assignedStationId exists) */}
+                                        {(() => {
+                                            const stId = st.stationId || st.id;
+                                            const disabled = assignedStationId && String(assignedStationId) !== String(stId);
+                                            return (
+                                                <button
+                                                    onClick={() => !disabled && openStation(stId)}
+                                                    disabled={disabled}
+                                                    className={`block mx-auto w-3/4 text-center px-4 py-2 ${disabled ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'} rounded-md transition`}
+                                                >
+                                                    {disabled ? 'Không có quyền' : 'Quản lý slot trạm'}
+                                                </button>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                             </div>
