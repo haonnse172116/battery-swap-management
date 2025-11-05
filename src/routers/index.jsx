@@ -32,6 +32,8 @@ import Booking from "../pages/driver/booking";
 import VerifyOtp from "../pages/auth/otp";
 import BookingsPage from "../pages/driver/bookings";
 import SwapsPage from "../pages/driver/myswaps";
+import SubscriptionPage from "../pages/driver/subcription";
+import PaymentResult from "../pages/driver/subcription/PaymentResult";
 import Profile from "../pages/auth/profile";
 
 export const router = createBrowserRouter([
@@ -92,6 +94,11 @@ export const router = createBrowserRouter([
       { path: PATHS.DRIVER.BOOKING, element: <Booking /> },
       { path: PATHS.DRIVER.BOOKINGPAGE, element: <BookingsPage /> },
       {path: PATHS.DRIVER.MYSWAPS, element: <SwapsPage/>},
+      {path: PATHS.DRIVER.SUBSCRIPTION, element: <SubscriptionPage />},
+      {
+  path: PATHS.DRIVER.SUBSCRIPTION_PAYMENT,
+  element: <PaymentResult />,
+},
       {path: PATHS.DRIVER.PROFILE, element: <Profile />},
     ]
   },
