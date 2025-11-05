@@ -16,17 +16,41 @@ import toast from '../../../utils/toast';
 import { useGetSubscriptionPlansQuery } from '../../../services/subcriptionPlan.service';
 import { usePurchaseSubscriptionMutation } from '../../../services/subscriptionPayment.service';
 import { useGetMySubscriptionQuery } from '../../../services/subcription.service';
+import { useUser } from '../../../hooks/useUser'; // ✅ Use custom hook
 
 const SubscriptionPage = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
-  // API hooks
+  // ✅ Get current user from custom hook
+  const { userInfo: currentUser, isLoading: isLoadingUser, error: userError } = useUser();
+  const userId = currentUser?.userId;
+
+  // ✅ API hooks with user dependency
   const { data: plansResponse, isLoading: isLoadingPlans, error: plansError, refetch: refetchPlans } = useGetSubscriptionPlansQuery({ page: 1, pageSize: 10 });
-  const { data: subscriptionResponse, isLoading: isLoadingSubscription, error: subscriptionError, refetch: refetchSubscription } = useGetMySubscriptionQuery();
+  
+  // ✅ Subscription query with user dependency - will auto refresh when user changes
+  const { 
+    data: subscriptionResponse, 
+    isLoading: isLoadingSubscription, 
+    error: subscriptionError, 
+    refetch: refetchSubscription 
+  } = useGetMySubscriptionQuery(undefined, {
+    skip: !userId, // Skip if no user
+    refetchOnMountOrArgChange: true, // Refetch when component mounts or args change
+  });
+  
   const [purchaseSubscription, { isLoading: isPurchasing }] = usePurchaseSubscriptionMutation();
 
-  // Process API data
+  // ✅ Auto-refetch subscription when user changes
+  useEffect(() => {
+    if (userId) {
+      console.log('User changed, refetching subscription data for user:', userId);
+      refetchSubscription();
+    }
+  }, [userId, refetchSubscription]);
+
+  // ✅ Process API data
   const availablePlans = plansResponse?.content || [];
   const totalPlans = plansResponse?.pagination?.totalCount || 0;
   const currentSubscription = subscriptionResponse?.content || null;
@@ -69,11 +93,16 @@ const SubscriptionPage = () => {
     if (isPremiumPlan) {
       return [
         ...baseFeatures,
+        'Thời gian chờ tối đa 5 phút',
+        'Ưu tiên cao trong hàng chờ',
+        'Thông báo trước khi hết pin',
         'Báo cáo chi tiết hàng tháng'
       ];
     } else if (isBasicPlan) {
       return [
         ...baseFeatures,
+        'Thời gian chờ tối đa 10 phút',
+        'Ưu tiên tiêu chuẩn',
         'Thông báo cơ bản'
       ];
     }
@@ -92,13 +121,21 @@ const SubscriptionPage = () => {
   };
 
   const handleUpgrade = (plan) => {
+    // ✅ Check if user is logged in
+    if (!currentUser || !userId) {
+      toast.error('Vui lòng đăng nhập để sử dụng dịch vụ');
+      return;
+    }
+
     if (!plan.active) {
       toast.error('Gói dịch vụ này hiện không khả dụng');
       return;
     }
     
     if (isCurrentPlan(plan.id)) {
-      toast.info('Bạn đang sử dụng gói này');
+      // Allow renewal for current plan
+      setSelectedPlan(plan);
+      setShowUpgradeModal(true);
       return;
     }
     
@@ -109,6 +146,13 @@ const SubscriptionPage = () => {
   const confirmUpgrade = async () => {
     if (!selectedPlan) return;
 
+    // ✅ Double check user authentication
+    if (!currentUser || !userId) {
+      toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại');
+      setShowUpgradeModal(false);
+      return;
+    }
+
     try {
       const purchaseResponse = await purchaseSubscription({
         planId: selectedPlan.id,
@@ -118,12 +162,13 @@ const SubscriptionPage = () => {
       const paymentData = purchaseResponse.content;
       
       if (paymentData?.paymentUrl) {
-        // Store payment info for return handling
+        // ✅ Store payment info with user context
         localStorage.setItem('pendingPayment', JSON.stringify({
           subPayId: paymentData.subPayId,
           planName: selectedPlan.name,
           amount: paymentData.amount,
           orderCode: paymentData.orderCode,
+          userId: userId, // Store user context
           timestamp: new Date().toISOString()
         }));
 
@@ -138,15 +183,42 @@ const SubscriptionPage = () => {
     }
   };
 
+  // ✅ Enhanced payment return handling with user context
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('success') === 'true' || urlParams.get('payment') === 'success') {
-      // Refresh subscription data
-      refetchSubscription();
+    const paymentSuccess = urlParams.get('success') === 'true' || urlParams.get('payment') === 'success';
+    
+    if (paymentSuccess && userId) {
+      console.log('Payment return detected, refreshing subscription data for user:', userId);
+      
+      // Get pending payment info
+      const pendingPayment = JSON.parse(localStorage.getItem('pendingPayment') || 'null');
+      
+      // Check if payment belongs to current user
+      if (pendingPayment?.userId === userId) {
+        toast.success('Thanh toán thành công! Đang cập nhật thông tin gói dịch vụ...');
+        
+        // Refresh subscription data with delay to ensure backend has processed
+        setTimeout(() => {
+          refetchSubscription();
+        }, 2000);
+        
+        // Clear pending payment
+        localStorage.removeItem('pendingPayment');
+      }
+      
       // Clean URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [refetchSubscription]);
+  }, [userId, refetchSubscription]);
+
+  // ✅ Clear data when user logs out
+  useEffect(() => {
+    if (!currentUser) {
+      // Clear any pending payments when user logs out
+      localStorage.removeItem('pendingPayment');
+    }
+  }, [currentUser]);
 
   const formatPrice = (price) => {
     if (price === 0) return 'Miễn phí';
@@ -173,7 +245,20 @@ const SubscriptionPage = () => {
     }
   };
 
-  const isLoading = isLoadingPlans || isLoadingSubscription;
+  const isLoading = isLoadingPlans || isLoadingSubscription || isLoadingUser;
+
+  // ✅ Show login required message if no user
+  if (!currentUser && !isLoadingUser) {
+    return (
+      <div className="px-6 py-8 max-w-7xl mx-auto">
+        <div className="text-center py-12">
+          <CreditCardIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Cần đăng nhập</h3>
+          <p className="text-gray-600">Vui lòng đăng nhập để xem và quản lý gói dịch vụ của bạn.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -182,6 +267,11 @@ const SubscriptionPage = () => {
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-sm text-gray-600">Đang tải thông tin gói dịch vụ...</p>
+            {currentUser && (
+              <p className="text-xs text-gray-500 mt-1">
+                Đang tải cho: {currentUser.fullName || currentUser.email}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -230,7 +320,12 @@ const SubscriptionPage = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Gói dịch vụ thay pin</h1>
         <p className="text-gray-600">
-          Chọn gói dịch vụ phù hợp với nhu cầu của bạn. 
+          Chọn gói dịch vụ phù hợp với nhu cầu của bạn.
+          {currentUser && (
+            <span className="block text-sm text-blue-600 mt-1">
+              Xin chào, {currentUser.fullName || currentUser.email}
+            </span>
+          )}
         </p>
       </div>
 
@@ -278,6 +373,10 @@ const SubscriptionPage = () => {
                   {currentSubscription.planDescription && (
                     <p className="text-xs text-gray-500 mt-1">{currentSubscription.planDescription}</p>
                   )}
+                  {/* ✅ Show user info in subscription */}
+                  <p className="text-xs text-gray-400 mt-1">
+                    Người sử dụng: {currentSubscription.userName || currentUser?.fullName || 'N/A'}
+                  </p>
                 </div>
               </div>
               <div className="text-right">
@@ -565,6 +664,13 @@ const SubscriptionPage = () => {
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-gray-600">Phương thức:</span>
                 <span className="font-medium">Thẻ ngân hàng</span>
+              </div>
+              {/* ✅ Show user info in payment modal */}
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-600">Người thanh toán:</span>
+                <span className="font-medium text-green-600">
+                  {currentUser?.fullName || currentUser?.email}
+                </span>
               </div>
               {currentSubscription && (
                 <div className="flex justify-between items-center">
