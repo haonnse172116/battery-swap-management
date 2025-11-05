@@ -21,7 +21,8 @@ const PaymentResult = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [paymentInfo, setPaymentInfo] = useState(null);
-  
+  const { userInfo: currentUser, isLoading: isLoadingUser } = useUser();
+
   // ✅ Debug logging component mount
   useEffect(() => {
     console.log('🔍 PaymentResult Component Mounted');
@@ -31,7 +32,6 @@ const PaymentResult = () => {
   }, []);
   
   // Get current user from custom hook
-  const { userInfo: currentUser, isLoading: isLoadingUser } = useUser();
   
   // ✅ Debug user info
   useEffect(() => {
