@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import {
   useGetAllBookingsQuery,
@@ -8,6 +9,7 @@ import {
 } from '@/services/booking.service';
 import { useGetBatteriesByIdQuery } from '@/services/battery.service';
 import { useInitPaymentMutation } from '@/services/payment.service';
+import { useGetStationStaffByUserIdQuery } from '@/services/stationStaff.service';
 import ConfirmModal from '@/components/common/ConfirmModal.jsx';
 
 function BatteryDetails({ batteryId }) {
@@ -30,7 +32,20 @@ const statusColor = {
   Completed: 'bg-blue-100 text-blue-700',
 };
 
-export default function SwapConfirm({ stationId = null }) {
+export default function SwapConfirm({ stationId: stationIdProp = null }) {
+  // --- get userId from redux and resolve stationId via StationStaff API ---
+  const userId = useSelector((state) => state.auth.user?.userId || state.auth.user?.id || null);
+  const { data: stationStaffRes } = useGetStationStaffByUserIdQuery(userId, { skip: !userId });
+
+  // normalize stationId from API response (support {content: {stationId}} or {content: [ ... ]})
+  const stationIdFromUser = stationStaffRes?.content?.stationId ||
+    (Array.isArray(stationStaffRes?.content) ? stationStaffRes.content[0]?.stationId : null) ||
+    null;
+
+  // prefer explicit prop if provided, otherwise use user's station
+  const stationId = stationIdProp || stationIdFromUser;
+
+  // --- bookings queries: pending by station (if stationId), otherwise all bookings (and filter pending) ---
   const {
     data: pendingByStationData,
     isLoading: loadingStationPending,
@@ -75,10 +90,10 @@ export default function SwapConfirm({ stationId = null }) {
     setConfirmOpen(true);
   };
 
-  // execute confirm + initPayment, then open paymentUrl in new tab
+  // execute confirm + initPayment, then open returned paymentUrl
   const onConfirmExecute = async () => {
     if (!confirmTarget) return;
-    const { bookingId, toBatteryId } = confirmTarget;
+    const { bookingId } = confirmTarget;
     setConfirmLoading(true);
 
     try {
@@ -102,7 +117,7 @@ export default function SwapConfirm({ stationId = null }) {
         }
       );
 
-      // extract paymentUrl (support a few possible shapes)
+      // extract paymentUrl (support multiple possible shapes)
       const paymentUrl =
         paymentResp?.content?.paymentUrl ||
         paymentResp?.content?.payment_url ||
@@ -133,7 +148,7 @@ export default function SwapConfirm({ stationId = null }) {
       setConfirmTarget(null);
       refetch && refetch();
     } catch (err) {
-      // toast.promise already displayed errors for each step
+      // errors handled by toast.promise
     } finally {
       setConfirmLoading(false);
     }
@@ -164,6 +179,13 @@ export default function SwapConfirm({ stationId = null }) {
       <div className="p-6 min-h-screen">
         <h1 className="text-2xl font-semibold mb-6 text-gray-800">Danh sách chờ duyệt đổi pin</h1>
 
+        {/* show notice when we couldn't detect a station for current user */}
+        {!stationId && userId && (
+          <div className="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-300 text-sm text-yellow-800 rounded">
+            Chú ý: hệ thống không xác định được trạm gán cho bạn — đang hiển thị tất cả booking (lọc Pending).
+          </div>
+        )}
+
         {loading ? (
           <div className="p-6 text-center">Đang tải...</div>
         ) : bookings.length === 0 ? (
@@ -186,15 +208,6 @@ export default function SwapConfirm({ stationId = null }) {
                 status: bk.status || bk.battery_return?.status || 'Pending',
                 voltage: bk.battery_return?.voltage || '—',
                 capacity: bk.battery_return?.capacity_wh || bk.capacityWh || '—',
-              };
-
-              // batteryGive (if any) - kept for display only
-              const batteryGive = {
-                id: bk.batteryGiveId || bk.battery_give?.battery_id || '—',
-                type: bk.battery_give?.type || '—',
-                status: bk.battery_give?.status || '—',
-                voltage: bk.battery_give?.voltage || '—',
-                capacity: bk.battery_give?.capacity_wh || '—',
               };
 
               return (
