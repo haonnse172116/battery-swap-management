@@ -36,7 +36,7 @@ export const PATHS = {
   },
   PUBLIC: {
     LANDING: "/",
-    ABOUT: "/about",
+    ABOUT: "/about-us",
   },
   STAFF: {
     ROOT: "/staff",

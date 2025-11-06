@@ -36,6 +36,7 @@ import SubscriptionPage from "../pages/driver/subcription";
 import PaymentResult from "../pages/driver/subcription/PaymentResult";
 import Profile from "../pages/auth/profile";
 import PaymentsPage from "../pages/driver/payments";
+import AboutUs from "../pages/AboutUs";
 
 export const router = createBrowserRouter([
   {
@@ -43,6 +44,13 @@ export const router = createBrowserRouter([
     element:
       <DefaultLayout>
         <Landing />
+      </DefaultLayout>,
+  },
+  {
+    path: PATHS.PUBLIC.ABOUT,
+    element:
+      <DefaultLayout>
+        <AboutUs />
       </DefaultLayout>,
   },
   {
