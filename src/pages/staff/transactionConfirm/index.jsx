@@ -1,9 +1,10 @@
-import React from 'react';
-import { useConfirmSwapMutation, useRejectSwapMutation } from '@/services/staffManagementBattery.service';
-import { useGetSwapsByStationQuery } from '@/services/batterySwap.service';
-import { useGetStationsQuery } from '@/services/station.service';
-import { useGetPaymentByIdQuery } from '@/services/payment.service';
+import React, { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
+import { useGetStationStaffByUserIdQuery } from '@/services/stationStaff.service';
+import { useGetSwapsByStationQuery } from '@/services/batterySwap.service';
+import { useConfirmSwapMutation, useRejectSwapMutation } from '@/services/staffManagementBattery.service';
+import { useGetPaymentByIdQuery } from '@/services/payment.service';
 
 const statusColor = {
   Pending: 'bg-yellow-100 text-yellow-700',
@@ -13,7 +14,6 @@ const statusColor = {
 };
 
 function SwapCard({ s, onApprove, onReject }) {
-  // fetch payment (hook at top level of this component)
   const paymentId = s.paymentId || null;
   const { data: paymentData } = useGetPaymentByIdQuery({ paymentId }, { skip: !paymentId });
   const amount = paymentData?.content?.amount ?? paymentData?.amount ?? '—';
@@ -42,14 +42,25 @@ function SwapCard({ s, onApprove, onReject }) {
       <div className="grid grid-cols-1 gap-4 mt-2">
         <div className="bg-gray-50 rounded-lg p-3 border">
           <div className="font-semibold text-gray-700 mb-1">Pin đã đổi</div>
-          <div className="text-xs text-gray-500 mb-1">Mã pin: <span className="font-semibold text-gray-800">{batteryId}</span></div>
-          <div className="text-xs text-gray-500 mb-1">Serial: <span className="font-semibold">{s.batterySerial || '—'}</span></div>
-          <div className="text-xs text-gray-500 mb-1">Trạng thái: <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor[s.status]}`}>{s.status}</span></div>
+          <div className="text-xs text-gray-500 mb-1">
+            Mã pin: <span className="font-semibold text-gray-800">{batteryId}</span>
+          </div>
+          <div className="text-xs text-gray-500 mb-1">
+            Serial: <span className="font-semibold">{s.batterySerial || '—'}</span>
+          </div>
+          <div className="text-xs text-gray-500 mb-1">
+            Trạng thái:{' '}
+            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor[s.status]}`}>
+              {s.status}
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 justify-end">
           <span className="text-gray-700 font-semibold">Tổng tiền thanh toán:</span>
-          <span className="text-green-700 font-bold text-lg">{amount === '—' ? '—' : `${amount} VNĐ`}</span>
+          <span className="text-green-700 font-bold text-lg">
+            {amount === '—' ? '—' : `${amount} VND`}
+          </span>
         </div>
       </div>
 
@@ -62,7 +73,10 @@ function SwapCard({ s, onApprove, onReject }) {
             Xác nhận hoàn tất đổi pin
           </button>
         ) : (
-          <button className="px-4 py-2 bg-orange-500 text-white rounded text-sm font-semibold cursor-not-allowed" disabled>
+          <button
+            className="px-4 py-2 bg-orange-500 text-white rounded text-sm font-semibold cursor-not-allowed"
+            disabled
+          >
             Chưa hoàn tất thanh toán
           </button>
         )}
@@ -79,11 +93,14 @@ function SwapCard({ s, onApprove, onReject }) {
 }
 
 export default function TransactionConfirm() {
-  const [stationId, setStationId] = React.useState('');
+  const userId = useSelector((state) => state.auth.user?.userId || state.auth.user?.id || null);
+  const { data: stationStaffRes } = useGetStationStaffByUserIdQuery(userId, { skip: !userId });
 
-  const { data: stationsData } = useGetStationsQuery({ page: 1, pageSize: 100 });
+  const stationId =
+    stationStaffRes?.content?.stationId ||
+    (Array.isArray(stationStaffRes?.content) ? stationStaffRes.content[0]?.stationId : null) ||
+    null;
 
-  // <-- CALL API ONLY WHEN stationId IS TRUTHY -->
   const { data, isLoading, refetch } = useGetSwapsByStationQuery(
     { stationId, page: 1, pageSize: 10000 },
     { skip: !stationId }
@@ -120,35 +137,25 @@ export default function TransactionConfirm() {
 
   return (
     <div className="p-6 min-h-screen">
-      <h1 className="text-2xl font-semibold mb-6 text-gray-800">Danh sách chờ xác nhận giao dịch</h1>
+      <h1 className="text-2xl font-semibold mb-6 text-gray-800">
+        Danh sách chờ xác nhận giao dịch
+      </h1>
 
-      <div className="mb-4 flex items-center gap-4">
-        <label className="text-sm font-medium text-gray-700">Chọn trạm:</label>
-        <select
-          value={stationId}
-          onChange={(e) => setStationId(e.target.value)}
-          className="border rounded px-3 py-2 text-sm"
-        >
-          <option value="">-- Chọn trạm --</option>
-          {(stationsData?.content || []).map((st) => (
-            <option key={st.stationId || st.id} value={st.stationId || st.id}>
-              {st.name || st.stationName || st.address || st.id}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {isLoading ? (
-          <div>Đang tải...</div>
-        ) : swaps.length === 0 ? (
-          <div className="p-6 text-center text-gray-400 bg-white rounded-xl shadow col-span-2">Không có giao dịch chờ duyệt</div>
-        ) : (
-          swaps.map(s => (
+      {!stationId ? (
+        <div className="text-gray-500 italic">Không xác định được trạm của bạn...</div>
+      ) : isLoading ? (
+        <div>Đang tải...</div>
+      ) : swaps.length === 0 ? (
+        <div className="p-6 text-center text-gray-400 bg-white rounded-xl shadow">
+          Không có giao dịch chờ duyệt
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {swaps.map((s) => (
             <SwapCard key={s.swapId || s.id} s={s} onApprove={handleApprove} onReject={handleReject} />
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
-};
+}
