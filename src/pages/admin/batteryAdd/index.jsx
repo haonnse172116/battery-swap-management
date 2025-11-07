@@ -54,7 +54,7 @@ export default function BatteryAdd() {
         const err = [];
         if (!form.serialNo && form.serialNo !== 0) err.push('Serial number is required');
         if (form.capacityWh && isNaN(Number(form.capacityWh))) err.push('Capacity must be a number');
-        if (!form.stationId) err.push('Station is required');
+        // if (!form.stationId) err.push('Station is required');
         if (err.length) toast.error(err.join(', '));
         return err.length === 0;
     };
@@ -70,8 +70,14 @@ export default function BatteryAdd() {
             }
 
             const payload = {
-                serialNo: Number(form.serialNo), owner: form.owner, status: form.status, voltage: form.voltage,
-                capacityWh: Number(form.capacityWh) || 0, imageUrl: finalImage, stationId: form.stationId, batteryTypeId: form.batteryTypeId,
+                serialNo: Number(form.serialNo),
+                owner: form.owner,
+                status: form.status,
+                voltage: form.voltage,
+                capacityWh: Number(form.capacityWh) || 0,
+                imageUrl: finalImage || null,               // ảnh có thể null
+                stationId: form.stationId || null,          // trạm có thể null
+                batteryTypeId: form.batteryTypeId || null,  // nếu bạn cũng muốn optional
             };
 
             await createBattery({ battery: payload }).unwrap();
@@ -170,7 +176,7 @@ export default function BatteryAdd() {
                             onChange={onChange}
                             className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none transition"
                         >
-                            <option value="">-- Chọn trạm --</option>
+                            <option value="">-- Không gán trạm --</option>
                             {stations.map(s => (
                                 <option key={s.stationId || s.id} value={s.stationId || s.id}>
                                     {s.name || s.stationName}
