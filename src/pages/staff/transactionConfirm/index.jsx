@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { useGetStationStaffByUserIdQuery } from '@/services/stationStaff.service';
 import { useGetSwapsByStationQuery } from '@/services/batterySwap.service';
-import { useConfirmSwapMutation, useRejectSwapMutation } from '@/services/staffManagementBattery.service';
+import { useCompletedSwapMutation, useRejectSwapMutation } from '@/services/staffManagementBattery.service';
 import { useGetPaymentByIdQuery } from '@/services/payment.service';
 
 const statusColor = {
@@ -106,16 +106,16 @@ export default function TransactionConfirm() {
     { skip: !stationId }
   );
 
-  const [confirmSwap] = useConfirmSwapMutation();
+  const [completedSwap] = useCompletedSwapMutation();
   const [rejectSwap] = useRejectSwapMutation();
 
   const swaps = data?.content || [];
 
   const handleApprove = async (swapId) => {
     try {
-      await toast.promise(confirmSwap({ swapId }).unwrap(), {
-        loading: 'Đang xác nhận...',
-        success: 'Xác nhận thành công',
+      await toast.promise(completedSwap({ swapId }).unwrap(), {
+        loading: 'Đang kiểm tra...',
+        success: 'Xác nhận hoàn tất giao dịch',
         error: (e) => e?.data?.message || 'Xác nhận thất bại',
       });
       await refetch();
@@ -138,7 +138,7 @@ export default function TransactionConfirm() {
   return (
     <div className="p-6 min-h-screen">
       <h1 className="text-2xl font-semibold mb-6 text-gray-800">
-        Danh sách chờ xác nhận giao dịch
+        Danh sách chờ hoàn tất giao dịch
       </h1>
 
       {!stationId ? (
