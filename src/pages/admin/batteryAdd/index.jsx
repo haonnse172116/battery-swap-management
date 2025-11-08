@@ -75,9 +75,9 @@ export default function BatteryAdd() {
                 status: form.status,
                 voltage: form.voltage,
                 capacityWh: Number(form.capacityWh) || 0,
+                batteryTypeId: form.batteryTypeId,  
                 imageUrl: finalImage || null,               // ảnh có thể null
                 stationId: form.stationId || null,          // trạm có thể null
-                batteryTypeId: form.batteryTypeId || null,  // nếu bạn cũng muốn optional
             };
 
             await createBattery({ battery: payload }).unwrap();
