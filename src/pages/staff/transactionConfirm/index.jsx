@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { useGetStationStaffByUserIdQuery } from '@/services/stationStaff.service';
@@ -50,7 +50,7 @@ function SwapCard({ s, onApprove, onReject }) {
           </div>
           <div className="text-xs text-gray-500 mb-1">
             Trạng thái:{' '}
-            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor[s.status]}`}>
+            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor[s.status] || 'bg-gray-100 text-gray-700'}`}>
               {s.status}
             </span>
           </div>
@@ -93,6 +93,7 @@ function SwapCard({ s, onApprove, onReject }) {
 }
 
 export default function TransactionConfirm() {
+  // current user -> get assigned station
   const userId = useSelector((state) => state.auth.user?.userId || state.auth.user?.id || null);
   const { data: stationStaffRes } = useGetStationStaffByUserIdQuery(userId, { skip: !userId });
 
@@ -101,6 +102,7 @@ export default function TransactionConfirm() {
     (Array.isArray(stationStaffRes?.content) ? stationStaffRes.content[0]?.stationId : null) ||
     null;
 
+  // query swaps only for that station (skip when no stationId)
   const { data, isLoading, refetch } = useGetSwapsByStationQuery(
     { stationId, page: 1, pageSize: 10000 },
     { skip: !stationId }
@@ -109,7 +111,36 @@ export default function TransactionConfirm() {
   const [completedSwap] = useCompletedSwapMutation();
   const [rejectSwap] = useRejectSwapMutation();
 
-  const swaps = data?.content || [];
+  // local filters
+  const [filterStatus, setFilterStatus] = useState('All'); // All, Pending, Confirmed, Cancelled
+  const [search, setSearch] = useState('');
+
+  // base list from API (or empty)
+  const rawSwaps = data?.content || [];
+
+  // remove Completed items ALWAYS, then apply search + status filter
+  const swaps = useMemo(() => {
+    // first exclude Completed (case-insensitive)
+    const withoutCompleted = rawSwaps.filter((s) => String(s.status || '').toLowerCase() !== 'completed');
+
+    // status filter
+    const byStatus =
+      filterStatus && filterStatus !== 'All'
+        ? withoutCompleted.filter((s) => String(s.status || '').toLowerCase() === String(filterStatus).toLowerCase())
+        : withoutCompleted;
+
+    // search (swapId, userName, licensePlate)
+    const q = (search || '').trim().toLowerCase();
+    if (!q) return byStatus;
+
+    return byStatus.filter((s) => {
+      return (
+        String(s.swapId || '').toLowerCase().includes(q) ||
+        String(s.userName || s.user?.name || '').toLowerCase().includes(q) ||
+        String(s.licensePlate || s.license || s.vehicle?.license_plate || '').toLowerCase().includes(q)
+      );
+    });
+  }, [rawSwaps, filterStatus, search]);
 
   const handleApprove = async (swapId) => {
     try {
@@ -137,24 +168,52 @@ export default function TransactionConfirm() {
 
   return (
     <div className="p-6 min-h-screen">
-      <h1 className="text-2xl font-semibold mb-6 text-gray-800">
-        Danh sách chờ hoàn tất giao dịch
-      </h1>
+      <h1 className="text-2xl font-semibold mb-6 text-gray-800">Danh sách chờ hoàn tất giao dịch</h1>
 
       {!stationId ? (
         <div className="text-gray-500 italic">Không xác định được trạm của bạn...</div>
-      ) : isLoading ? (
-        <div>Đang tải...</div>
-      ) : swaps.length === 0 ? (
-        <div className="p-6 text-center text-gray-400 bg-white rounded-xl shadow">
-          Không có giao dịch chờ duyệt
-        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {swaps.map((s) => (
-            <SwapCard key={s.swapId || s.id} s={s} onApprove={handleApprove} onReject={handleReject} />
-          ))}
-        </div>
+        <>
+          {/* Filters */}
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm swapId, tên tài xế, biển số..."
+              className="border rounded px-3 py-2 text-sm w-64"
+            />
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="border rounded px-3 py-2 text-sm"
+            >
+              <option value="All">Tất cả (không bao gồm Completed)</option>
+              <option value="Pending">Pending</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+
+            <button
+              onClick={() => refetch && refetch()}
+              className="px-3 py-2 bg-blue-600 text-white rounded text-sm ml-auto"
+            >
+              Làm mới
+            </button>
+          </div>
+
+          {/* Content */}
+          {isLoading ? (
+            <div>Đang tải...</div>
+          ) : swaps.length === 0 ? (
+            <div className="p-6 text-center text-gray-400 bg-white rounded-xl shadow">Không có giao dịch chờ duyệt</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {swaps.map((s) => (
+                <SwapCard key={s.swapId || s.id} s={s} onApprove={handleApprove} onReject={handleReject} />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
