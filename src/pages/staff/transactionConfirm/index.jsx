@@ -6,6 +6,8 @@ import { useGetSwapsByStationQuery } from '@/services/batterySwap.service';
 import { useCompletedSwapMutation, useRejectSwapMutation } from '@/services/staffManagementBattery.service';
 import { useGetPaymentByIdQuery } from '@/services/payment.service';
 import { useGetBatteriesByIdQuery } from '@/services/battery.service';
+import DateFilter from '@/pages/driver/bookings/components/DateFilter';
+import { filterBookingsByDate } from '@/utils/booking';
 
 const statusColor = {
   Pending: 'bg-yellow-100 text-yellow-700',
@@ -126,33 +128,66 @@ export default function TransactionConfirm() {
   // local filters
   const [filterStatus, setFilterStatus] = useState('All'); // All, Pending, Confirmed, Cancelled
   const [search, setSearch] = useState('');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [customDateFrom, setCustomDateFrom] = useState('');
+  const [customDateTo, setCustomDateTo] = useState('');
+  const [sortField, setSortField] = useState('swappedAt');
+  const [sortOrder, setSortOrder] = useState('desc');
 
   // base list from API (or empty)
   const rawSwaps = data?.content || [];
 
+  // apply date filter via DateFilter util. Map swaps to objects with timeSlot
+  const bookingsForDate = rawSwaps.map((s) => ({ ...s, timeSlot: s.swappedAt || s.createdAt || null }));
+
   // remove Completed items ALWAYS, then apply search + status filter
   const swaps = useMemo(() => {
-    // first exclude Completed (case-insensitive)
+    // exclude Completed
     const withoutCompleted = rawSwaps.filter((s) => String(s.status || '').toLowerCase() !== 'completed');
 
+    // apply date filter via DateFilter util. Use bookingsForDate here (already has timeSlot)
+    const dateFiltered = filterBookingsByDate(
+      // we need only the objects that correspond to withoutCompleted -> keep order by mapping ids
+      bookingsForDate.filter(b => withoutCompleted.some(w => (w.swapId || w.id) === (b.swapId || b.id)))
+      , dateFilter, customDateFrom, customDateTo);
     // status filter
     const byStatus =
       filterStatus && filterStatus !== 'All'
-        ? withoutCompleted.filter((s) => String(s.status || '').toLowerCase() === String(filterStatus).toLowerCase())
-        : withoutCompleted;
+        ? dateFiltered.filter((s) => String(s.status || '').toLowerCase() === String(filterStatus).toLowerCase())
+        : dateFiltered;
 
     // search (swapId, userName, licensePlate)
     const q = (search || '').trim().toLowerCase();
-    if (!q) return byStatus;
+    let searched = byStatus;
+    if (q) {
+      searched = byStatus.filter((s) => {
+        return (
+          String(s.swapId || '').toLowerCase().includes(q) ||
+          String(s.userName || s.user?.name || '').toLowerCase().includes(q) ||
+          String(s.licensePlate || s.license || s.vehicle?.license_plate || '').toLowerCase().includes(q)
+        );
+      });
+    }
 
-    return byStatus.filter((s) => {
-      return (
-        String(s.swapId || '').toLowerCase().includes(q) ||
-        String(s.userName || s.user?.name || '').toLowerCase().includes(q) ||
-        String(s.licensePlate || s.license || s.vehicle?.license_plate || '').toLowerCase().includes(q)
-      );
+    // sorting
+    const sorted = searched.slice().sort((a, b) => {
+      const aRaw = a[sortField];
+      const bRaw = b[sortField];
+      // date fields
+      if (sortField === 'swappedAt' || sortField === 'createdAt') {
+        const aTime = new Date(aRaw || 0).getTime() || 0;
+        const bTime = new Date(bRaw || 0).getTime() || 0;
+        return sortOrder === 'asc' ? aTime - bTime : bTime - aTime;
+      }
+      const A = String(aRaw || '').toLowerCase();
+      const B = String(bRaw || '').toLowerCase();
+      if (A < B) return sortOrder === 'asc' ? -1 : 1;
+      if (A > B) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
     });
-  }, [rawSwaps, filterStatus, search]);
+
+    return sorted;
+  }, [rawSwaps, filterStatus, search, dateFilter, customDateFrom, customDateTo, sortField, sortOrder]);
 
   const handleApprove = async (swapId) => {
     try {
@@ -199,18 +234,38 @@ export default function TransactionConfirm() {
               onChange={(e) => setFilterStatus(e.target.value)}
               className="border rounded px-3 py-2 text-sm"
             >
-              <option value="All">Tất cả trạng thái</option>
+              <option value="All">Lọc tất cả trạng thái</option>
               <option value="Pending">Pending</option>
               <option value="Confirmed">Confirmed</option>
               <option value="Cancelled">Cancelled</option>
             </select>
 
+            <select value={sortField} onChange={(e) => setSortField(e.target.value)} className="border rounded px-3 py-2 text-sm">
+              <option value="swappedAt">Thời gian đổi</option>
+              <option value="createdAt">Thời gian tạo</option>
+              {/* <option value="userName">Tên tài xế</option> */}
+            </select>
+            <button onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')} className="px-3 py-2 border rounded text-sm">{sortOrder === 'asc' ? '↑ Tăng dần' : '↓ Giảm dần'}</button>
+
             <button
               onClick={() => refetch && refetch()}
-              className="px-3 py-2 bg-blue-600 text-white rounded text-sm ml-auto"
+              className="px-3 py-2 bg-blue-600 text-white rounded text-sm"
             >
               Làm mới
             </button>
+          </div>
+
+          {/* Date filter + sort */}
+          <div className="mb-4">
+            <DateFilter
+              bookings={bookingsForDate}
+              dateFilter={dateFilter}
+              onChangeFilter={(v) => setDateFilter(v)}
+              customDateFrom={customDateFrom}
+              customDateTo={customDateTo}
+              setCustomDateFrom={setCustomDateFrom}
+              setCustomDateTo={setCustomDateTo}
+            />
           </div>
 
           {/* Content */}
