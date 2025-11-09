@@ -5,6 +5,7 @@ import { useGetStationStaffByUserIdQuery } from '@/services/stationStaff.service
 import { useGetSwapsByStationQuery } from '@/services/batterySwap.service';
 import { useCompletedSwapMutation, useRejectSwapMutation } from '@/services/staffManagementBattery.service';
 import { useGetPaymentByIdQuery } from '@/services/payment.service';
+import { useGetBatteriesByIdQuery } from '@/services/battery.service';
 
 const statusColor = {
   Pending: 'bg-yellow-100 text-yellow-700',
@@ -13,12 +14,20 @@ const statusColor = {
   Completed: 'bg-blue-100 text-blue-700',
 };
 
+const formatPrice = (price) => {
+  if (price === null || price === undefined) return 'N/A';
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(price);
+};
+
 function SwapCard({ s, onApprove, onReject }) {
   const paymentId = s.paymentId || null;
   const { data: paymentData } = useGetPaymentByIdQuery({ paymentId }, { skip: !paymentId });
   const amount = paymentData?.content?.amount ?? paymentData?.amount ?? '—';
 
-  const swappedAt = s.swappedAt || s.createdAt || '';
+  const swappedAt = s.swappedAt ? new Date(s.swappedAt).toLocaleString() : (s.swappedAt || '') || s.createdAt ? new Date(s.createdAt).toLocaleString() : (s.createdAt || '');
   const swapId = s.swapId || '—';
   const userName = s.userName || s.user?.name || '—';
   const userPhone = s.userPhone || s.user?.phone || '—';
@@ -35,7 +44,7 @@ function SwapCard({ s, onApprove, onReject }) {
       </div>
 
       <div className="flex flex-col gap-1 text-sm">
-        <div><span className="font-semibold">Tài xế:</span> {userName} - {userPhone}</div>
+        <div><span className="font-semibold">Tài xế:</span> {userName} - <span className="font-semibold">SĐT:</span> {userPhone}</div>
         <div><span className="font-semibold">Xe:</span> {vehicle} - {license}</div>
       </div>
 
@@ -59,7 +68,7 @@ function SwapCard({ s, onApprove, onReject }) {
         <div className="flex items-center gap-2 justify-end">
           <span className="text-gray-700 font-semibold">Tổng tiền thanh toán:</span>
           <span className="text-green-700 font-bold text-lg">
-            {amount === '—' ? '—' : `${amount} VND`}
+            {formatPrice(amount)}
           </span>
         </div>
       </div>
@@ -111,6 +120,9 @@ export default function TransactionConfirm() {
   const [completedSwap] = useCompletedSwapMutation();
   const [rejectSwap] = useRejectSwapMutation();
 
+  // derive a stationName from API result
+  const stationNameFromSwaps = data?.content?.[0]?.stationName || '[lỗi lấy tên]';
+
   // local filters
   const [filterStatus, setFilterStatus] = useState('All'); // All, Pending, Confirmed, Cancelled
   const [search, setSearch] = useState('');
@@ -150,7 +162,7 @@ export default function TransactionConfirm() {
         error: (e) => e?.data?.message || 'Xác nhận thất bại',
       });
       await refetch();
-    } catch (err) {}
+    } catch (err) { }
   };
 
   const handleReject = async (swapId) => {
@@ -163,12 +175,12 @@ export default function TransactionConfirm() {
         error: (e) => e?.data?.message || 'Từ chối thất bại',
       });
       await refetch();
-    } catch (err) {}
+    } catch (err) { }
   };
 
   return (
     <div className="p-6 min-h-screen">
-      <h1 className="text-2xl font-semibold mb-6 text-gray-800">Danh sách chờ hoàn tất giao dịch</h1>
+      <h1 className="text-2xl font-semibold mb-6 text-gray-800">Danh sách chờ hoàn tất giao dịch (Trạm: {stationNameFromSwaps})</h1>
 
       {!stationId ? (
         <div className="text-gray-500 italic">Không xác định được trạm của bạn...</div>
@@ -187,7 +199,7 @@ export default function TransactionConfirm() {
               onChange={(e) => setFilterStatus(e.target.value)}
               className="border rounded px-3 py-2 text-sm"
             >
-              <option value="All">Tất cả (không bao gồm Completed)</option>
+              <option value="All">Tất cả trạng thái</option>
               <option value="Pending">Pending</option>
               <option value="Confirmed">Confirmed</option>
               <option value="Cancelled">Cancelled</option>
