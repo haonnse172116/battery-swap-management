@@ -9,6 +9,19 @@ import { useGetBatteriesByIdQuery } from '@/services/battery.service';
 import DateFilter from '@/pages/driver/bookings/components/DateFilter';
 import { filterBookingsByDate } from '@/utils/booking';
 
+function BatteryDetails({ batteryId }) {
+  const { data } = useGetBatteriesByIdQuery({ id: batteryId }, { skip: !batteryId });
+  const b = data?.content ? (Array.isArray(data.content) ? data.content[0] : data.content) : data || null;
+  if (!b) return null;
+  return (
+    <div className="mt-2 text-sm text-gray-600">
+      <div>Serial: {b.serialNo || b.id || b.batteryId || '—'}</div>
+      <div>Loại: {b.batteryTypeName || b.type || '—'}</div>
+      <div>Điện áp: {b.voltage || '—'}V - {b.capacityWh || '—'} Wh</div>
+    </div>
+  );
+}
+
 const statusColor = {
   Pending: 'bg-yellow-100 text-yellow-700',
   Confirmed: 'bg-green-100 text-green-700',
@@ -59,6 +72,7 @@ function SwapCard({ s, onApprove, onReject }) {
           <div className="text-xs text-gray-500 mb-1">
             Serial: <span className="font-semibold">{s.batterySerial || '—'}</span>
           </div>
+          {batteryId && <BatteryDetails batteryId={batteryId} />}
           <div className="text-xs text-gray-500 mb-1">
             Trạng thái:{' '}
             <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor[s.status] || 'bg-gray-100 text-gray-700'}`}>
