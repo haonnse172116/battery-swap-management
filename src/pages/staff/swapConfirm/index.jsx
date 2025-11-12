@@ -61,6 +61,9 @@ export default function SwapConfirm({ stationId: stationIdProp = null }) {
     return list.filter((b) => (b.status || '').toLowerCase() === 'pending');
   }, [stationId, pendingByStationData, allBookingsData]);
 
+  // derive a stationName from API result (call after useMemo)
+  const stationNameFromBookings = bookings.find(b => b.stationName)?.stationName || pendingByStationData?.content?.[0]?.stationName || '[lỗi lấy tên]';
+
   const [filterStatus, setFilterStatus] = useState('All');
   const [search, setSearch] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
@@ -189,7 +192,7 @@ export default function SwapConfirm({ stationId: stationIdProp = null }) {
   return (
     <>
       <div className="p-6 min-h-screen">
-        <h1 className="text-2xl font-semibold mb-6 text-gray-800">Danh sách chờ duyệt đổi pin</h1>
+        <h1 className="text-2xl font-semibold mb-6 text-gray-800">Danh sách chờ duyệt đổi pin (Trạm: {stationNameFromBookings})</h1>
         {!stationId && userId && (<div className="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-300 text-sm text-yellow-800 rounded">Chú ý: hệ thống không xác định được trạm gán cho bạn — đang hiển thị tất cả booking (lọc Pending).</div>)}
 
         {loading ? (<div className="p-6 text-center">Đang tải...</div>) : filteredBookings.length === 0 ? (<div className="p-6 text-center text-gray-400 bg-white rounded-xl shadow col-span-2">Không có booking chờ duyệt</div>) : (
