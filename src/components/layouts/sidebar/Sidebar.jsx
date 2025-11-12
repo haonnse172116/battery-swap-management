@@ -45,7 +45,6 @@ const Sidebar = ({ type }) => {
           children: [
             { key: PATHS.ADMIN.STATIONS.ADD, label: "Thêm mới" },
             { key: PATHS.ADMIN.STATIONS.LIST, label: "Danh sách" },
-            { key: PATHS.ADMIN.STATIONS.STATION_BATTERY, label: "Điều phối pin cho trạm" },
             { key: PATHS.ADMIN.STATIONS.COMPLAINTS, label: "Xử lý khiếu nại" },
           ],
         },
@@ -66,6 +65,7 @@ const Sidebar = ({ type }) => {
           children: [
             { key: PATHS.ADMIN.BATTERY.ADD, label: "Thêm mới" },
             { key: PATHS.ADMIN.BATTERY.LIST, label: "Danh sách" },
+            { key: PATHS.ADMIN.BATTERY.STATION_BATTERY, label: "Điều phối pin cho trạm" },
           ],
         },
         {
@@ -97,7 +97,7 @@ const Sidebar = ({ type }) => {
           icon: Battery100Icon,
           children: [
             { key: PATHS.STAFF.SWAP.CONFIRM, label: "Yêu cầu đổi pin" },
-            { key: PATHS.STAFF.SWAP.PAYMENT, label: "Yêu cầu giao dịch" },
+            { key: PATHS.STAFF.SWAP.PAYMENT, label: "Xác nhận giao dịch" },
             { key: PATHS.STAFF.SWAP.HISTORY, label: "Lịch sử giao dịch" },
           ],
         },
