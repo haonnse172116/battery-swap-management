@@ -70,15 +70,12 @@ function SwapCard({ s, onApprove, onReject }) {
             Mã pin: <span className="font-semibold text-gray-800">{batteryId}</span>
           </div>
           <div className="text-xs text-gray-500 mb-1">
-            Serial: <span className="font-semibold">{s.batterySerial || '—'}</span>
-          </div>
-          {batteryId && <BatteryDetails batteryId={batteryId} />}
-          <div className="text-xs text-gray-500 mb-1">
             Trạng thái:{' '}
             <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor[s.status] || 'bg-gray-100 text-gray-700'}`}>
               {s.status}
             </span>
           </div>
+          {batteryId && <BatteryDetails batteryId={batteryId} />}
         </div>
 
         <div className="flex items-center gap-2 justify-end">
