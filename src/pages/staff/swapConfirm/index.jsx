@@ -11,6 +11,8 @@ import { useGetBatteriesByIdQuery } from '@/services/battery.service';
 import { useInitPaymentMutation } from '@/services/payment.service';
 import { useGetStationStaffByUserIdQuery } from '@/services/stationStaff.service';
 import ConfirmModal from '@/components/common/ConfirmModal.jsx';
+import DateFilter from '@/pages/driver/bookings/components/DateFilter';
+import { filterBookingsByDate } from '@/utils/booking';
 
 function BatteryDetails({ batteryId }) {
   const { data } = useGetBatteriesByIdQuery({ id: batteryId }, { skip: !batteryId });
@@ -37,29 +39,11 @@ export default function SwapConfirm({ stationId: stationIdProp = null }) {
   const userId = useSelector((state) => state.auth.user?.userId || state.auth.user?.id || null);
   const { data: stationStaffRes } = useGetStationStaffByUserIdQuery(userId, { skip: !userId });
 
-  // normalize stationId from API response (support {content: {stationId}} or {content: [ ... ]})
-  const stationIdFromUser = stationStaffRes?.content?.stationId ||
-    (Array.isArray(stationStaffRes?.content) ? stationStaffRes.content[0]?.stationId : null) ||
-    null;
-
-  // prefer explicit prop if provided, otherwise use user's station
+  const stationIdFromUser = stationStaffRes?.content?.stationId || (Array.isArray(stationStaffRes?.content) ? stationStaffRes.content[0]?.stationId : null) || null;
   const stationId = stationIdProp || stationIdFromUser;
 
-  // --- bookings queries: pending by station (if stationId), otherwise all bookings (and filter pending) ---
-  const {
-    data: pendingByStationData,
-    isLoading: loadingStationPending,
-    refetch: refetchStationPending,
-  } = useGetPendingBookingsByStationQuery(
-    stationId ? { stationId, page: 1, size: 50, search: '', status: 'Pending' } : null,
-    { skip: !stationId }
-  );
-
-  const {
-    data: allBookingsData,
-    isLoading: loadingAll,
-    refetch: refetchAll,
-  } = useGetAllBookingsQuery({ page: 1, size: 100, search: '' }, { skip: !!stationId });
+  const { data: pendingByStationData, isLoading: loadingStationPending, refetch: refetchStationPending } = useGetPendingBookingsByStationQuery(stationId ? { stationId, page: 1, size: 50, search: '', status: 'Pending' } : null, { skip: !stationId });
+  const { data: allBookingsData, isLoading: loadingAll, refetch: refetchAll } = useGetAllBookingsQuery({ page: 1, size: 100, search: '' }, { skip: !!stationId });
 
   const [confirmBooking] = useConfirmBookingMutation();
   const [rejectBooking] = useRejectBookingMutation();
@@ -77,25 +61,53 @@ export default function SwapConfirm({ stationId: stationIdProp = null }) {
     return list.filter((b) => (b.status || '').toLowerCase() === 'pending');
   }, [stationId, pendingByStationData, allBookingsData]);
 
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [search, setSearch] = useState('');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [customDateFrom, setCustomDateFrom] = useState('');
+  const [customDateTo, setCustomDateTo] = useState('');
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
+
+  const bookingsForDate = bookings.map((b) => ({ ...b, timeSlot: b.swappedAt || b.createdAt || null }));
+
+  const filteredBookings = useMemo(() => {
+    const withoutCompleted = bookings.filter((s) => String(s.status || '').toLowerCase() !== 'completed');
+    const dateFiltered = filterBookingsByDate(bookingsForDate.filter((b) => withoutCompleted.some((w) => (w.bookingId || w.id) === (b.bookingId || b.id))), dateFilter, customDateFrom, customDateTo);
+    const byStatus = filterStatus && filterStatus !== 'All' ? dateFiltered.filter((s) => String(s.status || '').toLowerCase() === String(filterStatus).toLowerCase()) : dateFiltered;
+    const q = (search || '').trim().toLowerCase();
+    let searched = byStatus;
+    if (q) searched = byStatus.filter((s) => String(s.bookingId || '').toLowerCase().includes(q) || String(s.userName || s.user?.name || '').toLowerCase().includes(q) || String(s.licensePlate || s.vehicle?.license_plate || '').toLowerCase().includes(q));
+    const sorted = searched.slice().sort((a, b) => {
+      const aRaw = a[sortField];
+      const bRaw = b[sortField];
+      if (sortField === 'swappedAt' || sortField === 'createdAt') {
+        const aTime = new Date(aRaw || 0).getTime() || 0;
+        const bTime = new Date(bRaw || 0).getTime() || 0;
+        return sortOrder === 'asc' ? aTime - bTime : bTime - aTime;
+      }
+      const A = String(aRaw || '').toLowerCase();
+      const B = String(bRaw || '').toLowerCase();
+      if (A < B) return sortOrder === 'asc' ? -1 : 1;
+      if (A > B) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [bookings, bookingsForDate, filterStatus, search, dateFilter, customDateFrom, customDateTo, sortField, sortOrder]);
+
   const loading = stationId ? loadingStationPending : loadingAll;
   const refetch = stationId ? refetchStationPending : refetchAll;
 
   // open confirm modal: require toBatteryId present (from batteryReturn.id)
   const onConfirmClick = (bookingId, toBatteryId) => {
-    if (!toBatteryId) {
-      toast.error('Không tìm thấy mã pin thay thế (toBatteryId). Không thể tạo swap.');
-      return;
-    }
+    if (!toBatteryId) { toast.error('Không tìm thấy mã pin thay thế (toBatteryId). Không thể tạo swap.'); return; }
     setConfirmTarget({ bookingId, toBatteryId });
     setConfirmOpen(true);
   };
 
   // execute confirm + initPayment, then open returned paymentUrl
   const onConfirmExecute = async () => {
-    if (!confirmTarget) return;
-    const { bookingId } = confirmTarget;
-    setConfirmLoading(true);
-
+    if (!confirmTarget) return; const { bookingId } = confirmTarget; setConfirmLoading(true);
     try {
       // 1) confirm booking
       await toast.promise(
@@ -178,88 +190,64 @@ export default function SwapConfirm({ stationId: stationIdProp = null }) {
     <>
       <div className="p-6 min-h-screen">
         <h1 className="text-2xl font-semibold mb-6 text-gray-800">Danh sách chờ duyệt đổi pin</h1>
+        {!stationId && userId && (<div className="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-300 text-sm text-yellow-800 rounded">Chú ý: hệ thống không xác định được trạm gán cho bạn — đang hiển thị tất cả booking (lọc Pending).</div>)}
 
-        {/* show notice when we couldn't detect a station for current user */}
-        {!stationId && userId && (
-          <div className="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-300 text-sm text-yellow-800 rounded">
-            Chú ý: hệ thống không xác định được trạm gán cho bạn — đang hiển thị tất cả booking (lọc Pending).
-          </div>
-        )}
+        {loading ? (<div className="p-6 text-center">Đang tải...</div>) : filteredBookings.length === 0 ? (<div className="p-6 text-center text-gray-400 bg-white rounded-xl shadow col-span-2">Không có booking chờ duyệt</div>) : (
+          <>
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm bookingId, tên tài xế, biển số..." className="border rounded px-3 py-2 text-sm w-64" />
+              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="border rounded px-3 py-2 text-sm"><option value="All">Tất cả trạng thái</option><option value="Pending">Pending</option><option value="Confirmed">Confirmed</option><option value="Cancelled">Cancelled</option></select>
+              <select value={sortField} onChange={(e) => setSortField(e.target.value)} className="border rounded px-3 py-2 text-sm"><option value="createdAt">Thời gian tạo</option><option value="swappedAt">Thời gian đổi</option></select>
+              <button onClick={() => setSortOrder((p) => p === 'asc' ? 'desc' : 'asc')} className="px-3 py-2 border rounded text-sm">{sortOrder === 'asc' ? '↑ Tăng dần' : '↓ Giảm dần'}</button>
+              <button onClick={() => { refetchStationPending && refetchStationPending(); refetchAll && refetchAll(); }} className="px-3 py-2 bg-blue-600 text-white rounded text-sm ml-auto">Làm mới</button>
+            </div>
 
-        {loading ? (
-          <div className="p-6 text-center">Đang tải...</div>
-        ) : bookings.length === 0 ? (
-          <div className="p-6 text-center text-gray-400 bg-white rounded-xl shadow col-span-2">Không có booking chờ duyệt</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {bookings.map((bk) => {
-              const createdAt = bk.createdAt ? new Date(bk.createdAt).toLocaleString() : (bk.created_at || '');
-              const bookingId = bk.bookingId || bk.booking_id || '—';
-              const userName = bk.userName || bk.user?.full_name || bk.user?.name || '—';
-              const userPhone = bk.userPhone || bk.user?.phone || '—';
-              const vehicle = `${bk.vehicleBrand || bk.vehicle?.model || ''}`.trim();
-              const license = bk.licensePlate || bk.vehicle?.license_plate || '—';
-              const estimatedPrice = bk.estimatedPrice || bk.estimatedPrice || '—';
+            <div className="mb-4">
+              <DateFilter
+                bookings={bookingsForDate}
+                dateFilter={dateFilter}
+                onChangeFilter={(v) => setDateFilter(v)}
+                customDateFrom={customDateFrom}
+                customDateTo={customDateTo}
+                setCustomDateFrom={setCustomDateFrom}
+                setCustomDateTo={setCustomDateTo}
+              />
+            </div>
 
-              // batteryReturn: use this as toBatteryId
-              const batteryReturn = {
-                id: bk.batteryId || bk.battery_return?.battery_id || bk.battery_return?.id || '—',
-                type: bk.batteryTypeName || bk.battery_return?.type || '—',
-                status: bk.status || bk.battery_return?.status || 'Pending',
-                voltage: bk.battery_return?.voltage || '—',
-                capacity: bk.battery_return?.capacity_wh || bk.capacityWh || '—',
-              };
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {filteredBookings.map((bk) => {
+                const createdAt = bk.createdAt ? new Date(bk.createdAt).toLocaleString() : (bk.created_at || '');
+                const bookingId = bk.bookingId || bk.booking_id || `${bk.id || Math.random()}`;
+                const userName = bk.userName || bk.user?.full_name || bk.user?.name || '—';
+                const userPhone = bk.userPhone || bk.user?.phone || '—';
+                const vehicle = `${bk.vehicleBrand || bk.vehicle?.model || ''}`.trim();
+                const license = bk.licensePlate || bk.vehicle?.license_plate || '—';
+                const estimatedPrice = bk.estimatedPrice || bk.estimated_price || '—';
+                const batteryReturn = { id: bk.batteryId || bk.battery_return?.battery_id || bk.battery_return?.id || '—', type: bk.batteryTypeName || bk.battery_return?.type || '—', status: bk.status || bk.battery_return?.status || 'Pending', voltage: bk.battery_return?.voltage || '—', capacity: bk.battery_return?.capacity_wh || bk.capacityWh || '—' };
 
-              return (
-                <div key={bookingId} className="bg-white rounded-xl shadow p-6 flex flex-col gap-3 border border-gray-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="font-bold text-blue-700 text-lg">#{bookingId}</div>
-                    <div className="text-xs text-gray-400">{createdAt}</div>
-                  </div>
+                return (
+                  <div key={bookingId} className="bg-white rounded-xl shadow p-6 flex flex-col gap-3 border border-gray-100">
+                    <div className="flex items-center justify-between mb-2"><div className="font-bold text-blue-700 text-lg">#{bookingId}</div><div className="text-xs text-gray-400">{createdAt}</div></div>
 
-                  <div className="flex flex-col gap-1 text-sm">
-                    <div><span className="font-semibold">Tài xế:</span> {userName} - <span className="font-semibold">SĐT:</span> {userPhone}</div>
-                    <div><span className="font-semibold">Xe:</span> {vehicle} - {license}</div>
-                  </div>
+                    <div className="flex flex-col gap-1 text-sm"><div><span className="font-semibold">Tài xế:</span> {userName} - <span className="font-semibold">SĐT:</span> {userPhone}</div><div><span className="font-semibold">Xe:</span> {vehicle} - {license}</div></div>
 
-                  <div className="grid grid-cols-1 gap-4 mt-2">
-                    <div className="bg-gray-50 rounded-lg p-3 border">
-                      <div className="font-semibold text-gray-700 mb-1">Pin khách đặt</div>
-                      <div className="text-xs text-gray-500 mb-1">Mã pin: <span className="font-semibold text-gray-800">{batteryReturn.id}</span></div>
-                      <div className="text-xs text-gray-500 mb-1">
-                        Trạng thái:&nbsp;
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor[(batteryReturn.status || '').replace(/\s+/g, '')] || 'bg-gray-100 text-gray-700'}`}>
-                          {batteryReturn.status}
-                        </span>
+                    <div className="grid grid-cols-1 gap-4 mt-2">
+                      <div className="bg-gray-50 rounded-lg p-3 border">
+                        <div className="font-semibold text-gray-700 mb-1">Pin khách đặt</div>
+                        <div className="text-xs text-gray-500 mb-1">Mã pin: <span className="font-semibold text-gray-800">{batteryReturn.id}</span></div>
+                        <div className="text-xs text-gray-500 mb-1">Trạng thái:&nbsp;<span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor[(batteryReturn.status || '').replace(/\s+/g, '')] || 'bg-gray-100 text-gray-700'}`}>{batteryReturn.status}</span></div>
+                        {batteryReturn.id && <BatteryDetails batteryId={batteryReturn.id} />}
                       </div>
-                      {batteryReturn.id && <BatteryDetails batteryId={batteryReturn.id} />}
+
+                      <div className="flex items-center gap-2 justify-end"><span className="text-gray-700 font-semibold">Tổng tiền thanh toán:</span><span className="text-green-700 font-bold text-lg">{estimatedPrice} VNĐ</span></div>
                     </div>
 
-                    <div className="flex items-center gap-2 justify-end">
-                      <span className="text-gray-700 font-semibold">Tổng tiền thanh toán:</span>
-                      <span className="text-green-700 font-bold text-lg">{estimatedPrice} VNĐ</span>
-                    </div>
+                    <div className="flex gap-3 mt-4 justify-end"><button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold" onClick={() => onConfirmClick(bookingId, batteryReturn.id)}>Xác nhận đổi pin</button><button className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-semibold" onClick={() => onReject(bookingId)}>Từ chối</button></div>
                   </div>
-
-                  <div className="flex gap-3 mt-4 justify-end">
-                    <button
-                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold"
-                      onClick={() => onConfirmClick(bookingId, batteryReturn.id)}
-                    >
-                      Xác nhận đổi pin
-                    </button>
-
-                    <button
-                      className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-semibold"
-                      onClick={() => onReject(bookingId)}
-                    >
-                      Từ chối
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 
