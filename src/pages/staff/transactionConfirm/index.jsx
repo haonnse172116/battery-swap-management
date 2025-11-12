@@ -149,7 +149,9 @@ export default function TransactionConfirm() {
   const rawSwaps = data?.content || [];
 
   // apply date filter via DateFilter util. Map swaps to objects with timeSlot
-  const bookingsForDate = rawSwaps.map((s) => ({ ...s, timeSlot: s.swappedAt || s.createdAt || null }));
+  const bookingsForDate = rawSwaps
+    .filter((s) => String(s.status || '').toLowerCase() !== 'completed') // loại bỏ completed (case-insensitive)
+    .map((s) => ({ ...s, timeSlot: s.swappedAt || s.createdAt || null }));
 
   // remove Completed items ALWAYS, then apply search + status filter
   const swaps = useMemo(() => {
