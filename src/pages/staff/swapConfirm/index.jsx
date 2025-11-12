@@ -69,9 +69,11 @@ export default function SwapConfirm({ stationId: stationIdProp = null }) {
   const [dateFilter, setDateFilter] = useState('all');
   const [customDateFrom, setCustomDateFrom] = useState('');
   const [customDateTo, setCustomDateTo] = useState('');
-  const [sortField, setSortField] = useState('createdAt');
+  // default to swappedAt, user can toggle order only
+  const [sortField, setSortField] = useState('swappedAt');
   const [sortOrder, setSortOrder] = useState('desc');
 
+  // for date filtering prefer swappedAt, fallback to createdAt
   const bookingsForDate = bookings.map((b) => ({ ...b, timeSlot: b.swappedAt || b.createdAt || null }));
 
   const filteredBookings = useMemo(() => {
@@ -84,9 +86,10 @@ export default function SwapConfirm({ stationId: stationIdProp = null }) {
     const sorted = searched.slice().sort((a, b) => {
       const aRaw = a[sortField];
       const bRaw = b[sortField];
-      if (sortField === 'swappedAt' || sortField === 'createdAt') {
-        const aTime = new Date(aRaw || 0).getTime() || 0;
-        const bTime = new Date(bRaw || 0).getTime() || 0;
+      // treat swappedAt and createdAt as date fields
+      if (sortField === 'createdAt' || sortField === 'swappedAt') {
+        const aTime = new Date(aRaw || a.createdAt || 0).getTime() || 0;
+        const bTime = new Date(bRaw || b.createdAt || 0).getTime() || 0;
         return sortOrder === 'asc' ? aTime - bTime : bTime - aTime;
       }
       const A = String(aRaw || '').toLowerCase();
@@ -195,28 +198,50 @@ export default function SwapConfirm({ stationId: stationIdProp = null }) {
         <h1 className="text-2xl font-semibold mb-6 text-gray-800">Danh sách chờ duyệt đổi pin (Trạm: {stationNameFromBookings})</h1>
         {!stationId && userId && (<div className="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-300 text-sm text-yellow-800 rounded">Chú ý: hệ thống không xác định được trạm gán cho bạn — đang hiển thị tất cả booking (lọc Pending).</div>)}
 
+        {/* Search-Filter-Sort sction */}
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Tìm bookingId, tên tài xế, biển số..."
+            className="border rounded px-3 py-2 text-sm w-64" />
+
+          <select
+            value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
+            className="border rounded px-3 py-2 text-sm">
+            <option value="All">Lọc tất cả trạng thái</option>
+            <option value="Pending">Pending</option>
+            <option value="Confirmed">Confirmed</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+
+          <button
+            onClick={() => setSortOrder((p) => p === 'asc' ? 'desc' : 'asc')}
+            className="px-3 py-2 border rounded text-sm">{sortOrder === 'asc' ? '↑ Tăng dần ngày tạo' : '↓ Giảm dần ngày tạo'}
+          </button>
+
+          <button
+            onClick={() => { refetchStationPending && refetchStationPending(); refetchAll && refetchAll(); }}
+            className="px-3 py-2 bg-blue-600 text-white rounded text-sm">
+            Làm mới
+          </button>
+        </div>
+
+        <div className="mb-4">
+          <DateFilter
+            bookings={bookingsForDate}
+            dateFilter={dateFilter}
+            onChangeFilter={(v) => setDateFilter(v)}
+            customDateFrom={customDateFrom}
+            customDateTo={customDateTo}
+            setCustomDateFrom={setCustomDateFrom}
+            setCustomDateTo={setCustomDateTo}
+          />
+        </div>
+
+        {/* Booking list here */}
         {loading ? (<div className="p-6 text-center">Đang tải...</div>) : filteredBookings.length === 0 ? (<div className="p-6 text-center text-gray-400 bg-white rounded-xl shadow col-span-2">Không có booking chờ duyệt</div>) : (
           <>
-            <div className="mb-4 flex flex-wrap items-center gap-3">
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm bookingId, tên tài xế, biển số..." className="border rounded px-3 py-2 text-sm w-64" />
-              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="border rounded px-3 py-2 text-sm"><option value="All">Tất cả trạng thái</option><option value="Pending">Pending</option><option value="Confirmed">Confirmed</option><option value="Cancelled">Cancelled</option></select>
-              <select value={sortField} onChange={(e) => setSortField(e.target.value)} className="border rounded px-3 py-2 text-sm"><option value="createdAt">Thời gian tạo</option><option value="swappedAt">Thời gian đổi</option></select>
-              <button onClick={() => setSortOrder((p) => p === 'asc' ? 'desc' : 'asc')} className="px-3 py-2 border rounded text-sm">{sortOrder === 'asc' ? '↑ Tăng dần' : '↓ Giảm dần'}</button>
-              <button onClick={() => { refetchStationPending && refetchStationPending(); refetchAll && refetchAll(); }} className="px-3 py-2 bg-blue-600 text-white rounded text-sm ml-auto">Làm mới</button>
-            </div>
-
-            <div className="mb-4">
-              <DateFilter
-                bookings={bookingsForDate}
-                dateFilter={dateFilter}
-                onChangeFilter={(v) => setDateFilter(v)}
-                customDateFrom={customDateFrom}
-                customDateTo={customDateTo}
-                setCustomDateFrom={setCustomDateFrom}
-                setCustomDateTo={setCustomDateTo}
-              />
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {filteredBookings.map((bk) => {
                 const createdAt = bk.createdAt ? new Date(bk.createdAt).toLocaleString() : (bk.created_at || '');
