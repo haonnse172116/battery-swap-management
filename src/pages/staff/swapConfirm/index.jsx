@@ -14,6 +14,15 @@ import ConfirmModal from '@/components/common/ConfirmModal.jsx';
 import DateFilter from '@/pages/driver/bookings/components/DateFilter';
 import { filterBookingsByDate } from '@/utils/booking';
 
+const formatPrice = (price) => {
+  if (price === null || price === undefined) return 'N/A';
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(price);
+};
+
+
 function BatteryDetails({ batteryId }) {
   const { data } = useGetBatteriesByIdQuery({ id: batteryId }, { skip: !batteryId });
   const b = data?.content ? (Array.isArray(data.content) ? data.content[0] : data.content) : data || null;
@@ -267,7 +276,7 @@ export default function SwapConfirm({ stationId: stationIdProp = null }) {
                         {batteryReturn.id && <BatteryDetails batteryId={batteryReturn.id} />}
                       </div>
 
-                      <div className="flex items-center gap-2 justify-end"><span className="text-gray-700 font-semibold">Tổng tiền thanh toán:</span><span className="text-green-700 font-bold text-lg">{estimatedPrice} VNĐ</span></div>
+                      <div className="flex items-center gap-2 justify-end"><span className="text-gray-700 font-semibold">Tổng tiền thanh toán:</span><span className="text-green-700 font-bold text-lg">{formatPrice(estimatedPrice)}</span></div>
                     </div>
 
                     <div className="flex gap-3 mt-4 justify-end"><button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold" onClick={() => onConfirmClick(bookingId, batteryReturn.id)}>Xác nhận đổi pin</button><button className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-semibold" onClick={() => onReject(bookingId)}>Từ chối</button></div>
