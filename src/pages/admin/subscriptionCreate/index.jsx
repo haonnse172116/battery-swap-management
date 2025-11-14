@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ConfirmModal from '@/components/common/ConfirmModal.jsx';
 import {
@@ -17,14 +17,16 @@ export default function SubscriptionCreate() {
   const [updatePlan, { isLoading: updating }] = useUpdateSubscriptionPlanMutation();
   const [deletePlan, { isLoading: deleting }] = useDeleteSubscriptionPlanMutation();
 
-  const [form, setForm] = useState({
+  const defaultForm = {
     planId: null,
     name: '',
     description: '',
     monthlyFee: 1000,
     swapAmount: 1,
     active: true,
-  });
+  };
+
+  const [form, setForm] = useState(defaultForm);
   const [isEdit, setIsEdit] = useState(false);
 
   const [errors, setErrors] = useState({});
@@ -33,40 +35,72 @@ export default function SubscriptionCreate() {
   const [confirmAction, setConfirmAction] = useState(null); // 'create' | 'update' | 'delete'
   const [confirmTargetId, setConfirmTargetId] = useState(null);
 
+  // --- new UI states: search / filter / sort ---
+  const [searchText, setSearchText] = useState('');
+  const [filterActiveOnly, setFilterActiveOnly] = useState(false);
+  const [sortBy, setSortBy] = useState('createdAt'); // createdAt | name | monthlyFee
+  const [sortDir, setSortDir] = useState('desc'); // asc | desc
+
   useEffect(() => {
     // reset form when not in edit
     if (!isEdit) {
-      setForm({ planId: null, name: '', description: '', monthlyFee: 1000, swapAmount: 1, active: true });
+      setForm(defaultForm);
       setErrors({});
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEdit]);
 
   // clear field error when user types
   useEffect(() => {
-    // optional: remove errors when value changes
     setErrors((prev) => {
       const next = { ...prev };
       if (form.name && next.name) delete next.name;
+      if (form.description && next.description) delete next.description;
       if (form.monthlyFee !== '' && next.monthlyFee) delete next.monthlyFee;
       if (form.swapAmount !== '' && next.swapAmount) delete next.swapAmount;
       return next;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.name, form.monthlyFee, form.swapAmount]);
+  }, [form.name, form.description, form.monthlyFee, form.swapAmount]);
+
+  const formatPrice = (price) => {
+    if (price === null || price === undefined) return 'N/A';
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(Number(price));
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    // keep numeric fields as strings so input works naturally; convert on validate/submit
+
+    // special handling: monthlyFee should accept only digits (no decimal)
+    if (name === 'monthlyFee') {
+      // allow empty string as user clears; otherwise keep only digits
+      const str = String(value);
+      const sanitized = str === '' ? '' : str.replace(/\D/g, '');
+      setForm((p) => ({ ...p, [name]: sanitized }));
+      return;
+    }
+
+    // swapAmount: allow only digits too (integer)
+    if (name === 'swapAmount') {
+      const str = String(value);
+      const sanitized = str === '' ? '' : str.replace(/\D/g, '');
+      setForm((p) => ({ ...p, [name]: sanitized }));
+      return;
+    }
+
     setForm((p) => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const openEdit = (plan) => {
     setForm({
-      planId: plan.planId || plan.id || plan.id,
-      name: plan.name || '',
-      description: plan.description || '',
+      planId: plan.planId ?? plan.id ?? null,
+      name: plan.name ?? '',
+      description: plan.description ?? '',
       monthlyFee: plan.monthlyFee != null ? String(plan.monthlyFee) : plan.monthly_fee != null ? String(plan.monthly_fee) : '',
-      swapAmount: plan.swapAmount != null ? plan.swapAmount : plan.swap_amount != null ? plan.swap_amount : 1,
+      swapAmount: plan.swapAmount != null ? String(plan.swapAmount) : plan.swap_amount != null ? String(plan.swap_amount) : '1',
       active: plan.active != null ? plan.active : !!plan.is_active,
     });
     setErrors({});
@@ -84,17 +118,19 @@ export default function SubscriptionCreate() {
       errs.description = 'Mô tả không được để trống';
     }
 
-    // monthlyFee must be number and >= 0
+    // monthlyFee must be integer and >= 0
     const monthly = form.monthlyFee === '' ? NaN : Number(form.monthlyFee);
-    if (form.monthlyFee === '') {
+    if (form.monthlyFee === '' || form.monthlyFee == null) {
       errs.monthlyFee = 'Giá thuê không được để trống';
     } else if (Number.isNaN(monthly) || !isFinite(monthly)) {
       errs.monthlyFee = 'Giá thuê phải là số hợp lệ';
     } else if (monthly < 0) {
       errs.monthlyFee = 'Giá thuê phải lớn hơn hoặc bằng 0';
+    } else if (!Number.isInteger(monthly)) {
+      errs.monthlyFee = 'Giá thuê phải là số nguyên (không nhận thập phân)';
     }
 
-    // swapAmount must be number and >= 0
+    // swapAmount must be integer and >= 0
     const swap = form.swapAmount === '' ? NaN : Number(form.swapAmount);
     if (form.swapAmount === '' || form.swapAmount == null) {
       errs.swapAmount = 'Số lượt đổi pin không được để trống';
@@ -102,6 +138,8 @@ export default function SubscriptionCreate() {
       errs.swapAmount = 'Số lượt đổi pin phải là số hợp lệ';
     } else if (swap < 0) {
       errs.swapAmount = 'Số lượt đổi pin phải lớn hơn hoặc bằng 0';
+    } else if (!Number.isInteger(swap)) {
+      errs.swapAmount = 'Số lượt đổi pin phải là số nguyên';
     }
 
     setErrors(errs);
@@ -134,6 +172,10 @@ export default function SubscriptionCreate() {
         success: 'Tạo gói thành công',
         error: (err) => err?.data?.message || 'Tạo gói thất bại',
       });
+
+      // Clear form after create (requested)
+      setForm(defaultForm);
+      setErrors({});
       setConfirmOpen(false);
       setIsEdit(false);
       refetch && refetch();
@@ -169,8 +211,11 @@ export default function SubscriptionCreate() {
         success: 'Cập nhật thành công',
         error: (err) => err?.data?.message || 'Cập nhật thất bại',
       });
+
       setConfirmOpen(false);
       setIsEdit(false);
+      setForm(defaultForm);
+      setErrors({});
       refetch && refetch();
     } catch (err) {
       // handled
@@ -210,24 +255,106 @@ export default function SubscriptionCreate() {
     setConfirmOpen(false);
   };
 
+  // Derived filtered & sorted plans
+  const filteredPlans = useMemo(() => {
+    const q = (searchText || '').trim().toLowerCase();
+
+    const matched = plans.filter((p) => {
+      if (filterActiveOnly && !p.active && !p.is_active) return false;
+
+      if (!q) return true;
+
+      const name = (p.name || '').toString().toLowerCase();
+      const description = (p.description || '').toString().toLowerCase();
+      const monthly = String(p.monthlyFee ?? p.monthly_fee ?? '');
+
+      return name.includes(q) || description.includes(q) || monthly.includes(q);
+    });
+
+    const cmp = (a, b) => {
+      if (sortBy === 'name') {
+        const an = (a.name || '').toString().toLowerCase();
+        const bn = (b.name || '').toString().toLowerCase();
+        return an.localeCompare(bn);
+      }
+      if (sortBy === 'monthlyFee') {
+        const am = Number(a.monthlyFee ?? a.monthly_fee ?? 0);
+        const bm = Number(b.monthlyFee ?? b.monthly_fee ?? 0);
+        return am - bm;
+      }
+      // default: createdAt
+      const at = new Date(a.createdAt ?? a.created_at ?? a.created_date ?? 0).getTime() || 0;
+      const bt = new Date(b.createdAt ?? b.created_at ?? b.created_date ?? 0).getTime() || 0;
+      return at - bt;
+    };
+
+    const sorted = matched.sort((a, b) => {
+      const r = cmp(a, b);
+      return sortDir === 'asc' ? r : -r;
+    });
+
+    return sorted;
+  }, [plans, searchText, filterActiveOnly, sortBy, sortDir]);
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
+      {/* hide native scrollbar thumb but keep scroll */}
+      <style>{`.hide-scrollbar::-webkit-scrollbar{ display:none } .hide-scrollbar{ -ms-overflow-style:none; scrollbar-width:none }`}</style>
+
       <h1 className="text-2xl font-bold mb-6 text-gray-800">Quản lý gói thuê pin</h1>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* left: list */}
+        {/* left: list + filters */}
         <div>
-          <h2 className="text-lg font-semibold mb-4 text-gray-700">Các gói đã tạo</h2>
-          <div className="space-y-4">
-            {isLoading && <div className="p-4 text-gray-500">Đang tải...</div>}
-            {!isLoading && plans.length === 0 && <div className="p-4 text-gray-400 bg-white rounded shadow text-center">Chưa có gói nào</div>}
-            {!isLoading && plans.length > 0 && (
-              <>
-                {plans.map((plan) => (
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-700">Các gói đã tạo</h2>
+          </div>
+
+          {/* controls: search / active filter / sort */}
+          <div className="mb-3">
+            <div className="flex gap-3 flex-wrap items-center">
+              <input
+                placeholder="Tìm theo tên, mô tả, giá..."
+                value={searchText}
+                onChange={(e) => { setSearchText(e.target.value);}}
+                className="border rounded px-3 py-2 w-64"
+              />
+
+              <select value={filterActiveOnly ? 'active' : ''} onChange={(e) => { setFilterActiveOnly(e.target.value === 'active'); /* reset page if needed */ }} className="border rounded px-3 py-2">
+                <option value="">Lọc tất cả trạng thái</option>
+                <option value="active">Kích hoạt</option>
+                <option value="inactive">Ngưng</option>
+              </select>
+
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="border rounded px-3 py-2">
+                <option value="createdAt">Ngày tạo</option>
+                <option value="name">Tên gói</option>
+                <option value="monthlyFee">Giá thuê</option>
+              </select>
+
+              <button onClick={() => setSortDir(prev => prev === 'asc' ? 'desc' : 'asc')} className="px-3 py-2 border rounded">
+                {sortDir === 'asc' ? '↑ Tăng dần' : '↓ Giảm dần'}
+              </button>
+
+              <button onClick={() => refetch()} className="px-3 py-2 bg-blue-600 text-white rounded">Làm mới</button>
+            </div>
+          </div>
+
+          {/* list container with max-height + scroll (thumb hidden) */}
+          <div className="hide-scrollbar overflow-auto max-h-[60vh]">
+            <div className="space-y-4">
+              {isLoading && <div className="p-4 text-gray-500">Đang tải...</div>}
+              {!isLoading && filteredPlans.length === 0 && (
+                <div className="p-4 text-gray-400 bg-white rounded shadow text-center">Không tìm thấy gói nào</div>
+              )}
+
+              {!isLoading && filteredPlans.length > 0 && (
+                filteredPlans.map((plan) => (
                   <div key={plan.planId || plan.id} className="bg-white rounded-xl shadow p-5 flex flex-col gap-2 border border-gray-100">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-bold text-green-700 text-lg">{plan.name}</div>
-                        <div className="text-sm text-gray-500 mt-1">{plan.description}</div>
+                        <div className="text-sm text-gray-500 mt-1 truncate">{plan.description}</div>
                       </div>
                       <div className="text-right">
                         <div className={`px-2 py-1 rounded-full text-xs font-semibold ${plan.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{plan.active ? 'Kích hoạt' : 'Ngưng'}</div>
@@ -235,8 +362,8 @@ export default function SubscriptionCreate() {
                     </div>
 
                     <div className="flex flex-wrap gap-4 text-sm text-gray-700">
-                      <span>Giá thuê: <span className="font-semibold">{(plan.monthlyFee ?? plan.monthly_fee ?? 0).toLocaleString()} VNĐ</span></span>
-                      <span>Số lượt đổi pin: <span className="font-semibold">{plan.swapAmount ?? 0}</span></span>
+                      <span>Giá thuê: <span className="font-semibold">{formatPrice(plan.monthlyFee ?? plan.monthly_fee ?? 0)}</span></span>
+                      <span>Số lượt đổi pin: <span className="font-semibold">{plan.swapAmount ?? plan.swap_amount ?? 0}</span></span>
                     </div>
 
                     <div className="flex gap-2 mt-3 justify-end">
@@ -244,13 +371,13 @@ export default function SubscriptionCreate() {
                       <button className="px-3 py-1 bg-red-600 text-white rounded text-sm" onClick={() => onDeleteConfirm(plan.planId || plan.id)}>Xóa</button>
                     </div>
                   </div>
-                ))}
-              </>
-            )}
+                ))
+              )}
+            </div>
           </div>
         </div>
 
-        {/* right: form */}
+        {/* right: form*/}
         <div>
           <h2 className="text-lg font-semibold mb-4 text-gray-700">{isEdit ? 'Chỉnh sửa gói thuê pin' : 'Tạo gói thuê pin mới'}</h2>
           <form onSubmit={onSubmit} className="bg-white shadow rounded-2xl p-7 space-y-5 border border-gray-100" noValidate>
@@ -285,7 +412,7 @@ export default function SubscriptionCreate() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block font-semibold mb-2 text-gray-700">Giá thuê (VNĐ)</label>
+                <label className="block font-semibold mb-2 text-gray-700">Giá thuê (₫)</label>
                 <input
                   name="monthlyFee"
                   type="number"
@@ -294,7 +421,7 @@ export default function SubscriptionCreate() {
                   value={form.monthlyFee}
                   onChange={handleChange}
                   min={0}
-                  step="1000"
+                  step="1"
                   required
                   aria-invalid={!!errors.monthlyFee}
                   className={`w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-green-400 ${errors.monthlyFee ? 'border-red-400' : ''}`}
@@ -322,8 +449,31 @@ export default function SubscriptionCreate() {
             </div>
 
             <div className="flex items-center gap-3 mt-2">
-              <input type="checkbox" name="active" checked={form.active} onChange={handleChange} className="w-4 h-4 accent-green-600" />
-              <label className="font-semibold text-gray-700">Kích hoạt gói này</label>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  name="active"
+                  checked={form.active}
+                  onChange={handleChange}
+                  className="sr-only peer"
+                />
+                <div className="group peer ring-0 bg-gradient-to-tr from-rose-100 via-rose-400 to-rose-500 
+                  rounded-full outline-none duration-300 after:duration-300 w-11 h-6 shadow-md 
+                  peer-focus:outline-none 
+                  after:content-['X'] after:rounded-full after:absolute after:bg-gray-50 after:outline-none 
+                  after:h-4 after:w-4 after:top-1 after:left-1 after:-rotate-180 after:flex after:justify-center                
+                  after:items-center 
+                  after:text-rose-500 after:text-[10px] font-bold
+                  peer-hover:after:scale-95 
+                  peer-checked:after:translate-x-5 peer-checked:after:content-['✓'] peer-checked:after:rotate-0 
+                  peer-checked:after:text-green-600 
+                  peer-checked:bg-gradient-to-tr peer-checked:from-green-100 peer-checked:via-lime-400                
+                  peer-checked:to-lime-500">
+                </div>
+                <span className="ml-3 font-semibold text-md text-gray-700">
+                  Kích hoạt gói
+                </span>
+              </label>
             </div>
 
             <div className="flex gap-3">
@@ -339,7 +489,7 @@ export default function SubscriptionCreate() {
                   type="button"
                   onClick={() => {
                     setIsEdit(false);
-                    setForm({ planId: null, name: '', description: '', monthlyFee: '', swapAmount: 1, active: true });
+                    setForm(defaultForm);
                     setErrors({});
                   }}
                   className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition font-semibold"
