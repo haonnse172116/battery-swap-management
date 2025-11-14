@@ -22,7 +22,6 @@ export default function SubscriptionCreate() {
     name: '',
     description: '',
     monthlyFee: '',
-    swapsIncluded: '',
     swapAmount: 1,
     active: true,
   });
@@ -35,7 +34,7 @@ export default function SubscriptionCreate() {
   useEffect(() => {
     // reset form when not in edit
     if (!isEdit) {
-      setForm({ planId: null, name: '', description: '', monthlyFee: '', swapsIncluded: '', swapAmount: 1, active: true });
+      setForm({ planId: null, name: '', description: '', monthlyFee: '', swapAmount: 1, active: true });
     }
   }, [isEdit]);
 
@@ -50,7 +49,6 @@ export default function SubscriptionCreate() {
       name: plan.name || '',
       description: plan.description || '',
       monthlyFee: plan.monthlyFee != null ? String(plan.monthlyFee) : plan.monthly_fee != null ? String(plan.monthly_fee) : '',
-      swapsIncluded: plan.swapsIncluded || plan.swaps_included || '',
       swapAmount: plan.swapAmount != null ? plan.swapAmount : plan.swap_amount != null ? plan.swap_amount : 1,
       active: plan.active != null ? plan.active : !!plan.is_active,
     });
@@ -70,7 +68,6 @@ export default function SubscriptionCreate() {
         name: form.name.trim(),
         description: form.description.trim(),
         monthlyFee: Number(form.monthlyFee) || 0,
-        swapsIncluded: form.swapsIncluded || String(form.swapAmount || 0),
         swapAmount: Number(form.swapAmount) || 0,
         active: !!form.active,
       };
@@ -99,7 +96,6 @@ export default function SubscriptionCreate() {
         name: form.name.trim(),
         description: form.description.trim(),
         monthlyFee: Number(form.monthlyFee) || 0,
-        swapsIncluded: form.swapsIncluded || String(form.swapAmount || 0),
         swapAmount: Number(form.swapAmount) || 0,
         active: !!form.active,
       };
@@ -222,11 +218,6 @@ export default function SubscriptionCreate() {
               </div>
             </div>
 
-            <div>
-              <label className="block font-semibold mb-2 text-gray-700">Số lượt được bao gồm (hiển thị)</label>
-              <input name="swapsIncluded" value={form.swapsIncluded} onChange={handleChange} placeholder="VD: 2 swaps/month" className="w-full border rounded-lg p-3" />
-            </div>
-
             <div className="flex items-center gap-3 mt-2">
               <input type="checkbox" name="active" checked={form.active} onChange={handleChange} className="w-4 h-4 accent-green-600" />
               <label className="font-semibold text-gray-700">Kích hoạt gói này</label>
@@ -234,7 +225,7 @@ export default function SubscriptionCreate() {
 
             <div className="flex gap-3">
               <button type="submit" className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition font-semibold">{isEdit ? 'Cập nhật' : 'Tạo mới'}</button>
-              {isEdit && <button type="button" onClick={() => { setIsEdit(false); setForm({ planId: null, name: '', description: '', monthlyFee: '', swapsIncluded: '', swapAmount: 1, active: true }); }} className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition font-semibold">Hủy</button>}
+              {isEdit && <button type="button" onClick={() => { setIsEdit(false); setForm({ planId: null, name: '', description: '', monthlyFee: '', swapAmount: 1, active: true }); }} className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition font-semibold">Hủy</button>}
             </div>
           </form>
         </div>
