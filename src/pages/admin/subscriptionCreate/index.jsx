@@ -21,11 +21,13 @@ export default function SubscriptionCreate() {
     planId: null,
     name: '',
     description: '',
-    monthlyFee: '',
+    monthlyFee: 1000,
     swapAmount: 1,
     active: true,
   });
   const [isEdit, setIsEdit] = useState(false);
+
+  const [errors, setErrors] = useState({});
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null); // 'create' | 'update' | 'delete'
@@ -34,12 +36,27 @@ export default function SubscriptionCreate() {
   useEffect(() => {
     // reset form when not in edit
     if (!isEdit) {
-      setForm({ planId: null, name: '', description: '', monthlyFee: '', swapAmount: 1, active: true });
+      setForm({ planId: null, name: '', description: '', monthlyFee: 1000, swapAmount: 1, active: true });
+      setErrors({});
     }
   }, [isEdit]);
 
+  // clear field error when user types
+  useEffect(() => {
+    // optional: remove errors when value changes
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (form.name && next.name) delete next.name;
+      if (form.monthlyFee !== '' && next.monthlyFee) delete next.monthlyFee;
+      if (form.swapAmount !== '' && next.swapAmount) delete next.swapAmount;
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.name, form.monthlyFee, form.swapAmount]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    // keep numeric fields as strings so input works naturally; convert on validate/submit
     setForm((p) => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
   };
 
@@ -52,11 +69,52 @@ export default function SubscriptionCreate() {
       swapAmount: plan.swapAmount != null ? plan.swapAmount : plan.swap_amount != null ? plan.swap_amount : 1,
       active: plan.active != null ? plan.active : !!plan.is_active,
     });
+    setErrors({});
     setIsEdit(true);
+  };
+
+  const validateForm = () => {
+    const errs = {};
+    const name = (form.name || '').trim();
+    const description = (form.description || '').trim();
+    if (!name) {
+      errs.name = 'Tên gói không được để trống';
+    }
+    if (!description) {
+      errs.description = 'Mô tả không được để trống';
+    }
+
+    // monthlyFee must be number and >= 0
+    const monthly = form.monthlyFee === '' ? NaN : Number(form.monthlyFee);
+    if (form.monthlyFee === '') {
+      errs.monthlyFee = 'Giá thuê không được để trống';
+    } else if (Number.isNaN(monthly) || !isFinite(monthly)) {
+      errs.monthlyFee = 'Giá thuê phải là số hợp lệ';
+    } else if (monthly < 0) {
+      errs.monthlyFee = 'Giá thuê phải lớn hơn hoặc bằng 0';
+    }
+
+    // swapAmount must be number and >= 0
+    const swap = form.swapAmount === '' ? NaN : Number(form.swapAmount);
+    if (form.swapAmount === '' || form.swapAmount == null) {
+      errs.swapAmount = 'Số lượt đổi pin không được để trống';
+    } else if (Number.isNaN(swap) || !isFinite(swap)) {
+      errs.swapAmount = 'Số lượt đổi pin phải là số hợp lệ';
+    } else if (swap < 0) {
+      errs.swapAmount = 'Số lượt đổi pin phải lớn hơn hoặc bằng 0';
+    }
+
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
   const onSubmit = (e) => {
     e.preventDefault();
+    // validate first
+    if (!validateForm()) {
+      toast.error('Vui lòng sửa lỗi trên form trước khi tiếp tục');
+      return;
+    }
     // open confirm modal
     setConfirmAction(isEdit ? 'update' : 'create');
     setConfirmOpen(true);
@@ -91,6 +149,13 @@ export default function SubscriptionCreate() {
         toast.error('Không xác định gói để cập nhật');
         return;
       }
+
+      // validate again before sending (safety)
+      if (!validateForm()) {
+        toast.error('Vui lòng sửa lỗi trên form trước khi cập nhật');
+        return;
+      }
+
       const payload = {
         planId,
         name: form.name.trim(),
@@ -188,10 +253,19 @@ export default function SubscriptionCreate() {
         {/* right: form */}
         <div>
           <h2 className="text-lg font-semibold mb-4 text-gray-700">{isEdit ? 'Chỉnh sửa gói thuê pin' : 'Tạo gói thuê pin mới'}</h2>
-          <form onSubmit={onSubmit} className="bg-white shadow rounded-2xl p-7 space-y-5 border border-gray-100">
+          <form onSubmit={onSubmit} className="bg-white shadow rounded-2xl p-7 space-y-5 border border-gray-100" noValidate>
             <div>
               <label className="block font-semibold mb-2 text-gray-700">Tên gói</label>
-              <input name="name" value={form.name} onChange={handleChange} required className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-green-400" placeholder="VD: Gói tiết kiệm" />
+              <input
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                required
+                aria-invalid={!!errors.name}
+                className={`w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-green-400 ${errors.name ? 'border-red-400' : ''}`}
+                placeholder="VD: Gói tiết kiệm"
+              />
+              {errors.name && <div className="text-sm text-red-600 mt-1">{errors.name}</div>}
             </div>
 
             <div>
@@ -200,21 +274,50 @@ export default function SubscriptionCreate() {
                 name="description"
                 value={form.description}
                 onChange={handleChange}
+                required
+                aria-invalid={!!errors.description}
                 rows={3}
                 className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-green-400"
                 placeholder="Mô tả ngắn về gói thuê..."
               />
+              {errors.description && <div className="text-sm text-red-600 mt-1">{errors.description}</div>}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block font-semibold mb-2 text-gray-700">Giá thuê (VNĐ)</label>
-                <input name="monthlyFee" type="number" value={form.monthlyFee} onChange={handleChange} min={0} required className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-green-400" />
+                <input
+                  name="monthlyFee"
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={form.monthlyFee}
+                  onChange={handleChange}
+                  min={0}
+                  step="1000"
+                  required
+                  aria-invalid={!!errors.monthlyFee}
+                  className={`w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-green-400 ${errors.monthlyFee ? 'border-red-400' : ''}`}
+                />
+                {errors.monthlyFee && <div className="text-sm text-red-600 mt-1">{errors.monthlyFee}</div>}
               </div>
 
               <div>
                 <label className="block font-semibold mb-2 text-gray-700">Số lượt đổi pin</label>
-                <input name="swapAmount" type="number" value={form.swapAmount} onChange={handleChange} min={1} required className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-green-400" />
+                <input
+                  name="swapAmount"
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={form.swapAmount}
+                  onChange={handleChange}
+                  min={0}
+                  step="1"
+                  required
+                  aria-invalid={!!errors.swapAmount}
+                  className={`w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-green-400 ${errors.swapAmount ? 'border-red-400' : ''}`}
+                />
+                {errors.swapAmount && <div className="text-sm text-red-600 mt-1">{errors.swapAmount}</div>}
               </div>
             </div>
 
@@ -224,17 +327,46 @@ export default function SubscriptionCreate() {
             </div>
 
             <div className="flex gap-3">
-              <button type="submit" className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition font-semibold">{isEdit ? 'Cập nhật' : 'Tạo mới'}</button>
-              {isEdit && <button type="button" onClick={() => { setIsEdit(false); setForm({ planId: null, name: '', description: '', monthlyFee: '', swapAmount: 1, active: true }); }} className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition font-semibold">Hủy</button>}
+              <button
+                type="submit"
+                disabled={creating || updating || deleting}
+                className={`flex-1 py-2 rounded-lg font-semibold transition ${creating || updating || deleting ? 'bg-green-300 text-white cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'}`}
+              >
+                {isEdit ? 'Cập nhật' : 'Tạo mới'}
+              </button>
+              {isEdit && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEdit(false);
+                    setForm({ planId: null, name: '', description: '', monthlyFee: '', swapAmount: 1, active: true });
+                    setErrors({});
+                  }}
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition font-semibold"
+                >
+                  Hủy
+                </button>
+              )}
             </div>
           </form>
         </div>
       </div>
 
-      <ConfirmModal open={confirmOpen} title={confirmAction === 'delete' ? 'Xác nhận xóa' : confirmAction === 'update' ? 'Xác nhận cập nhật' : 'Xác nhận tạo'} onConfirm={onConfirm} onCancel={() => { setConfirmOpen(false); setConfirmTargetId(null); }} confirmText="Đồng ý" cancelText="Hủy" isLoading={creating || updating || deleting}>
+      <ConfirmModal
+        open={confirmOpen}
+        title={confirmAction === 'delete' ? 'Xác nhận xóa' : confirmAction === 'update' ? 'Xác nhận cập nhật' : 'Xác nhận tạo'}
+        onConfirm={onConfirm}
+        onCancel={() => {
+          setConfirmOpen(false);
+          setConfirmTargetId(null);
+        }}
+        confirmText="Đồng ý"
+        cancelText="Hủy"
+        isLoading={creating || updating || deleting}
+      >
         <div className="text-sm text-gray-700">
           {confirmAction === 'delete' ? (
-            <div>Bạn chắc chắn muốn xóa gói này?</div>
+            <div>Bạn chắc chắn muốn xóa gói <strong>{form.name}</strong>?</div>
           ) : confirmAction === 'update' ? (
             <div>Bạn chắc chắn muốn cập nhật gói <strong>{form.name}</strong>?</div>
           ) : (
