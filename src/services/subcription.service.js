@@ -21,10 +21,20 @@ export const subscriptionApi = apiSlice.injectEndpoints({
         { type: 'UserSubscription', id: userId }
       ],
     }),
+
+    // GET /Subscription/by-user/{userId} - Get user subscription by ID (admin)
+    getSubscriptionPurchases: builder.query({
+      query: (userId) => ({
+        url: `/Subscription/purchases`,
+        method: 'GET',
+      }),
+      providesTags: ['UserSubscription'],
+    }),
   }),
 });
 
 export const {
   useGetMySubscriptionQuery,
   useGetUserSubscriptionQuery,
+  useGetSubscriptionPurchasesQuery,
 } = subscriptionApi;
