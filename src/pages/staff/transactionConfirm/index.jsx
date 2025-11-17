@@ -40,7 +40,19 @@ const formatPrice = (price) => {
 function SwapCard({ s, onApprove, onReject }) {
   const paymentId = s.paymentId || null;
   const { data: paymentData } = useGetPaymentByIdQuery({ paymentId }, { skip: !paymentId });
+  // amount, method, paymentUrl - support multiple shapes
   const amount = paymentData?.content?.amount ?? paymentData?.amount ?? '—';
+  const paymentMethod =
+    paymentData?.content?.paymentMethod ||
+    paymentData?.paymentMethod ||
+    '—';
+
+  const paymentUrl =
+    paymentData?.content?.paymentUrl ||
+    paymentData?.content?.payment_url ||
+    paymentData?.paymentUrl ||
+    paymentData?.payment_url ||
+    null;
 
   const swappedAt = s.swappedAt ? new Date(s.swappedAt).toLocaleString() : (s.swappedAt || '') || s.createdAt ? new Date(s.createdAt).toLocaleString() : (s.createdAt || '');
   const swapId = s.swapId || '—';
@@ -50,6 +62,40 @@ function SwapCard({ s, onApprove, onReject }) {
   const license = s.licensePlate || '—';
   const batteryId = s.batteryId || '—';
   const hasPayment = !!s.hasPayment;
+
+  // helper translate payment method to user-friendly label
+  const getPaymentMethodLabel = (method) => {
+    if (!method || method === '—') return 'Chưa có phương thức thanh toán';
+    const m = String(method).toLowerCase();
+    if (m === 'Card') {
+      return 'Thanh toán bằng thẻ / QR (Card)';
+    }
+    if (m === 'Subscription_Plan') {
+      return 'Thanh toán bằng gói đăng ký';
+    }
+    // fallback: giữ nguyên tên nhưng đưa ra mô tả chung
+    return `${method}`;
+  };
+
+  // open paymentUrl in new tab func
+  const openPaymentUrl = () => {
+    const url = paymentUrl;
+    if (!url) {
+      toast.error('Không tìm thấy link thanh toán (paymentUrl).');
+      return;
+    }
+    try {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-3 border border-gray-100">
@@ -78,11 +124,13 @@ function SwapCard({ s, onApprove, onReject }) {
           {batteryId && <BatteryDetails batteryId={batteryId} />}
         </div>
 
-        <div className="flex items-center gap-2 justify-end">
-          <span className="text-gray-700 font-semibold">Tổng tiền thanh toán:</span>
-          <span className="text-green-700 font-bold text-lg">
-            {formatPrice(amount)}
-          </span>
+        <div className="flex items-center gap-2 justify-end flex-wrap">
+          <div className="text-right">
+            <div className="text-gray-700 font-semibold">Tổng tiền thanh toán:</div>
+            <div className="text-green-700 font-bold text-lg">{formatPrice(amount)}</div>
+            <div className="text-xs text-gray-500 mt-1">Phương thức: <span className="font-medium text-gray-700">{getPaymentMethodLabel(paymentMethod)}</span></div>
+            {/* {paymentUrl && <div className="text-xs text-blue-600 mt-1">Có link thanh toán</div>} */}
+          </div>
         </div>
       </div>
 
@@ -95,12 +143,27 @@ function SwapCard({ s, onApprove, onReject }) {
             Xác nhận hoàn tất đổi pin
           </button>
         ) : (
-          <button
-            className="px-4 py-2 bg-orange-500 text-white rounded text-sm font-semibold cursor-not-allowed"
-            disabled
-          >
-            Chưa hoàn tất thanh toán
-          </button>
+          // dropdown with option to open paymentUrl
+          <details className="relative">
+            <summary className="px-4 py-2 bg-orange-500 text-white rounded text-sm font-semibold cursor-pointer list-none">
+              Chưa hoàn tất thanh toán ▾
+            </summary>
+            <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow z-20 overflow-hidden">
+              <button
+                onClick={() => {
+                  // try opening paymentUrl fetched from API
+                  if (!paymentId && !paymentUrl) {
+                    toast.error('Không tìm thấy paymentId hoặc paymentUrl để thanh toán.');
+                    return;
+                  }
+                  openPaymentUrl();
+                }}
+                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+              >
+                Thanh toán giao dịch giang dở
+              </button>
+            </div>
+          </details>
         )}
 
         <button
