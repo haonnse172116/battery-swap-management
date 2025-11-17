@@ -68,7 +68,7 @@ function SwapCard({ s, onApprove, onReject }) {
     if (!method || method === '—') return 'Chưa có phương thức thanh toán';
     const m = String(method).toLowerCase();
     if (m === 'Card') {
-      return 'Thanh toán bằng thẻ / QR (Card)';
+      return 'Thanh toán bằng e-bank/QR';
     }
     if (m === 'Subscription_Plan') {
       return 'Thanh toán bằng gói đăng ký';
@@ -126,9 +126,8 @@ function SwapCard({ s, onApprove, onReject }) {
 
         <div className="flex items-center gap-2 justify-end flex-wrap">
           <div className="text-right">
-            <div className="text-gray-700 font-semibold">Tổng tiền thanh toán:</div>
-            <div className="text-green-700 font-bold text-lg">{formatPrice(amount)}</div>
-            <div className="text-xs text-gray-500 mt-1">Phương thức: <span className="font-medium text-gray-700">{getPaymentMethodLabel(paymentMethod)}</span></div>
+            <div className="text-gray-700 font-semibold">Tổng tiền thanh toán:<span className="text-green-700 font-bold text-lg"> {formatPrice(amount)}</span></div>
+            <div className="ml-4 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 w-fit inline-block">{getPaymentMethodLabel(paymentMethod)}</div>
             {/* {paymentUrl && <div className="text-xs text-blue-600 mt-1">Có link thanh toán</div>} */}
           </div>
         </div>

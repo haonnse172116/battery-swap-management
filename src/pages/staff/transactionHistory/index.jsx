@@ -33,6 +33,11 @@ function CompletedSwapCard({ s }) {
   const { data: paymentData } = useGetPaymentByIdQuery({ paymentId }, { skip: !paymentId });
   const amount = paymentData?.content?.amount ?? paymentData?.amount ?? '—';
 
+  const paymentMethod =
+    paymentData?.content?.paymentMethod ||
+    paymentData?.paymentMethod ||
+    '—';
+
   const swappedAt = s.swappedAt ? new Date(s.swappedAt).toLocaleString() : (s.createdAt ? new Date(s.createdAt).toLocaleString() : '');
   const swapId = s.swapId || s.id || '—';
   const userName = s.userName || s.user?.name || '—';
@@ -40,6 +45,20 @@ function CompletedSwapCard({ s }) {
   const vehicle = `${s.vehicleBrand || ''} ${s.vehicleModel || ''}`.trim();
   const license = s.licensePlate || '—';
   const batteryId = s.batteryId || '—';
+
+  // helper translate payment method to user-friendly label
+  const getPaymentMethodLabel = (method) => {
+    if (!method || method === '—') return 'Chưa có phương thức thanh toán';
+    const m = String(method).toLowerCase();
+    if (m === 'Card') {
+      return 'Thanh toán bằng e-bank/QR';
+    }
+    if (m === 'Subscription_Plan') {
+      return 'Thanh toán bằng gói đăng ký';
+    }
+    // fallback: giữ nguyên tên nhưng đưa ra mô tả chung
+    return `${method}`;
+  };
 
   return (
     <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-3 border border-gray-100">
@@ -62,9 +81,11 @@ function CompletedSwapCard({ s }) {
           {batteryId && <BatteryDetails batteryId={batteryId} />}
         </div>
 
-        <div className="flex items-center gap-2 justify-end">
-          <span className="text-gray-700 font-semibold">Tổng tiền đã thanh toán:</span>
-          <span className="text-green-700 font-bold text-lg">{formatPrice(amount)}</span>
+         <div className="flex items-center gap-2 justify-end flex-wrap">
+          <div className="text-right">
+            <div className="text-gray-700 font-semibold">Tổng tiền thanh toán:<span className="text-green-700 font-bold text-lg"> {formatPrice(amount)}</span></div>
+            <div className="ml-4 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 w-fit inline-block">{getPaymentMethodLabel(paymentMethod)}</div>
+          </div>
         </div>
       </div>
     </div>
