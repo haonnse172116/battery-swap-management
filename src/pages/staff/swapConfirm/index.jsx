@@ -22,7 +22,6 @@ const formatPrice = (price) => {
   }).format(price);
 };
 
-
 function BatteryDetails({ batteryId }) {
   const { data } = useGetBatteriesByIdQuery({ id: batteryId }, { skip: !batteryId });
   const b = data?.content ? (Array.isArray(data.content) ? data.content[0] : data.content) : data || null;
@@ -60,7 +59,7 @@ export default function SwapConfirm({ stationId: stationIdProp = null }) {
 
   // confirm modal state
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmTarget, setConfirmTarget] = useState(null); // { bookingId, toBatteryId }
+  const [confirmTarget, setConfirmTarget] = useState(null); // { bookingId, toBatteryId, method }
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   // normalize list to render
@@ -114,15 +113,19 @@ export default function SwapConfirm({ stationId: stationIdProp = null }) {
   const refetch = stationId ? refetchStationPending : refetchAll;
 
   // open confirm modal: require toBatteryId present (from batteryReturn.id)
-  const onConfirmClick = (bookingId, toBatteryId) => {
+  // now accepts method: 'Card' | 'Subscription_Plan' etc.
+  const onConfirmClick = (bookingId, toBatteryId, method = 'Card') => {
     if (!toBatteryId) { toast.error('Không tìm thấy mã pin thay thế (toBatteryId). Không thể tạo swap.'); return; }
-    setConfirmTarget({ bookingId, toBatteryId });
+    setConfirmTarget({ bookingId, toBatteryId, method });
     setConfirmOpen(true);
   };
 
-  // execute confirm + initPayment, then open returned paymentUrl
+  // execute confirm + initPayment
   const onConfirmExecute = async () => {
-    if (!confirmTarget) return; const { bookingId } = confirmTarget; setConfirmLoading(true);
+    if (!confirmTarget) return;
+    const { bookingId, method } = confirmTarget;
+    setConfirmLoading(true);
+
     try {
       // 1) confirm booking
       await toast.promise(
@@ -134,40 +137,43 @@ export default function SwapConfirm({ stationId: stationIdProp = null }) {
         }
       );
 
-      // 2) init payment (Cash) and open returned paymentUrl
+      // 2) init payment with method
       const paymentResp = await toast.promise(
-        initPayment({ bookingId, paymentMethod: 'Cash' }).unwrap(),
+        initPayment({ bookingId, paymentMethod: method }).unwrap(),
         {
-          loading: 'Đang khởi tạo thanh toán...',
-          success: 'Khởi tạo thanh toán thành công',
+          loading: method === 'Subscription_Plan' ? 'Áp dụng gói đăng ký...' : 'Đang khởi tạo thanh toán...',
+          success: method === 'Subscription_Plan' ? 'Áp dụng gói đăng ký thành công' : 'Khởi tạo thanh toán thành công',
           error: (err) => err?.data?.message || 'Khởi tạo thanh toán thất bại',
         }
       );
 
-      // extract paymentUrl (support multiple possible shapes)
-      const paymentUrl =
-        paymentResp?.content?.paymentUrl ||
-        paymentResp?.content?.payment_url ||
-        paymentResp?.paymentUrl ||
-        paymentResp?.payment_url ||
-        null;
+      // For standard payment (QR/Card) we want to open returned paymentUrl if present.
+      if (method !== 'Subscription_Plan') {
+        const paymentUrl =
+          paymentResp?.content?.paymentUrl ||
+          paymentResp?.content?.payment_url ||
+          paymentResp?.paymentUrl ||
+          paymentResp?.payment_url ||
+          null;
 
-      if (paymentUrl) {
-        // open in new tab
-        try {
-          window.open(paymentUrl, '_blank', 'noopener,noreferrer');
-        } catch (openErr) {
-          // fallback: create anchor and click
-          const a = document.createElement('a');
-          a.href = paymentUrl;
-          a.target = '_blank';
-          a.rel = 'noopener noreferrer';
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
+        if (paymentUrl) {
+          try {
+            window.open(paymentUrl, '_blank', 'noopener,noreferrer');
+          } catch (openErr) {
+            const a = document.createElement('a');
+            a.href = paymentUrl;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          }
+        } else {
+          toast.error('Không tìm thấy paymentUrl từ response.');
         }
       } else {
-        toast.error('Không tìm thấy paymentUrl từ response.');
+        // Subscription path: do NOT open paymentUrl. Server applied subscription and save in record.
+        toast.success('Thanh toán bằng gói đăng ký đã được xử lý.');
       }
 
       // success actions
@@ -203,7 +209,7 @@ export default function SwapConfirm({ stationId: stationIdProp = null }) {
 
   return (
     <>
-      <div className="p-6 min-h-screen">
+      <div className="p-6 mb-10 min-h-screen">
         <h1 className="text-2xl font-semibold mb-6 text-gray-800">Danh sách chờ duyệt đổi pin (Trạm: {stationNameFromBookings})</h1>
         {!stationId && userId && (<div className="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-300 text-sm text-yellow-800 rounded">Chú ý: hệ thống không xác định được trạm gán cho bạn — đang hiển thị tất cả booking (lọc Pending).</div>)}
 
@@ -279,7 +285,31 @@ export default function SwapConfirm({ stationId: stationIdProp = null }) {
                       <div className="flex items-center gap-2 justify-end"><span className="text-gray-700 font-semibold">Tổng tiền thanh toán:</span><span className="text-green-700 font-bold text-lg">{formatPrice(estimatedPrice)}</span></div>
                     </div>
 
-                    <div className="flex gap-3 mt-4 justify-end"><button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold" onClick={() => onConfirmClick(bookingId, batteryReturn.id)}>Xác nhận đổi pin</button><button className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-semibold" onClick={() => onReject(bookingId)}>Từ chối</button></div>
+                    <div className="flex gap-3 mt-4 justify-end items-center">
+                      {/* Dropdown using details/summary for simplicity */}
+                      <details className="relative">
+                        <summary className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 cursor-pointer list-none text-sm">
+                          Thanh toán ▾
+                        </summary>
+
+                        <div className="absolute right-0 mt-1 w-44 bg-white border rounded shadow z-20 overflow-hidden">
+                          <button
+                            onClick={() => onConfirmClick(bookingId, batteryReturn.id, 'Card')}
+                            className="w-full text-left px-4 py-2 text-sm hover:bg-gray-200"
+                          >
+                            Thanh toán QR
+                          </button>
+                          <button
+                            onClick={() => onConfirmClick(bookingId, batteryReturn.id, 'Subscription_Plan')}
+                            className="w-full text-left px-4 py-2 text-sm hover:bg-gray-200"
+                          >
+                            Sử dụng gói đăng ký
+                          </button>
+                        </div>
+                      </details>
+
+                      <button className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-semibold" onClick={() => onReject(bookingId)}>Từ chối</button>
+                    </div>
                   </div>
                 );
               })}
@@ -290,7 +320,7 @@ export default function SwapConfirm({ stationId: stationIdProp = null }) {
 
       <ConfirmModal
         open={confirmOpen}
-        title="Xác nhận đổi pin"
+        title={confirmTarget?.method === 'Subscription_Plan' ? 'Xác nhận sử dụng gói đăng ký' : 'Xác nhận đổi pin'}
         onConfirm={onConfirmExecute}
         onCancel={() => { setConfirmOpen(false); setConfirmTarget(null); }}
         isLoading={confirmLoading}
@@ -298,7 +328,16 @@ export default function SwapConfirm({ stationId: stationIdProp = null }) {
         cancelText="Hủy"
       >
         <div className="text-sm text-gray-700">
-          Bạn chắc chắn muốn xác nhận và tạo thanh toán cho booking <strong>{confirmTarget?.bookingId}</strong> với mã pin <strong>{confirmTarget?.toBatteryId}</strong> ?
+          {confirmTarget?.method === 'Subscription_Plan' ? (
+            <>
+              Bạn chắc chắn muốn xác nhận booking <strong>{confirmTarget?.bookingId}</strong> và **áp dụng gói đăng ký** cho mã pin <strong>{confirmTarget?.toBatteryId}</strong>?
+              <div className="text-xs text-gray-500 mt-2">Lưu ý: thao tác này sẽ tạo bản ghi thanh toán với phương thức <em>Subscription_Plan</em> và không mở link thanh toán.</div>
+            </>
+          ) : (
+            <>
+              Bạn chắc chắn muốn xác nhận và tạo thanh toán cho booking <strong>{confirmTarget?.bookingId}</strong> với mã pin <strong>{confirmTarget?.toBatteryId}</strong> ?
+            </>
+          )}
         </div>
       </ConfirmModal>
     </>
