@@ -52,8 +52,23 @@ export default function BatteryAdd() {
 
     const validate = () => {
         const err = [];
-        if (!form.serialNo && form.serialNo !== 0) err.push('Serial number is required');
-        if (form.capacityWh && isNaN(Number(form.capacityWh))) err.push('Capacity must be a number');
+        // serialNo is required and must be a non-negative integer
+        if (form.serialNo === '' || form.serialNo == null) err.push('Serial number is required');
+        else if (isNaN(Number(form.serialNo)) || !Number.isFinite(Number(form.serialNo))) err.push('Serial number must be a valid number');
+        else if (Number(form.serialNo) < 0) err.push('Serial number must be non-negative');
+
+        // capacityWh must be a non-negative number when provided
+        if (form.capacityWh !== '' && form.capacityWh != null) {
+            if (isNaN(Number(form.capacityWh)) || !Number.isFinite(Number(form.capacityWh))) err.push('Capacity must be a valid number');
+            else if (Number(form.capacityWh) < 0) err.push('Capacity must be non-negative');
+        }
+
+        // voltage when provided must be non-negative number
+        if (form.voltage !== '' && form.voltage != null) {
+            if (isNaN(Number(form.voltage)) || !Number.isFinite(Number(form.voltage))) err.push('Voltage must be a valid number');
+            else if (Number(form.voltage) < 0) err.push('Voltage must be non-negative');
+        }
+
         // if (!form.stationId) err.push('Station is required');
         if (err.length) toast.error(err.join(', '));
         return err.length === 0;
@@ -104,6 +119,8 @@ export default function BatteryAdd() {
                             <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
                             <input
                                 name={name}
+                                type="number"
+                                min={0}
                                 value={form[name]}
                                 onChange={onChange}
                                 className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none transition"
@@ -131,6 +148,8 @@ export default function BatteryAdd() {
                             <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
                             <input
                                 name={name}
+                                type="number"
+                                min={0}
                                 value={form[name]}
                                 onChange={onChange}
                                 className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none transition"
