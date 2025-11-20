@@ -132,14 +132,14 @@ const BookingCard = ({ booking, onUpdate }) => {
               Mã đặt chỗ: {booking.bookingId}
             </h3>
             <p className="text-sm text-gray-600">
-              Đặt ngày: {formatDate(booking.createdAt)}
+              Đặt ngày: {formatDate(booking.timeSlot)}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           {/* ✅ Time status indicator */}
-          {timeStatus && (
+          {/* {timeStatus && (
             <div className={`px-2 py-1 rounded text-xs font-medium ${
               timeStatus.type === 'overdue' 
                 ? 'bg-red-100 text-red-700' 
@@ -149,9 +149,9 @@ const BookingCard = ({ booking, onUpdate }) => {
             }`}>
               {timeStatus.text}
             </div>
-          )}
+          )} */}
           
-          {upcoming && !expired && <CountdownTimer targetDate={booking.timeSlot} />}
+          {/* {upcoming && !expired && <CountdownTimer targetDate={booking.timeSlot} />} */}
           
           <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>
             <StatusIcon className={`w-4 h-4 ${statusConfig.iconColor}`} />
@@ -162,7 +162,6 @@ const BookingCard = ({ booking, onUpdate }) => {
 
       {/* Body */}
       <div className="p-4">
-        {/* ✅ Expired booking warning */}
         {expired && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
             <div className="flex items-start gap-2">
@@ -283,7 +282,7 @@ const BookingCard = ({ booking, onUpdate }) => {
                   <CurrencyDollarIcon className="w-3 h-3 text-green-600" />
                   <span className="text-xs text-gray-600">Chi phí:</span>
                   <span className="text-xs font-semibold text-green-600">
-                    {formatPrice(booking.estimatedPrice)}
+                    {formatPrice(booking.estimatedPrice)} (Chi phí ước tính)
                   </span>
                 </div>
               )}

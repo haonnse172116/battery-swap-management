@@ -217,7 +217,6 @@ const StationSelection = ({
 
   return (
     <div>
-      {/* ✅ Development Mode Indicator */}
       {process.env.NODE_ENV === 'development' && !stationsData?.content?.length && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex items-center gap-2">
@@ -229,7 +228,6 @@ const StationSelection = ({
         </div>
       )}
 
-      {/* Header */}
       <div className="mb-4 sm:mb-6">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
           Chọn trạm thay pin
