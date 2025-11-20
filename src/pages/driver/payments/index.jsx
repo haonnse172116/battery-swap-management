@@ -9,7 +9,7 @@ import { useGetMyPaymentsQuery } from '../../../services/payment.service';
 import { useGetUserPaymentHistoryQuery } from '../../../services/subscriptionPayment.service';
 import { useUser } from '../../../hooks/useUser';
 
-// Components
+
 import PaymentTabs from './components/PaymentTabs';
 import PaymentFilters from './components/PaymentFilters';
 import PaymentStats from './components/PaymentStats';
@@ -17,8 +17,8 @@ import BookingPaymentCard from './components/BookingPaymentCard';
 import SubscriptionPaymentCard from './components/SubscriptionPaymentCard';
 
 const PaymentsPage = () => {
-  // States
-  const [activeTab, setActiveTab] = useState('all'); // all, booking, subscription
+  
+  const [activeTab, setActiveTab] = useState('all'); 
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,7 +27,7 @@ const PaymentsPage = () => {
 
   const { userInfo: currentUser } = useUser();
 
-  // API calls
+  
   const { 
     data: bookingPaymentsResponse, 
     isLoading: isLoadingBooking, 
@@ -51,11 +51,11 @@ const PaymentsPage = () => {
     pageSize
   });
 
-  // Data processing
+  
   const bookingPayments = bookingPaymentsResponse?.content || [];
   const subscriptionPayments = subscriptionPaymentsResponse?.content || [];
 
-  // Combine and filter data based on active tab
+  
   const filteredPayments = useMemo(() => {
     let payments = [];
     
@@ -66,19 +66,19 @@ const PaymentsPage = () => {
       case 'subscription':
         payments = subscriptionPayments.map(p => ({ ...p, type: 'subscription' }));
         break;
-      default: // 'all'
+      default: 
         payments = [
           ...bookingPayments.map(p => ({ ...p, type: 'booking' })),
           ...subscriptionPayments.map(p => ({ ...p, type: 'subscription' }))
         ];
     }
 
-    // Apply status filter
+    
     if (statusFilter !== 'all') {
       payments = payments.filter(p => p.status?.toLowerCase() === statusFilter.toLowerCase());
     }
 
-    // Apply search filter
+    
     if (searchTerm) {
       payments = payments.filter(p => 
         p.orderCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -88,7 +88,7 @@ const PaymentsPage = () => {
       );
     }
 
-    // Sort payments
+    
     payments.sort((a, b) => {
       const dateA = new Date(a.createdAt);
       const dateB = new Date(b.createdAt);
@@ -100,7 +100,7 @@ const PaymentsPage = () => {
           return b.amount - a.amount;
         case 'amount_low':
           return a.amount - b.amount;
-        default: // 'newest'
+        default: 
           return dateB - dateA;
       }
     });
@@ -108,7 +108,7 @@ const PaymentsPage = () => {
     return payments;
   }, [bookingPayments, subscriptionPayments, activeTab, statusFilter, searchTerm, sortBy]);
 
-  // Statistics
+  
   const stats = useMemo(() => {
     const allPayments = [
       ...bookingPayments.map(p => ({ ...p, type: 'booking' })),
@@ -119,17 +119,51 @@ const PaymentsPage = () => {
     const bookingCount = bookingPayments.length;
     const subscriptionCount = subscriptionPayments.length;
     
-    const totalAmount = allPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-    const successCount = allPayments.filter(p => p.status?.toLowerCase() === 'completed').length;
-    const pendingCount = allPayments.filter(p => p.status?.toLowerCase() === 'pending').length;
+    const paidPayments = allPayments.filter(p => {
+      
+      return p.amount > 1 || (p.amount === 1 && p.paymentMethod !== "Subscription_Plan");
+    });
+    
+    const freePayments = allPayments.filter(p => {
+      
+      return (p.amount === 1 && p.paymentMethod === "Subscription_Plan") || p.amount === 0;
+    });
+    
+    
+    const totalAmount = paidPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const hasFreeTransactions = freePayments.length > 0;
+    
+    const successCount = allPayments.filter(p => 
+      p.status?.toLowerCase() === 'completed' || p.status?.toLowerCase() === 'success'
+    ).length;
+    
+    const pendingCount = allPayments.filter(p => 
+      p.status?.toLowerCase() === 'pending'
+    ).length;
+
+    
+    const subscriptionUsageCount = freePayments.filter(p => 
+      p.amount === 1 && p.paymentMethod === "Subscription_Plan"
+    ).length;
+
+    
+    const failedCount = allPayments.filter(p => 
+      p.status?.toLowerCase() === 'failed'
+    ).length;
 
     return {
       totalCount,
       bookingCount,
       subscriptionCount,
       totalAmount,
+      hasFreeTransactions,
+      freeCount: freePayments.length,
+      subscriptionUsageCount, 
       successCount,
-      pendingCount
+      pendingCount,
+      failedCount,
+      
+      successRate: totalCount > 0 ? (successCount / totalCount) * 100 : 0
     };
   }, [bookingPayments, subscriptionPayments]);
 

@@ -11,7 +11,18 @@ import {
 } from '@heroicons/react/24/outline';
 
 const BookingPaymentCard = ({ payment }) => {
-  const formatCurrency = (amount) => {
+  const isFreePayment = (payment) => {
+    return (payment.amount === 1 && payment.paymentMethod === "Subscription_Plan") ||
+           payment.amount === 0;
+  };
+
+  const formatCurrency = (amount, paymentMethod) => {
+    if ((amount === 1 && paymentMethod === "Subscription_Plan") || amount === 0) {
+      return "Miễn phí";
+    }
+    
+    if (!amount) return "0 ₫";
+    
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
       currency: 'VND'
@@ -84,7 +95,11 @@ const BookingPaymentCard = ({ payment }) => {
     }
   };
 
-  const getPaymentMethodIcon = (method) => {
+  const getPaymentMethodIcon = (method, amount) => {
+    if (amount === 1 && method === "Subscription_Plan") {
+      return '🎁'; 
+    }
+    
     switch (method?.toLowerCase()) {
       case 'cash':
         return '💵';
@@ -94,8 +109,31 @@ const BookingPaymentCard = ({ payment }) => {
         return '🏦';
       case 'ewallet':
         return '📱';
+      case 'subscription_plan':
+        return '📋'; 
       default:
         return '💳';
+    }
+  };
+
+  const getPaymentMethodName = (method, amount) => {
+    if (amount === 1 && method === "Subscription_Plan") {
+      return "Sử dụng gói dịch vụ";
+    }
+    
+    switch (method?.toLowerCase()) {
+      case 'cash':
+        return 'Tiền mặt';
+      case 'card':
+        return 'Thẻ tín dụng/ghi nợ';
+      case 'bank':
+        return 'Chuyển khoản ngân hàng';
+      case 'ewallet':
+        return 'Ví điện tử';
+      case 'subscription_plan':
+        return 'Gói dịch vụ';
+      default:
+        return method || 'N/A';
     }
   };
 
@@ -107,12 +145,14 @@ const BookingPaymentCard = ({ payment }) => {
       {/* Header */}
       <div className={`flex items-center justify-between p-4 border-b border-gray-100 ${statusConfig.bgColor}`}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center text-white">
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white ${
+            isFreePayment(payment) ? 'bg-purple-500' : 'bg-green-500'
+          }`}>
             <BoltIcon className="w-6 h-6" />
           </div>
           <div>
             <h3 className="font-semibold text-gray-900">
-              Thanh toán thay pin
+              {isFreePayment(payment) ? 'Thay pin (Gói dịch vụ)' : 'Thanh toán thay pin'}
             </h3>
             <p className="text-sm text-gray-600">
               Mã giao dịch: {payment.payId}
@@ -121,6 +161,12 @@ const BookingPaymentCard = ({ payment }) => {
         </div>
         
         <div className="flex items-center gap-2">
+          {/* ✅ Show free badge for subscription payments */}
+          {isFreePayment(payment) && (
+            <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+              🎁 Miễn phí
+            </span>
+          )}
           <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>
             <StatusIcon className={`w-4 h-4 ${statusConfig.iconColor}`} />
             <span className="text-sm font-medium">
@@ -134,8 +180,12 @@ const BookingPaymentCard = ({ payment }) => {
       <div className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Payment Info */}
-          <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
-            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+          <div className={`flex items-start gap-3 p-3 rounded-lg ${
+            isFreePayment(payment) ? 'bg-purple-50' : 'bg-blue-50'
+          }`}>
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              isFreePayment(payment) ? 'bg-purple-500' : 'bg-blue-500'
+            }`}>
               <CreditCardIcon className="w-5 h-5 text-white" />
             </div>
             <div className="min-w-0 flex-1">
@@ -143,18 +193,28 @@ const BookingPaymentCard = ({ payment }) => {
               <p className="text-sm text-gray-700 mb-1">
                 <strong>Số tiền:</strong> 
                 <span className={`ml-1 font-bold ${
-                  statusConfig.label === 'Thành công' ? 'text-green-600' : 'text-gray-700'
+                  isFreePayment(payment)
+                    ? 'text-purple-600'
+                    : statusConfig.label === 'Thành công' 
+                    ? 'text-green-600' 
+                    : 'text-gray-700'
                 }`}>
-                  {formatCurrency(payment.amount)}
+                  {formatCurrency(payment.amount, payment.paymentMethod)}
                 </span>
               </p>
               <p className="text-sm text-gray-700 mb-1">
                 <strong>Tiền tệ:</strong> {payment.currency || 'VND'}
               </p>
+              {/* ✅ Show subscription info for free payments */}
+              {isFreePayment(payment) && (
+                <p className="text-sm text-purple-700 mb-1">
+                  <strong>Loại:</strong> Sử dụng gói dịch vụ đã đăng ký
+                </p>
+              )}
               <div className="flex items-center gap-2 mt-2">
-                <span className="text-lg">{getPaymentMethodIcon(payment.paymentMethod)}</span>
+                <span className="text-lg">{getPaymentMethodIcon(payment.paymentMethod, payment.amount)}</span>
                 <span className="text-sm text-gray-600">
-                  {payment.paymentMethod || 'N/A'}
+                  {getPaymentMethodName(payment.paymentMethod, payment.amount)}
                 </span>
               </div>
             </div>
@@ -176,17 +236,23 @@ const BookingPaymentCard = ({ payment }) => {
               <p className="text-sm text-gray-700">
                 <strong>Khách hàng:</strong> {payment.userName || 'N/A'}
               </p>
+              {/* ✅ Show additional info for subscription payments */}
+              {isFreePayment(payment) && (
+                <p className="text-sm text-purple-700 mt-1">
+                  <strong>✨ Sử dụng gói dịch vụ đã đăng ký</strong>
+                </p>
+              )}
             </div>
           </div>
 
           {/* Time Info */}
           <div className="md:col-span-2">
-            <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
-              <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg">
+              <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
                 <CalendarIcon className="w-5 h-5 text-white" />
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="font-medium text-gray-900 mb-2">Thời gian giao dịch</h4>
+                <h4 className="font-medium text-gray-900 mb-2">Thông tin giao dịch</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div>
                     <p className="text-gray-600">
@@ -198,11 +264,14 @@ const BookingPaymentCard = ({ payment }) => {
                   </div>
                   <div>
                     <p className="text-gray-600">
-                      <strong>User ID:</strong>
+                      <strong>Phương thức:</strong>
                     </p>
-                    <p className="text-gray-800 font-mono text-xs">
-                      {payment.userId || 'N/A'}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{getPaymentMethodIcon(payment.paymentMethod, payment.amount)}</span>
+                      <span className="text-gray-800">
+                        {getPaymentMethodName(payment.paymentMethod, payment.amount)}
+                      </span>
+                    </div>
                   </div>
                   <div>
                     <p className="text-gray-600">
@@ -211,6 +280,25 @@ const BookingPaymentCard = ({ payment }) => {
                     <p className={`font-medium ${statusConfig.textColor}`}>
                       {statusConfig.label}
                     </p>
+                    {/* ✅ Show payment URL if available and not subscription */}
+                    {payment.paymentUrl && 
+                     payment.paymentUrl.trim() !== "" && 
+                     !isFreePayment(payment) && (
+                      <a 
+                        href={payment.paymentUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:text-blue-800 underline mt-1 block"
+                      >
+                        Xem chi tiết thanh toán
+                      </a>
+                    )}
+                    {/* ✅ Show user ID for subscription payments */}
+                    {isFreePayment(payment) && payment.userId && (
+                      <p className="text-gray-500 text-xs mt-1 font-mono">
+                        User: {payment.userId.slice(0, 8)}...
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
