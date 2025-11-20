@@ -7,8 +7,9 @@ import { useGetBatteriesByIdQuery } from '@/services/battery.service';
 import DateFilter from '@/pages/driver/bookings/components/DateFilter';
 import { filterBookingsByDate } from '@/utils/booking';
 
-const formatPrice = (price) => {
-  if (price === null || price === undefined) return 'N/A';
+const formatPrice = (price, paymentMethod) => {
+  // If payment is via subscription plan, it's free for the customer
+  if (String(paymentMethod || '') === 'Subscription_Plan') return 'Miễn phí';  if (price === null || price === undefined) return 'N/A';
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND'
@@ -49,7 +50,7 @@ function CompletedSwapCard({ s }) {
   // helper translate payment method to user-friendly label
   const getPaymentMethodLabel = (method) => {
     if (!method || method === '—') return 'Chưa có phương thức thanh toán';
-    const m = String(method).toLowerCase();
+    const m = String(method);
     if (m === 'Card') {
       return 'Thanh toán bằng e-bank/QR';
     }
@@ -83,7 +84,7 @@ function CompletedSwapCard({ s }) {
 
          <div className="flex items-center gap-2 justify-end flex-wrap">
           <div className="text-right">
-            <div className="text-gray-700 font-semibold">Tổng tiền thanh toán:<span className="text-green-700 font-bold text-lg"> {formatPrice(amount)}</span></div>
+            <div className="text-gray-700 font-semibold">Tổng tiền thanh toán:<span className="text-green-700 font-bold text-lg"> {formatPrice(amount, paymentMethod)}</span></div>
             <div className="ml-4 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 w-fit inline-block">{getPaymentMethodLabel(paymentMethod)}</div>
           </div>
         </div>
