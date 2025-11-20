@@ -45,7 +45,7 @@ const Sidebar = ({ type }) => {
           children: [
             { key: PATHS.ADMIN.STATIONS.ADD, label: "Thêm mới" },
             { key: PATHS.ADMIN.STATIONS.LIST, label: "Danh sách" },
-            { key: PATHS.ADMIN.STATIONS.COMPLAINTS, label: "Xử lý khiếu nại" },
+            // { key: PATHS.ADMIN.STATIONS.COMPLAINTS, label: "Xử lý khiếu nại" },
           ],
         },
         {
@@ -53,7 +53,6 @@ const Sidebar = ({ type }) => {
           label: "Người dùng",
           icon: UserGroupIcon,
           children: [
-            { key: PATHS.ADMIN.USERS.CREATE, label: "Thêm mới" },
             { key: PATHS.ADMIN.USERS.LIST, label: "Danh sách" },
             { key: PATHS.ADMIN.USERS.STATION_STAFF, label: "Phân trạm nhân viên" },
           ],
@@ -108,7 +107,7 @@ const Sidebar = ({ type }) => {
           children: [
             { key: PATHS.STAFF.INVENTORY.LIST, label: "Danh sách pin" },
             // { key: PATHS.STAFF.INVENTORY.STATUS, label: "Quản lý tình trạng" },
-            { key: PATHS.STAFF.INVENTORY.SLOT_MANAGE, label: "Quản lý slot pin" },
+            // { key: PATHS.STAFF.INVENTORY.SLOT_MANAGE, label: "Quản lý slot pin" },
           ],
         },
       ],
