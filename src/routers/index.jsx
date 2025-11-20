@@ -22,6 +22,7 @@ import SubscriptionList from "../pages/admin/subscriptionList";
 import DriverHome from "../pages/driver/home";
 import MyCar from "../pages/driver/mycar";
 
+import StaffDashboard from "../pages/staff/dashboard";
 import SwapConfirm from "../pages/staff/swapConfirm";
 import TransactionHistory from "../pages/staff/transactionHistory";
 import TransactionConfirm from "../pages/staff/transactionConfirm";
@@ -113,10 +114,10 @@ export const router = createBrowserRouter([
     path: PATHS.STAFF.ROOT,
     element: <AuthorizedLayout type='staff' />,
     children: [
-      { path: PATHS.STAFF.DASHBOARD, element: <Placeholder title='Staff Dashboard' /> },
+      { path: PATHS.STAFF.DASHBOARD, element: <StaffDashboard/> },
       { path: PATHS.STAFF.SWAP.CONFIRM, element: <SwapConfirm /> },
-      { path: PATHS.STAFF.SWAP.PAYMENT, element: <TransactionConfirm title='Staff Confirm Transaction' /> },
-      { path: PATHS.STAFF.SWAP.HISTORY, element: <TransactionHistory title='Staff Transaction History' /> },
+      { path: PATHS.STAFF.SWAP.PAYMENT, element: <TransactionConfirm/> },
+      { path: PATHS.STAFF.SWAP.HISTORY, element: <TransactionHistory/> },
       { path: PATHS.STAFF.INVENTORY.LIST, element: <BatteryList /> },
       { path: PATHS.STAFF.INVENTORY.STATUS, element: <BatteryStatus title='Staff battery status' /> },
       { path: PATHS.STAFF.INVENTORY.SLOT_MANAGE, element: <BatterySlot /> },

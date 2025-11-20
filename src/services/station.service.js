@@ -46,6 +46,16 @@ export const stationApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Station'],
     }),
+    
+    // GET /Station/{id}
+    getStationById: builder.query({
+      query: ({ id, token }) => ({
+        url: `/Station/${id}`,
+        method: 'GET',
+      }),
+      invalidatesTags: ['Station'],
+    }),
+
     //GET /Station/available/{batteryTypeId} 
       getStationsByBatteryType: builder.query({
       query: ({batteryTypeId, excludeFull = true}) => ({
@@ -68,5 +78,6 @@ export const {
   useCreateStationMutation,
   useUpdateStationMutation,
   useDeleteStationMutation,
-  useGetStationsByBatteryTypeQuery
+  useGetStationByIdQuery,
+  useGetStationsByBatteryTypeQuery,
 } = stationApi;
