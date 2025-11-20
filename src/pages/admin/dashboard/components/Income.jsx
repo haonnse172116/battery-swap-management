@@ -17,6 +17,13 @@ import {
     CartesianGrid,
 } from 'recharts';
 
+/* Small avatar placeholder component used when avatar URL missing */
+function AvatarSmall({ name, url }) {
+    if (url) return <img src={url} alt={name} className="w-10 h-10 rounded-full object-cover" />;
+    const initials = name ? name.split(' ').map((s) => s[0]).slice(0, 2).join('').toUpperCase() : 'U';
+    return <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm text-gray-700">{initials}</div>;
+}
+
 /* ---------- Helpers ---------- */
 
 const STATUS_KEYS = ['Pending', 'Completed', 'Failed', 'Cancelled'];
@@ -308,6 +315,12 @@ export default function Income() {
     const areaData = useMemo(() => buildAreaData(paymentsFiltered, dateFilter, customFrom, customTo), [paymentsFiltered, dateFilter, customFrom, customTo]);
 
     const totalSum = paymentsFiltered.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    // treat any payment with amount === 1 as free (exclude from totals)
+    const totalSumAdjusted = paymentsFiltered.reduce((s, p) => {
+        const amt = Number(p.amount) || 0;
+        if (amt === 1) return s; // ignore free marker
+        return s + amt;
+    }, 0);
 
     return (
         <div>
@@ -349,7 +362,7 @@ export default function Income() {
                     <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
                             <h3 className="font-semibold">Thống kê trạng thái đơn hàng</h3>
-                            <div className="text-sm text-gray-600">Tổng (mốc hiện tại): <span className="font-semibold text-green-700">{fmtVND(totalSum)}</span></div>
+                            <div className="text-sm text-gray-600">Tổng (mốc hiện tại): <span className="font-semibold text-green-700">{fmtVND(totalSumAdjusted)}</span></div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
@@ -420,7 +433,7 @@ export default function Income() {
                 </div>
             </div>
 
-            <ConfirmModal
+                    <ConfirmModal
                 open={!!selectedStation}
                 title={`Chi tiết trạm ${selectedStation?.name || selectedStation?.stationName || ''}`}
                 onConfirm={() => { refetchStationPayments(); setSelectedStation(null); }}
@@ -429,19 +442,24 @@ export default function Income() {
             >
                 <div>
                     <h4 className="font-semibold mb-2">Doanh thu</h4>
-                    <div className="mb-2">Tổng: {fmtVND(stationPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0))}</div>
+                    <div className="mb-2">Tổng: {fmtVND(stationPayments.reduce((s, p) => {
+                            const amt = Number(p.amount) || 0;
+                            if (amt === 1) return s; // ignore free marker
+                            return s + amt;
+                        }, 0))}</div>
                     <div className="space-y-2 max-h-[50vh] overflow-auto">
                         {stationPayments.map(sp => (
                             <div key={sp.payId} className="p-2 border rounded flex justify-between items-center">
                                 <div className="flex items-center gap-3">
-                                    <img src={sp.avatarUrl} alt={sp.fullName} className="w-10 h-10 rounded-full object-cover" />
+                                    {/* Avatar or placeholder */}
+                                    <AvatarSmall name={sp.fullName} url={sp.avatarUrl} />
                                     <div>
                                         <div className="font-semibold">{sp.fullName}</div>
                                         <div className="text-xs text-gray-500">{getPaymentMethodLabel(paymentMethod)}</div>
                                         <div className="text-xs text-gray-500">{new Date(sp.createdAt).toLocaleString()}</div>
                                     </div>
                                 </div>
-                                <div className="font-semibold text-green-700">{fmtVND(Number(sp.amount) || 0)}</div>
+                                <div className="font-semibold text-green-700">{(Number(sp.amount) || 0) === 1 ? 'Miễn phí' : fmtVND(Number(sp.amount) || 0)}</div>
                             </div>
                         ))}
                         {stationPayments.length === 0 && <div className="text-sm text-gray-500">Không có giao dịch</div>}
