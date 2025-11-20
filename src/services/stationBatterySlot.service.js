@@ -9,6 +9,14 @@ export const stationBatterySlotApi = apiSlice.injectEndpoints({
       }),
       providesTags: ['StationSlot'],
     }),
+
+    getValidStationSlots: builder.query({
+      query: (stationId) => ({
+        url: `/StationBatterySlot/station/${stationId}/enable`,
+        method: 'GET',
+      }),
+      providesTags: ['StationSlot'],
+    }),
     
     registerSlot: builder.mutation({
       query: (slotData) => ({
@@ -43,4 +51,5 @@ export const {
   useRegisterSlotMutation,
   useUpdateSlotMutation,
   useDeleteSlotMutation,
+  useGetValidStationSlotsQuery
 } = stationBatterySlotApi;

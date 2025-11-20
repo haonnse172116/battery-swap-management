@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useGetStationSlotsQuery } from '../../../../services/stationBatterySlot.service';
+import { useGetValidStationSlotsQuery } from '../../../../services/stationBatterySlot.service';
 
 const SlotSelection = ({ 
   selectedCar,          
@@ -19,7 +18,7 @@ const SlotSelection = ({
     isError: slotsError,
     error: slotsErrorData,
     refetch: refetchSlots
-  } = useGetStationSlotsQuery(stationId, {
+  } = useGetValidStationSlotsQuery(stationId, {
     skip: !stationId,
     pollingInterval: 30000,
   });
