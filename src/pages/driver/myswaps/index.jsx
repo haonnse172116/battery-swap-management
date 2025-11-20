@@ -345,10 +345,10 @@ const SwapsPage = () => {
                   <div className="flex items-center gap-3">
                     {/* ✅ Fixed icon logic for confirmed status */}
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm ${
-                      swap.status?.toLowerCase() === 'confirmed' ? 'bg-green-500' : 
+                      swap.status?.toLowerCase() === 'completed' ? 'bg-green-500' : 
                       swap.status?.toLowerCase() === 'pending' ? 'bg-yellow-500' : 'bg-gray-500'
                     }`}>
-                      {swap.status?.toLowerCase() === 'confirmed' ? '⚡' : 
+                      {swap.status?.toLowerCase() === 'completed' ? '⚡' : 
                        swap.status?.toLowerCase() === 'pending' ? '🔄' : '❌'}
                     </div>
                     <div>
