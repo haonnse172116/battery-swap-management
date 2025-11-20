@@ -10,8 +10,11 @@ import {
   useGetEstimatedPriceMutation 
 } from "../../../../services/booking.service";
 
+
 const BUSINESS_START = 6;  
 const BUSINESS_END = 22;
+
+const ENABLE_24_7 = true; 
 
 const toLocalISOString = (date) => {
   const tzOffsetMs = date.getTimezoneOffset() * 60000;
@@ -19,12 +22,61 @@ const toLocalISOString = (date) => {
   return local.toISOString().slice(0, -1);
 };
 
+
 const isWithinBusinessHours = (date = new Date()) => {
+  if (ENABLE_24_7) return true; 
+  
   const h = date.getHours();
   return h >= BUSINESS_START && h < BUSINESS_END;
 };
 
+
+const isPastTime = (timeString, currentDate = new Date()) => {
+  if (!timeString) return false;
+  
+  const [hour, minute] = timeString.split(":");
+  const selectedTime = new Date(currentDate);
+  selectedTime.setHours(parseInt(hour, 10), parseInt(minute, 10), 0, 0);
+  
+  return selectedTime <= currentDate;
+};
+
+
+const buildBookingDate = (selectedTime) => {
+  const [hour, minute] = selectedTime.split(":").map((x) => parseInt(x, 10));
+  const now = new Date();
+
+  const bookingDate = new Date(now);
+  bookingDate.setSeconds(0, 0);
+  bookingDate.setHours(hour, minute, 0, 0);
+
+  
+  if (ENABLE_24_7 && bookingDate <= now) {
+    bookingDate.setDate(bookingDate.getDate() + 1);
+  }
+
+  return bookingDate;
+};
+
+
 const getNextAvailableTime = (date = new Date()) => {
+  if (ENABLE_24_7) {
+    
+    const current = new Date(date);
+    const minutes = current.getMinutes();
+
+    if (minutes < 30) {
+      current.setMinutes(30, 0, 0);
+    } else {
+      current.setHours(current.getHours() + 1, 0, 0, 0);
+    }
+
+    const h = current.getHours().toString().padStart(2, "0");
+    const m = current.getMinutes().toString().padStart(2, "0");
+    return `${h}:${m}`;
+  }
+  
+  
   const currentHour = date.getHours();
   const currentMinute = date.getMinutes();
 
@@ -38,7 +90,31 @@ const getNextAvailableTime = (date = new Date()) => {
   return `${nextHour.toString().padStart(2, "0")}:00`;
 };
 
+
 const generateTimeOptions = (now = new Date()) => {
+  if (ENABLE_24_7) {
+    
+    const times = [];
+    const cursor = new Date(now);
+    const minutes = cursor.getMinutes();
+
+    
+    if (minutes < 30) {
+      cursor.setMinutes(30, 0, 0);
+    } else {
+      cursor.setHours(cursor.getHours() + 1, 0, 0, 0);
+    }
+
+    for (let i = 0; i < 48; i++) {
+      const slot = new Date(cursor.getTime() + i * 30 * 60 * 1000);
+      const h = slot.getHours().toString().padStart(2, "0");
+      const m = slot.getMinutes().toString().padStart(2, "0");
+      times.push(`${h}:${m}`);
+    }
+
+    return times;
+  }
+  
   
   if (!isWithinBusinessHours(now)) return [];
 
@@ -50,20 +126,13 @@ const generateTimeOptions = (now = new Date()) => {
   if (startHour < BUSINESS_START) startHour = BUSINESS_START;
 
   const times = [];
-
-  
   const LAST_HOUR_CAN_BOOK = BUSINESS_END - 1; 
 
   for (let hour = startHour; hour <= LAST_HOUR_CAN_BOOK; hour++) {
     const base = hour.toString().padStart(2, "0");
-
-    
     times.push(`${base}:00`);
-
-    
     
     if (hour < LAST_HOUR_CAN_BOOK) {
-      
       times.push(`${base}:30`);
     }
   }
@@ -71,13 +140,27 @@ const generateTimeOptions = (now = new Date()) => {
   return times;
 };
 
+
 const getExpiryTimeFromSelected = (selectedTime) => {
   if (!selectedTime) return "";
   const [h, m] = selectedTime.split(":");
+  
+  if (ENABLE_24_7) {
+    
+    const bookingDate = buildBookingDate(selectedTime);
+    const expiryDate = new Date(bookingDate.getTime());
+    expiryDate.setDate(expiryDate.getDate() + 1);
+
+    return expiryDate.toLocaleTimeString("vi-VN", { 
+      hour: "2-digit", 
+      minute: "2-digit" 
+    });
+  }
+  
+  
   const expiryHour = (parseInt(h, 10) + 1) % 24;
   return `${expiryHour.toString().padStart(2, "0")}:${m}`;
 };
-
 
 const formatPrice = (price) => {
   if (!price || price === 0) return "Miễn phí";
@@ -109,12 +192,21 @@ const Booking = ({
     { isLoading: isLoadingPrice, error: priceError },
   ] = useGetEstimatedPriceMutation();
 
-  const bookingPossible = isWithinBusinessHours();
-
   
+  const bookingPossible = ENABLE_24_7 ? true : isWithinBusinessHours();
+
   const timeOptions = useMemo(() => generateTimeOptions(new Date()), []);
 
   
+  const isSelectedTimePast = useMemo(
+    () => {
+      if (!selectedTime) return false;
+      if (ENABLE_24_7) return false;
+      return isPastTime(selectedTime, new Date());
+    },
+    [selectedTime]
+  );
+
   useEffect(() => {
     const fetchEstimatedPrice = async () => {
       if (!selectedCar?.vehicleId || !selectedStation?.stationId) return;
@@ -146,25 +238,23 @@ const Booking = ({
     getEstimatedPrice,
   ]);
 
-  
   const handleBooking = async () => {
+    
     if (!selectedTime) return;
+    if (!ENABLE_24_7 && isSelectedTimePast) return;
 
     try {
-      const today = new Date();
-      const [hour, minute] = selectedTime.split(":");
-      today.setHours(parseInt(hour, 10), parseInt(minute, 10), 0, 0);
+      const bookingDateObj = buildBookingDate(selectedTime);
 
       const bookingPayload = {
         vehicleId: selectedCar?.vehicleId,
         stationId: selectedStation?.stationId,
         slotIds: [selectedSlot?.stationSlotId],
-        bookingDate: toLocalISOString(today),
+        bookingDate: toLocalISOString(bookingDateObj), 
       };
 
       const res = await createBooking(bookingPayload).unwrap();
 
-      
       const success = res?.success ?? true;
       if (!success) {
         throw new Error(res?.message || "Booking creation failed");
@@ -201,8 +291,9 @@ const Booking = ({
 
   const isBookingSuccessful = bookingData?.status === "success";
   const expiryTime = getExpiryTimeFromSelected(selectedTime);
-  const expiryIsOutside =
-    selectedTime &&
+  
+  
+  const expiryIsOutside = !ENABLE_24_7 && selectedTime &&
     (() => {
       const [h] = selectedTime.split(":");
       const exH = (parseInt(h, 10) + 1) % 24;
@@ -219,31 +310,46 @@ const Booking = ({
             Chọn thời gian đến trạm
           </h3>
 
-          {/* ✅ Cảnh báo ngoài giờ */}
-          {!bookingPossible && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+          {/* ✅ Show different messages based on mode */}
+          {ENABLE_24_7 ? (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
               <div className="flex items-start gap-3">
-                <ClockIcon className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-red-800">
-                  <p className="font-medium mb-1">🚫 Không thể đặt chỗ hiện tại</p>
+                <ClockIcon className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-800">
+                  <p className="font-medium mb-1">🌟 Dịch vụ 24/7</p>
                   <p>
-                    Hệ thống chỉ hoạt động trong giờ hành chính từ{" "}
-                    <strong>6:00 sáng đến 22:00 tối</strong>.
-                  </p>
-                  <p className="mt-2">
-                    <strong>Gợi ý:</strong> Hãy quay lại trong khung giờ hoạt động để
-                    đặt chỗ.
+                    Bạn có thể đặt chỗ bất kỳ thời gian nào trong ngày. 
+                    Hệ thống tự động hiển thị các khung giờ trong vòng 24 giờ tới.
                   </p>
                 </div>
               </div>
             </div>
+          ) : (
+            !bookingPossible && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <ClockIcon className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-red-800">
+                    <p className="font-medium mb-1">🚫 Không thể đặt chỗ hiện tại</p>
+                    <p>
+                      Hệ thống chỉ hoạt động trong giờ hành chính từ{" "}
+                      <strong>6:00 sáng đến 22:00 tối</strong>.
+                    </p>
+                    <p className="mt-2">
+                      <strong>Gợi ý:</strong> Hãy quay lại trong khung giờ hoạt động để
+                      đặt chỗ.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Ngày */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ngày (chỉ trong ngày)
+                Ngày (hiển thị hôm nay)
               </label>
               <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
                 <p className="font-semibold text-gray-800">
@@ -262,7 +368,9 @@ const Booking = ({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Thời gian <span className="text-red-500">*</span>
-                <span className="text-xs text-gray-500 ml-1">(6:00 - 22:00)</span>
+                <span className="text-xs text-gray-500 ml-1">
+                  {ENABLE_24_7 ? "(24/7 - Trong 24 giờ tới)" : "(6:00 - 22:00)"}
+                </span>
               </label>
 
               {bookingPossible ? (
@@ -270,41 +378,57 @@ const Booking = ({
                   <select
                     value={selectedTime}
                     onChange={(e) => setSelectedTime(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition ${
+                      isSelectedTimePast 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-gray-300'
+                    }`}
                     disabled={isCreatingBooking || timeOptions.length === 0}
                   >
                     <option value="">-- Chọn giờ --</option>
                     {timeOptions.map((time) => {
-                      const minute = time.split(":")[1];
+                      const isPast = !ENABLE_24_7 && isPastTime(time, new Date());
                       const expiry = getExpiryTimeFromSelected(time);
-                      const [h] = time.split(":");
-                      const exH = (parseInt(h, 10) + 1) % 24;
-                      const exOutside =
-                        exH >= BUSINESS_END || exH < BUSINESS_START;
+                      
                       return (
-                        <option key={time} value={time}>
-                          {time} (hết hạn lúc{" "}
-                          {exOutside
-                            ? `${expiry} - ngoài giờ hành chính`
-                            : expiry}
-                          )
+                        <option 
+                          key={time} 
+                          value={time}
+                          disabled={isPast}
+                          className={isPast ? 'text-gray-400' : ''}
+                        >
+                          {time} 
+                          {isPast && " (Đã qua)"}
+                          {!isPast && ENABLE_24_7 && ` (hết hạn: ${expiry})`}
+                          {!isPast && !ENABLE_24_7 && ` (hết hạn lúc ${expiry}${expiryIsOutside ? " - ngoài giờ hành chính" : ""})`}
                         </option>
                       );
                     })}
                   </select>
 
-                  {timeOptions.length === 0 && (
-                    <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <p className="text-sm text-yellow-800">
-                        ⚠️ Không còn khung giờ nào khả dụng trong giờ hành chính hôm nay
+                  {!ENABLE_24_7 && isSelectedTimePast && (
+                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-sm text-red-700">
+                        ⚠️ Thời gian đã chọn đã qua. Vui lòng chọn thời gian khác.
                       </p>
                     </div>
                   )}
 
-                  {selectedTime && (
-                    <p className="text-xs text-amber-600 mt-1">
-                      ⚠️ Chỗ sẽ được giữ đến {expiryTime}
-                      {expiryIsOutside ? " (ngoài giờ hành chính)" : ""}
+                  {timeOptions.length === 0 && (
+                    <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-sm text-yellow-800">
+                        ⚠️ {ENABLE_24_7 
+                          ? "Không còn thời gian khả dụng trong 24 giờ tới" 
+                          : "Không còn khung giờ nào khả dụng trong giờ hành chính hôm nay"
+                        }
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedTime && !isSelectedTimePast && (
+                    <p className="text-xs text-green-600 mt-1">
+                      ✅ Chỗ sẽ được giữ đến {expiryTime}
+                      {ENABLE_24_7 ? " (dự kiến sau 24 giờ)" : (expiryIsOutside ? " (ngoài giờ hành chính)" : "")}
                     </p>
                   )}
                 </>
@@ -380,15 +504,37 @@ const Booking = ({
             </span>
             <div className="text-right">
               <div className="font-semibold text-sm sm:text-base">
-                Hôm nay, {selectedTime || "Chưa chọn"}
+                {/* ✅ Fix logic hiển thị ngày */}
+                {ENABLE_24_7 && selectedTime ? (
+                  (() => {
+                    const bookingDate = buildBookingDate(selectedTime);
+                    const today = new Date();
+                    const isNextDay = bookingDate.getDate() > today.getDate() || 
+                                     bookingDate.getMonth() > today.getMonth() ||
+                                     bookingDate.getFullYear() > today.getFullYear();
+                    
+                    return isNextDay 
+                      ? `Ngày mai, ${selectedTime}` 
+                      : `Hôm nay, ${selectedTime}`;
+                  })()
+                ) : (
+                  `Hôm nay, ${selectedTime || "Chưa chọn"}`
+                )}
               </div>
-              {selectedTime && (
-                <div className="text-xs sm:text-sm text-amber-600">
+              {selectedTime && !isSelectedTimePast && (
+                <div className="text-xs sm:text-sm text-green-600">
                   Hết hạn: {expiryTime}
                 </div>
               )}
               <div className="text-xs text-gray-500">
-                {new Date().toLocaleDateString("vi-VN")}
+                {ENABLE_24_7 && selectedTime ? (
+                  (() => {
+                    const bookingDate = buildBookingDate(selectedTime);
+                    return bookingDate.toLocaleDateString("vi-VN");
+                  })()
+                ) : (
+                  new Date().toLocaleDateString("vi-VN")
+                )}
               </div>
             </div>
           </div>
@@ -403,6 +549,7 @@ const Booking = ({
             </span>
           </div>
 
+          {/* Chi phí dự kiến */}
           {!bookingData && bookingPossible && (
             <div className="flex items-center justify-between pt-3">
               <span className="font-medium text-gray-700 text-sm sm:text-base flex items-center gap-1">
@@ -561,13 +708,18 @@ const Booking = ({
         {!bookingData ? (
           <button
             onClick={handleBooking}
-            disabled={isCreatingBooking || !selectedTime || !bookingPossible}
+            disabled={isCreatingBooking || !selectedTime || isSelectedTimePast}
             className="order-1 sm:order-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base disabled:bg-gray-400"
           >
             {isCreatingBooking ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                 <span>Đang gửi yêu cầu...</span>
+              </>
+            ) : isSelectedTimePast ? (
+              <>
+                <ClockIcon className="w-4 h-4" />
+                <span>Thời gian đã qua</span>
               </>
             ) : !bookingPossible ? (
               <>
