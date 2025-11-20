@@ -22,14 +22,14 @@ const SubscriptionPage = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
-  // Get current user from custom hook
+  
   const { userInfo: currentUser, isLoading: isLoadingUser, error: userError } = useUser();
   const userId = currentUser?.userId;
 
-  // API hooks with user dependency
+  
   const { data: plansResponse, isLoading: isLoadingPlans, error: plansError, refetch: refetchPlans } = useGetSubscriptionPlansQuery({ page: 1, pageSize: 10 });
   
-  // Subscription query with user dependency - will auto refresh when user changes
+  
   const { 
     data: subscriptionResponse, 
     isLoading: isLoadingSubscription, 
@@ -42,14 +42,14 @@ const SubscriptionPage = () => {
   
   const [purchaseSubscription, { isLoading: isPurchasing }] = usePurchaseSubscriptionMutation();
 
-  // Auto-refetch subscription when user changes
+  
   useEffect(() => {
     if (userId) {
       refetchSubscription();
     }
   }, [userId, refetchSubscription]);
 
-  // Process API data
+  
   const availablePlans = plansResponse?.content || [];
   const totalPlans = plansResponse?.pagination?.totalCount || 0;
   const currentSubscription = subscriptionResponse?.content || null;
@@ -106,12 +106,12 @@ const SubscriptionPage = () => {
     return baseFeatures;
   };
 
-  // Check if current plan is same as available plan
+  
   const isCurrentPlan = (planId) => {
     return currentSubscription?.planId === planId;
   };
 
-  // Check if plan is upgrade from current
+  
   const isUpgrade = (planPrice) => {
     return currentSubscription && planPrice > currentSubscription.monthlyFee;
   };
@@ -127,7 +127,7 @@ const SubscriptionPage = () => {
       return;
     }
     
-    // Check for active subscription that prevents new subscription
+    
     if (currentSubscription && 
         currentSubscription.status === 'Active' && 
         !currentSubscription.isExpired && 
@@ -136,7 +136,7 @@ const SubscriptionPage = () => {
       return;
     }
     
-    // For current plan renewal - check if renewal is allowed
+    
     if (isCurrentPlan(plan.id)) {
       if (currentSubscription.status === 'Active' && !currentSubscription.isExpired) {
         if (currentSubscription.daysRemaining > 7) {
@@ -172,7 +172,7 @@ const SubscriptionPage = () => {
       const paymentData = purchaseResponse.content;
 
       if (paymentData?.paymentUrl) {
-        // Find the real subPayId field name from API response
+        
         const realSubPayId = paymentData.subPayId || 
                             paymentData.subscriptionPaymentId || 
                             paymentData.paymentId || 
@@ -195,7 +195,7 @@ const SubscriptionPage = () => {
 
         localStorage.setItem('pendingPayment', JSON.stringify(paymentInfo));
 
-        // Redirect to PayOS
+        
         window.location.href = paymentData.paymentUrl;
       } else {
         throw new Error('Không nhận được URL thanh toán');
@@ -209,7 +209,7 @@ const SubscriptionPage = () => {
         errorMessage = error.message;
       }
       
-      // Check for specific error cases
+      
       if (errorMessage.toLowerCase().includes('active') || 
           errorMessage.toLowerCase().includes('đang hoạt động') ||
           errorMessage.toLowerCase().includes('subscription already exists')) {
@@ -222,34 +222,34 @@ const SubscriptionPage = () => {
     }
   };
 
-  // Enhanced payment return handling with user context
+  
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const paymentSuccess = urlParams.get('success') === 'true' || urlParams.get('payment') === 'success';
     
     if (paymentSuccess && userId) {
-      // Get pending payment info
+      
       const pendingPayment = JSON.parse(localStorage.getItem('pendingPayment') || 'null');
       
-      // Check if payment belongs to current user
+      
       if (pendingPayment?.userId === userId) {
         toast.success('Thanh toán thành công! Đang cập nhật thông tin gói dịch vụ...');
         
-        // Refresh subscription data with delay to ensure backend has processed
+        
         setTimeout(() => {
           refetchSubscription();
         }, 2000);
         
-        // Clear pending payment
+        
         localStorage.removeItem('pendingPayment');
       }
       
-      // Clean URL
+      
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [userId, refetchSubscription]);
 
-  // Clear data when user logs out
+  
   useEffect(() => {
     if (!currentUser) {
       localStorage.removeItem('pendingPayment');
@@ -283,7 +283,7 @@ const SubscriptionPage = () => {
 
   const isLoading = isLoadingPlans || isLoadingSubscription || isLoadingUser;
 
-  // Show login required message if no user
+  
   if (!currentUser && !isLoadingUser) {
     return (
       <div className="px-6 py-8 max-w-7xl mx-auto">
@@ -346,6 +346,87 @@ const SubscriptionPage = () => {
     );
   }
 
+  
+  const calculateDaysRemaining = (endDate, isExpired, status, apiDaysRemaining) => {
+    if (isExpired) return 0;
+    
+    if (apiDaysRemaining !== null && apiDaysRemaining !== undefined) {
+      
+      const end = new Date(endDate);
+      const now = new Date();
+      const diffTime = end.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+      if (apiDaysRemaining === 0 && diffDays > 0) {
+        return diffDays;
+      }
+          
+      if (diffDays > 0 && apiDaysRemaining > 0) {
+        return Math.min(diffDays, apiDaysRemaining);
+      }
+      
+      return Math.max(0, apiDaysRemaining);
+    }
+      
+    const end = new Date(endDate);
+    const now = new Date();
+    const diffTime = end.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return Math.max(0, diffDays);
+  };
+
+  
+  const isSubscriptionExpired = (endDate, status, apiIsExpired) => {
+    const now = new Date();
+    const end = new Date(endDate);
+    
+    const dateExpired = end <= now;
+    
+    if (status === 'Inactive' && dateExpired) {
+      return true;
+    }
+    
+    
+    return apiIsExpired || dateExpired;
+  };
+
+  
+  const processedSubscription = currentSubscription ? {
+    ...currentSubscription,
+    daysRemaining: calculateDaysRemaining(
+      currentSubscription.endDate,
+      currentSubscription.isExpired,
+      currentSubscription.status,
+      currentSubscription.daysRemaining
+    ),
+    isExpired: isSubscriptionExpired(
+      currentSubscription.endDate,
+      currentSubscription.status,
+      currentSubscription.isExpired
+    ),
+    
+    calculatedStatus: (() => {
+      const expired = isSubscriptionExpired(
+        currentSubscription.endDate,
+        currentSubscription.status,
+        currentSubscription.isExpired
+      );
+      const daysLeft = calculateDaysRemaining(
+        currentSubscription.endDate,
+        currentSubscription.isExpired,
+        currentSubscription.status,
+        currentSubscription.daysRemaining
+      );
+      
+      if (expired || daysLeft <= 0) return 'Expired';
+      if (currentSubscription.status === 'Active') return 'Active';
+      if (currentSubscription.status === 'Inactive' && daysLeft > 0) return 'Pending';
+      
+      return currentSubscription.status;
+    })()
+  } : null;
+
   const transformedPlans = availablePlans
     .map(transformPlanFromAPI)
     .sort((a, b) => a.price - b.price); 
@@ -360,58 +441,76 @@ const SubscriptionPage = () => {
         </p>
       </div>
 
-      {/* Current Subscription */}
-      {currentSubscription && (
+      {/* Current Subscription - Use processedSubscription */}
+      {processedSubscription && (
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Gói hiện tại</h2>
           <div className={`rounded-xl border-2 p-6 ${
-            currentSubscription.status === 'Active' 
+            processedSubscription.calculatedStatus === 'Active' 
               ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200' 
-              : currentSubscription.isExpired
+              : processedSubscription.isExpired || processedSubscription.daysRemaining <= 0
               ? 'bg-gradient-to-r from-red-50 to-red-50 border-red-200'
-              : 'bg-gradient-to-r from-yellow-50 to-yellow-50 border-yellow-200'
+              : processedSubscription.calculatedStatus === 'Pending'
+              ? 'bg-gradient-to-r from-yellow-50 to-yellow-50 border-yellow-200'
+              : 'bg-gradient-to-r from-gray-50 to-gray-50 border-gray-200'
           }`}>
             <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                  currentSubscription.status === 'Active' 
+                  processedSubscription.calculatedStatus === 'Active' 
                     ? 'bg-blue-100 text-blue-600' 
-                    : 'bg-gray-100 text-gray-600'
+                    : processedSubscription.isExpired || processedSubscription.daysRemaining <= 0
+                    ? 'bg-red-100 text-red-600'
+                    : 'bg-yellow-100 text-yellow-600'
                 }`}>
-                  {getPlanIcon(currentSubscription.planName?.toLowerCase().includes('premium') ? 'premium' : 'basic')}
+                  {getPlanIcon(processedSubscription.planName?.toLowerCase().includes('premium') ? 'premium' : 'basic')}
                 </div>
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-lg font-semibold text-gray-900">{currentSubscription.planName}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">{processedSubscription.planName}</h3>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      currentSubscription.status === 'Active' && !currentSubscription.isExpired
+                      processedSubscription.calculatedStatus === 'Active'
                         ? 'bg-green-100 text-green-800'
-                        : currentSubscription.isExpired
+                        : processedSubscription.isExpired || processedSubscription.daysRemaining <= 0
                         ? 'bg-red-100 text-red-800'
-                        : 'bg-yellow-100 text-yellow-800'
+                        : processedSubscription.calculatedStatus === 'Pending'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-gray-100 text-gray-800'
                     }`}>
                       <CheckCircleIconSolid className="w-4 h-4 mr-1" />
-                      {currentSubscription.status === 'Active' && !currentSubscription.isExpired
+                      {processedSubscription.calculatedStatus === 'Active'
                         ? 'Đang hoạt động'
-                        : currentSubscription.isExpired
+                        : processedSubscription.isExpired || processedSubscription.daysRemaining <= 0
                         ? 'Đã hết hạn'
-                        : currentSubscription.status}
+                        : processedSubscription.calculatedStatus === 'Pending'
+                        ? 'Chờ kích hoạt'
+                        : processedSubscription.status}
                     </span>
                   </div>
                   <p className="text-sm text-gray-600">
-                    Từ {formatDate(currentSubscription.startDate)} đến {formatDate(currentSubscription.endDate)}
+                    Từ {formatDate(processedSubscription.startDate)} đến {formatDate(processedSubscription.endDate)}
                   </p>
-                  {currentSubscription.planDescription && (
-                    <p className="text-xs text-gray-500 mt-1">{currentSubscription.planDescription}</p>
+                  {processedSubscription.planDescription && (
+                    <p className="text-xs text-gray-500 mt-1">{processedSubscription.planDescription}</p>
                   )}
-                  {/* Show user info in subscription */}
                   <p className="text-xs text-gray-400 mt-1">
-                    Người sử dụng: {currentSubscription.userName || currentUser?.fullName || 'N/A'}
+                    Người sử dụng: {processedSubscription.userName || currentUser?.fullName || 'N/A'}
                   </p>
+                  
+                  {/* ✅ Add debug info for development */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div className="text-xs text-gray-400 mt-2 p-2 bg-gray-100 rounded">
+                      <p>Debug: API Status={processedSubscription.status}, API IsExpired={processedSubscription.isExpired ? 'true' : 'false'}</p>
+                      <p>API DaysRemaining={currentSubscription.daysRemaining}, Calculated={processedSubscription.daysRemaining}</p>
+                      <p>Calculated Status: {processedSubscription.calculatedStatus}</p>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-gray-900">{formatPrice(currentSubscription.monthlyFee)}</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {formatPrice(processedSubscription.monthlyFee)}
+                </div>
                 <div className="text-sm text-gray-600">/tháng</div>
               </div>
             </div>
@@ -423,7 +522,7 @@ const SubscriptionPage = () => {
                   <span className="text-sm font-medium text-gray-900">Lần thay pin đã sử dụng</span>
                 </div>
                 <div className="text-2xl font-bold text-blue-600">
-                  {currentSubscription.numberOfSwap}
+                  {processedSubscription.numberOfSwap}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
                   Tổng lần đã sử dụng trong chu kỳ
@@ -436,16 +535,23 @@ const SubscriptionPage = () => {
                   <span className="text-sm font-medium text-gray-900">Thời gian còn lại</span>
                 </div>
                 <div className={`text-2xl font-bold ${
-                  currentSubscription.daysRemaining > 7 
+                  processedSubscription.daysRemaining > 7 
                     ? 'text-green-600' 
-                    : currentSubscription.daysRemaining > 0 
+                    : processedSubscription.daysRemaining > 0 
                     ? 'text-yellow-600' 
                     : 'text-red-600'
                 }`}>
-                  {currentSubscription.daysRemaining} ngày
+                  {processedSubscription.daysRemaining} ngày
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
-                  {currentSubscription.isExpired ? 'Đã hết hạn' : 'Còn lại'}
+                  {processedSubscription.isExpired || processedSubscription.daysRemaining <= 0 
+                    ? 'Đã hết hạn' 
+                    : 'Còn lại'}
+                </div>
+                
+                {/* ✅ Show actual end date for reference */}
+                <div className="text-xs text-gray-400 mt-1">
+                  Hết hạn: {new Date(processedSubscription.endDate).toLocaleDateString('vi-VN')}
                 </div>
               </div>
               
@@ -455,34 +561,48 @@ const SubscriptionPage = () => {
                   <span className="text-sm font-medium text-gray-900">Trạng thái</span>
                 </div>
                 <div className={`text-lg font-semibold capitalize ${
-                  currentSubscription.status === 'Active' && !currentSubscription.isExpired
+                  processedSubscription.calculatedStatus === 'Active'
                     ? 'text-green-600'
-                    : currentSubscription.isExpired
+                    : processedSubscription.isExpired || processedSubscription.daysRemaining <= 0
                     ? 'text-red-600'
                     : 'text-yellow-600'
                 }`}>
-                  {currentSubscription.status === 'Active' && !currentSubscription.isExpired
+                  {processedSubscription.calculatedStatus === 'Active'
                     ? 'Hoạt động'
-                    : currentSubscription.isExpired
+                    : processedSubscription.isExpired || processedSubscription.daysRemaining <= 0
                     ? 'Hết hạn'
-                    : currentSubscription.status}
+                    : processedSubscription.calculatedStatus === 'Pending'
+                    ? 'Chờ kích hoạt'
+                    : processedSubscription.status}
                 </div>
               </div>
             </div>
 
             {/* Renewal/Upgrade notice */}
-            {currentSubscription.isExpired && (
+            {(processedSubscription.isExpired || processedSubscription.daysRemaining <= 0) && (
               <div className="mt-4 p-3 bg-red-100 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-800 font-medium">
-                  ⚠️ Gói dịch vụ của bạn đã hết hạn. Vui lòng gia hạn hoặc nâng cấp để tiếp tục sử dụng.
+                  ⚠️ Gói dịch vụ của bạn đã hết hạn vào {formatDate(processedSubscription.endDate)}. 
+                  Vui lòng gia hạn hoặc nâng cấp để tiếp tục sử dụng.
                 </p>
               </div>
             )}
             
-            {!currentSubscription.isExpired && currentSubscription.daysRemaining <= 7 && (
+            {processedSubscription.calculatedStatus === 'Pending' && (
               <div className="mt-4 p-3 bg-yellow-100 border border-yellow-200 rounded-lg">
                 <p className="text-sm text-yellow-800 font-medium">
-                  ⏰ Gói dịch vụ của bạn sẽ hết hạn trong {currentSubscription.daysRemaining} ngày. 
+                  ⏳ Gói dịch vụ đang chờ kích hoạt. Liên hệ hỗ trợ nếu cần thiết.
+                </p>
+              </div>
+            )}
+            
+            {!processedSubscription.isExpired && 
+             processedSubscription.daysRemaining > 0 && 
+             processedSubscription.daysRemaining <= 7 && (
+              <div className="mt-4 p-3 bg-yellow-100 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800 font-medium">
+                  ⏰ Gói dịch vụ của bạn sẽ hết hạn trong {processedSubscription.daysRemaining} ngày 
+                  (vào {formatDate(processedSubscription.endDate)}). 
                   Hãy gia hạn để tránh gián đoạn dịch vụ.
                 </p>
               </div>
