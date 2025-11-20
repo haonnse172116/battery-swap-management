@@ -66,7 +66,7 @@ export default function StationBattery() {
   const [assigning, setAssigning] = useState(false);
 
   // fetch data
-  const { data: batteriesData, isLoading: loadingBatteries, refetch: refetchBatteries } = useGetAllBatteriesQuery({ page, pageSize, search });
+  const { data: batteriesData, isLoading: loadingBatteries, refetch: refetchBatteries } = useGetAllBatteriesQuery({ page, pageSize, search: '' });
   const allBatteries = batteriesData?.content || [];
 
   const { data: stationsData, isLoading: loadingStations, refetch: refetchStations } = useGetStationsQuery({ page: 1, pageSize: 200 });
@@ -75,7 +75,7 @@ export default function StationBattery() {
   const [assignBulk, { isLoading: _assigning }] = useAssignBatteriesToStationMutation();
 
   // derived lists
-  // available (unassigned) batteries: no stationId and not InUse (same rule as before)
+  // available (unassigned) batteries: no stationId and not InUse
   const availableBatteries = useMemo(() => allBatteries.filter(b => !b.stationId && String(b.status || '').toLowerCase() !== 'inuse'), [allBatteries]);
 
   // batteries already assigned to currently open station
@@ -87,8 +87,30 @@ export default function StationBattery() {
   // filtered & sorted available list shown on left
   const filtered = useMemo(() => {
     let list = availableBatteries.slice();
-    if (statusFilter) list = list.filter(b => b.status === statusFilter);
-    if (search) list = list.filter(b => String(b.serialNo || b.id || b.batteryId).toLowerCase().includes(search.toLowerCase()));
+
+    // status filter (exact match)
+    if (statusFilter) list = list.filter(b => String(b.status) === String(statusFilter));
+
+    // - tokenizes search by whitespace
+    // - builds a haystack of searchable fields and requires every token to be present somewhere
+    const q = (search || '').trim().toLowerCase();
+    if (q) {
+      const tokens = q.split(/\s+/).filter(Boolean);
+      list = list.filter((b) => {
+        const hay = [
+          b.id,
+          b.batteryId,
+          b.serialNo,
+          b.batteryTypeName,
+          b.type,
+          b.status,
+          b.voltage,
+          b.capacityWh
+        ].filter(Boolean).join(' ').toLowerCase();
+        return tokens.every(t => hay.indexOf(t) !== -1);
+      });
+    }
+
     list.sort((a, b) => {
       const A = String(a[sortField] || '').toLowerCase();
       const B = String(b[sortField] || '').toLowerCase();
@@ -237,17 +259,20 @@ export default function StationBattery() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Tìm kiếm serial, id..." className="border rounded px-3 py-2 w-64" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Tìm id / serial / loại / trạng thái..." className="border rounded px-3 py-2 w-64" />
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="border rounded px-3 py-2">
               <option value="">Tất cả trạng thái</option>
               <option value="Available">Available</option>
               <option value="InUse">InUse</option>
               <option value="Charging">Charging</option>
               <option value="Damaged">Damaged</option>
+              <option value="Maintenance">Maintenance</option>
+              <option value="QualityCheck">QualityCheck</option>
             </select>
             <select value={sortField} onChange={e => setSortField(e.target.value)} className="border rounded px-3 py-2">
               <option value="serialNo">Số series</option>
               <option value="batteryTypeName">Loại pin</option>
+              <option value="id">ID</option>
             </select>
             <button onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')} className="px-3 py-2 border rounded">{sortOrder === 'asc' ? '↑ Tăng dần' : '↓ Giảm dần'}</button>
             <button onClick={() => { refetchBatteries && refetchBatteries(); }} className="px-3 py-2 bg-blue-600 text-white rounded">Làm mới</button>
@@ -274,7 +299,10 @@ export default function StationBattery() {
 
             {/* Right: station area (assigned + selected) */}
             <div>
-              <div className="text-sm text-gray-600 mb-2">Trạm: {(stations.find(s => String(s.stationId || s.id) === String(viewStationId))?.name) || '—'}</div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm text-gray-600">Trạm: {(stations.find(s => String(s.stationId || s.id) === String(viewStationId))?.name) || '—'}</div>
+                <div className="text-sm text-gray-500">Pin đã ở trạm: <span className="font-semibold">{assignedToStation.length}</span></div>
+              </div>
 
               {/* Assigned to station (already on server) */}
               <div className="mb-3">
