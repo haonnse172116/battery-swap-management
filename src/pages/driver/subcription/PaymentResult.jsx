@@ -250,13 +250,13 @@ const PaymentResult = () => {
                   <span className="font-medium">{displayData.userName}</span>
                 </div>
                 
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                {/* <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">Số tiền:</span>
                   <span className="font-semibold text-lg text-blue-600">
                     {formatPrice(displayData.amount)}
                   </span>
                 </div>
-                
+                 */}
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">Phương thức:</span>
                   <span className="font-medium">Thẻ ngân hàng (PayOS)</span>
