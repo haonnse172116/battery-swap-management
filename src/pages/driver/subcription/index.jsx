@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  CreditCardIcon, 
-  CheckCircleIcon, 
-  ClockIcon,
+import {
+  ArrowRightIcon,
   BoltIcon,
-  StarIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  CreditCardIcon,
+  ExclamationTriangleIcon,
   FireIcon,
   ShieldCheckIcon,
-  ArrowRightIcon,
-  ExclamationTriangleIcon,
-  SparklesIcon
+  SparklesIcon,
+  StarIcon
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid';
-import toast from '../../../utils/toast';
+import { useEffect, useState } from 'react';
+import { useUser } from '../../../hooks/useUser';
+import { useGetMySubscriptionQuery } from '../../../services/subcription.service';
 import { useGetSubscriptionPlansQuery } from '../../../services/subcriptionPlan.service';
 import { usePurchaseSubscriptionMutation } from '../../../services/subscriptionPayment.service';
-import { useGetMySubscriptionQuery } from '../../../services/subcription.service';
-import { useUser } from '../../../hooks/useUser';
+import toast from '../../../utils/toast';
 
 const SubscriptionPage = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -55,7 +55,7 @@ const SubscriptionPage = () => {
   const currentSubscription = subscriptionResponse?.content || null;
 
   const transformPlanFromAPI = (apiPlan) => {
-    const swapsCount = parseInt(apiPlan.swapsIncluded) || 0;
+    const swapsCount = parseInt(apiPlan.swapAmount) || 0;
     const isBasicPlan = apiPlan.name.toLowerCase().includes('basic');
     const isPremiumPlan = apiPlan.name.toLowerCase().includes('premium');
     
@@ -66,7 +66,7 @@ const SubscriptionPage = () => {
       price: apiPlan.monthlyFee,
       duration: 30, 
       swapsPerMonth: swapsCount,
-      swapAmount: apiPlan.swapAmount,
+      swapAmount: swapsCount,
       active: apiPlan.active,
       type: isBasicPlan ? 'basic' : isPremiumPlan ? 'premium' : 'standard',
       features: generatePlanFeatures(apiPlan),
@@ -81,7 +81,7 @@ const SubscriptionPage = () => {
 
   const generatePlanFeatures = (apiPlan) => {
     const baseFeatures = [
-      `${apiPlan.swapsIncluded} lần thay pin/tháng`,
+      `${apiPlan.swapAmount} lần thay pin/tháng`,
       'Hỗ trợ 24/7',
       'Theo dõi lịch sử thay pin'
     ];
@@ -579,7 +579,7 @@ const SubscriptionPage = () => {
                     plan.type === 'premium' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
                   } ${!plan.active ? 'opacity-50' : ''}`}>
                     <BoltIcon className="w-4 h-4" />
-                    {plan.swapsPerMonth} lần thay pin/tháng
+                    {plan.swapAmount} lần thay pin/tháng
                   </div>
                 </div>
 
