@@ -11,7 +11,7 @@ import {
 } from "../../../../services/booking.service";
 
 const BUSINESS_START = 6;  
-const BUSINESS_END = 24;
+const BUSINESS_END = 22;
 
 const toLocalISOString = (date) => {
   const tzOffsetMs = date.getTimezoneOffset() * 60000;
